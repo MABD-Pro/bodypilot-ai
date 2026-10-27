@@ -35,20 +35,25 @@ actor HealthMeals {
 
     private static func apply(_ entries: [HealthMealEntry], ids: [String]) async {
         let store = HKHealthStore()
-        // Écriture refusée dans Santé : rien à faire, l'app marche sans.
-        guard store.authorizationStatus(for: energy) == .sharingAuthorized else { return }
+        // Santé autorise chaque valeur à part : seules les autorisées partent.
+        // Aucune autorisée : rien à faire, l'app marche sans.
+        let allowed = types.filter { store.authorizationStatus(for: $0) == .sharingAuthorized }
+        guard !allowed.isEmpty else { return }
+        // Une autorisation ajoutée plus tard renvoie les repas avec la valeur manquante.
+        let allowedKey = allowed.map(\.identifier).joined(separator: ",")
         let defaults = UserDefaults.standard
         for id in ids {
             let wanted = entries.first { $0.id == id }
             let sentKey = "healthMeal.\(id)"
             let sent = defaults.string(forKey: sentKey)
-            guard wanted?.fingerprint != sent else { continue }
+            let fingerprint = wanted.map { "\($0.fingerprint)#\(allowedKey)" }
+            guard fingerprint != sent else { continue }
             do {
                 // Même sans trace d'envoi (app réinstallée) : jamais de doublon.
-                try await delete(id, in: store)
+                try await delete(id, in: store, types: allowed)
                 if let wanted {
-                    try await store.save(samples(for: wanted))
-                    defaults.set(wanted.fingerprint, forKey: sentKey)
+                    try await store.save(samples(for: wanted).filter { allowed.contains($0.quantityType) })
+                    defaults.set(fingerprint, forKey: sentKey)
                 } else {
                     defaults.removeObject(forKey: sentKey)
                 }
@@ -79,7 +84,7 @@ actor HealthMeals {
     }
 
     /// Retire les quatre valeurs envoyées pour ce repas.
-    private static func delete(_ id: String, in store: HKHealthStore) async throws {
+    private static func delete(_ id: String, in store: HKHealthStore, types: [HKQuantityType]) async throws {
         let predicate = HKQuery.predicateForObjects(withMetadataKey: mealIDKey, allowedValues: [id])
         for type in types {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
