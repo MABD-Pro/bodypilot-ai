@@ -79,10 +79,12 @@ struct NutritionCard: View {
     /// « Objectif du jour », puis ce qui reste une fois des repas pris.
     private var eatenSummary: String {
         guard eaten.kcal > 0 else { return "Objectif du jour · rien de mangé pour l'instant" }
-        let left = targets.macros.kcal - eaten.kcal
-        return left >= 0
-            ? "\(eaten.kcal.frenchInteger) kcal mangées · reste \(left.frenchInteger)"
-            : "\(eaten.kcal.frenchInteger) kcal mangées · \((-left).frenchInteger) au-dessus"
+        let over = eaten.kcal - targets.macros.kcal
+        // Le reste annoncé est celui des repas encore prévus, pour coller aux chiffres affichés.
+        let planned = meals.meals.filter { !$0.isEaten }.reduce(0) { $0 + $1.macros.kcal }
+        return over > 0
+            ? "\(eaten.kcal.frenchInteger) kcal mangées · \(over.frenchInteger) au-dessus"
+            : "\(eaten.kcal.frenchInteger) kcal mangées · reste \(planned.frenchInteger) prévues"
     }
 }
 
@@ -150,8 +152,9 @@ private struct MealRow: View {
                     Button {
                         log(.asPlanned)
                     } label: {
-                        Label("Mangé comme prévu", systemImage: "checkmark.circle")
+                        Label("Comme prévu", systemImage: "checkmark.circle")
                             .font(.caption.weight(.semibold))
+                            .lineLimit(1)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(meal.slot.tint)
@@ -159,6 +162,7 @@ private struct MealRow: View {
                     Button(action: describe) {
                         Label("Décrire", systemImage: "square.and.pencil")
                             .font(.caption.weight(.semibold))
+                            .lineLimit(1)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(meal.slot.tint)

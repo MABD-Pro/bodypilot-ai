@@ -146,8 +146,8 @@ enum DemoData {
             log.eatingOutSlot = eatingOutSlot
             log.exerciseSwapsRaw = swaps
             log.mealIntakesRaw = LaunchOptions.demoMeals
-            if let described = LaunchOptions.demoDescribed {
-                log.describedMeals = [described.slot: MealTextParser.parse(described.text).meal]
+            if let described = LaunchOptions.demoDescribed, case let meal = MealTextParser.parse(described.text).meal, !meal.foods.isEmpty {
+                log.describedMeals = [described.slot: meal]
             }
             context.insert(log)
         }

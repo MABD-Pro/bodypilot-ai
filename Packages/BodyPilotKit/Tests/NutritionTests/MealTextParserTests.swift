@@ -95,3 +95,20 @@ private struct FakeMealModel: MealLanguageModel {
     let dinnerAfter = try #require(after.meals.first { $0.slot == .dinner }).macros.kcal
     #expect(dinnerAfter < dinnerBefore)
 }
+
+@Test func earlierUnloggedMealsAreNotInflated() throws {
+    let planner = MealPlanner(calculator: EnergyCalculator(calendar: utc))
+    let targets = NutritionTargets(macros: Macros(kcal: 2200, proteinG: 160, carbsG: 220, fatG: 70), maintenanceKcal: 2600, rationale: "")
+    let date = day(2026, 10, 27)
+    let dinner = MealTextParser.parse("une soupe").meal
+    let normal = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints())
+    let after = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints(described: [.dinner: dinner]))
+
+    // Dîner léger noté : le petit-déjeuner et le déjeuner, non notés, restent tels que prévus.
+    for slot in [MealSlot.breakfast, .lunch, .snack] {
+        let before = try #require(normal.meals.first { $0.slot == slot }).macros
+        let now = try #require(after.meals.first { $0.slot == slot }).macros
+        #expect(before == now)
+    }
+    #expect(after.notes.isEmpty)
+}
