@@ -140,6 +140,8 @@ final class DayLogRecord {
     var exerciseSwapsRaw: [String] = []
     /// Séance du jour cochée comme faite : base de la régularité affichée dans Progresser.
     var workoutDone = false
+    /// Séance cochée, pour que la prochaine séance en plus enchaîne sur la suivante.
+    var doneWorkoutTitle: String?
     /// Repas déjà pris, au format « lunch=hearty ».
     var mealIntakesRaw: [String] = []
     /// Repas décrits en texte, encodés en JSON (aliments et estimations).

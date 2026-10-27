@@ -1,4 +1,5 @@
 import BodyPilotCore
+import ProgressInsights
 import SwiftUI
 import Training
 import WorkoutKit
@@ -13,8 +14,18 @@ struct TrainingCard: View {
     /// Jours de séance de cette semaine (1 = dimanche … 7 = samedi).
     var weekDays: [Int] = []
     var toggleWeekDay: (Int) -> Void = { _ in }
+    /// Ce qui a vraiment été fait cette semaine (séances cochées et activités de Santé).
+    var week: WeekActivity?
+    var healthLinked = false
+    /// Un jour de repos, l'envie de bouger donne une séance en plus.
+    var wantsToTrain: (() -> Void)?
+    /// Planifie la semaine sur la Watch ; `false` si l'autorisation est refusée.
+    var planWeekOnWatch: (() async -> Bool)?
 
     @State private var isPreviewingWatch = false
+    @State private var watchWeek: WatchWeekState = .idle
+
+    private enum WatchWeekState { case idle, sending, sent, refused }
 
     var body: some View {
         CoachCard(eyebrow: "Bouger", symbol: "figure.strengthtraining.functional", tint: Theme.training) {
@@ -30,6 +41,46 @@ struct TrainingCard: View {
             ForEach(training.notes, id: \.self) { note in
                 CoachNote(text: note, tint: Theme.training)
             }
+
+            if let week {
+                WeekSection(week: week, healthLinked: healthLinked)
+                    .id("week")
+            }
+
+            if let planWeekOnWatch, WatchSchedule.isSupported {
+                watchWeekButton(planWeekOnWatch)
+            }
+        }
+    }
+
+    private func watchWeekButton(_ plan: @escaping () async -> Bool) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            Button {
+                watchWeek = .sending
+                Task { watchWeek = await plan() ? .sent : .refused }
+            } label: {
+                Label(watchWeek == .sent ? "Semaine planifiée sur ta Watch" : "Planifier ma semaine sur la Watch",
+                      systemImage: watchWeek == .sent ? "checkmark.circle.fill" : "applewatch.radiowaves.left.and.right")
+                    .font(.subheadline.weight(.semibold))
+                    .contentTransition(.symbolEffect(.replace))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.glass)
+            .disabled(watchWeek == .sending)
+            .sensoryFeedback(.success, trigger: watchWeek) { _, state in state == .sent }
+            Text(watchWeekCaption)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var watchWeekCaption: String {
+        switch watchWeek {
+        case .refused: "Autorise BodyPilot dans Réglages > Confidentialité > Santé pour planifier sur la montre."
+        case .sent: "Séances et marches des jours de repos sont dans l'app Exercice de ta montre, jour par jour."
+        default: "Séances et marches des jours de repos, jusqu'à dimanche. Touche à nouveau après un changement."
         }
     }
 
@@ -97,18 +148,131 @@ struct TrainingCard: View {
     }
 
     private func restContent(title: String, minutes: Int) -> some View {
-        HStack(spacing: Theme.Spacing.l) {
-            IconBadge(symbol: "figure.walk", tint: Theme.training, size: 52)
-            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Text(title)
-                    .font(.display(24))
-                Text("Bouger un peu aide à récupérer et à garder le cap.")
+        VStack(alignment: .leading, spacing: Theme.Spacing.l) {
+            HStack(spacing: Theme.Spacing.l) {
+                IconBadge(symbol: "figure.walk", tint: Theme.training, size: 52)
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                    Text(title)
+                        .font(.display(24))
+                    Text("Bouger un peu aide à récupérer et à garder le cap.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                DurationBadge(minutes: minutes)
+            }
+            restActions
+        }
+    }
+
+    /// Jour de repos : la marche part sur la montre, ou une séance en plus si l'envie est là.
+    private var restActions: some View {
+        HStack(spacing: Theme.Spacing.s) {
+            if let plan = training.watchPlan {
+                Button {
+                    isPreviewingWatch = true
+                } label: {
+                    Label("Sur ma Watch", systemImage: "applewatch")
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
+                .buttonStyle(.glass)
+                .workoutPreview(plan, isPresented: $isPreviewingWatch)
+            }
+            if let wantsToTrain {
+                Button(action: wantsToTrain) {
+                    Label("Envie de bouger", systemImage: "bolt.heart")
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(Theme.training)
+            }
+        }
+    }
+}
+
+/// « Ma semaine » : minutes bougées par jour, puis le détail des activités.
+private struct WeekSection: View {
+    let week: WeekActivity
+    let healthLinked: Bool
+
+    private let calendar = Calendar.current
+    /// Une heure remplit la barre ; au-delà, elle reste pleine.
+    private let fullBarMinutes = 60.0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Ma semaine")
+                    .font(.headline)
+                Text(week.summary)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .contentTransition(.opacity)
             }
-            Spacer(minLength: 0)
-            DurationBadge(minutes: minutes)
+
+            HStack(alignment: .bottom, spacing: 6) {
+                ForEach(Array(zip(week.days, week.minutesPerDay)), id: \.0) { day, minutes in
+                    VStack(spacing: 4) {
+                        ZStack(alignment: .bottom) {
+                            Capsule().fill(Theme.training.opacity(0.1))
+                            Capsule()
+                                .fill(Theme.training.gradient)
+                                .frame(height: minutes > 0 ? max(8, 56 * min(minutes / fullBarMinutes, 1)) : 0)
+                        }
+                        .frame(height: 56)
+                        Text(calendar.initialWeekdayLetters(locale: Theme.locale)[calendar.component(.weekday, from: day) - 1])
+                            .font(.caption2.weight(calendar.isDateInToday(day) ? .bold : .medium))
+                            .foregroundStyle(calendar.isDateInToday(day) ? Theme.training : .secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(calendar.weekdayNames(locale: Theme.locale)[calendar.component(.weekday, from: day) - 1]) : \(WeekActivityAnalyzer.duration(minutes))")
+                }
+            }
+            .animation(Theme.springy, value: week.minutesPerDay)
+
+            VStack(spacing: 0) {
+                ForEach(week.entries.prefix(6)) { entry in
+                    HStack(spacing: Theme.Spacing.m) {
+                        IconBadge(symbol: entry.kind.symbol, tint: Theme.training, size: 32)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(entry.title)
+                                .font(.subheadline.weight(.medium))
+                            Text(detail(of: entry))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 0)
+                        if entry.fromHealth {
+                            Image(systemName: "heart.fill")
+                                .font(.caption2)
+                                .foregroundStyle(Theme.protein)
+                                .accessibilityLabel("Enregistré dans Santé")
+                        }
+                    }
+                    .padding(.vertical, 6)
+                }
+            }
+
+            if !healthLinked {
+                Text("Relie Santé dans Progresser pour voir aussi les activités de ta Watch.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
+    }
+
+    private func detail(of entry: WeekActivityEntry) -> String {
+        let weekday = calendar.weekdayNames(locale: Theme.locale)[calendar.component(.weekday, from: entry.start) - 1]
+        var parts = [weekday.capitalizingFirstLetter, WeekActivityAnalyzer.duration(entry.minutes)]
+        if let kcal = entry.kcal, kcal >= 1 { parts.append("\(kcal.frenchInteger) kcal") }
+        return parts.joined(separator: " · ")
     }
 }
 

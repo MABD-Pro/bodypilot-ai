@@ -32,6 +32,7 @@ struct OnDeviceCommandModel: CommandLanguageModel {
         if parsed.notHungry { adjustments.insert(.notHungry) }
         if parsed.kneePain { adjustments.insert(.kneePain) }
         if parsed.traveling { adjustments.insert(.traveling) }
+        if parsed.wantsToTrain { adjustments.insert(.wantsToTrain) }
         return CommandDraft(adjustments: adjustments, availableMinutes: parsed.availableMinutes, eatingOutSlot: parsed.eatingOutMeal?.slot)
     }
 }
@@ -52,6 +53,8 @@ struct ParsedDay {
     var kneePain: Bool
     @Guide(description: "En déplacement, en voyage, loin de chez soi")
     var traveling: Bool
+    @Guide(description: "A envie de faire du sport ou une séance aujourd'hui")
+    var wantsToTrain: Bool
     @Guide(description: "Minutes disponibles pour l'entraînement, si un nombre est donné")
     var availableMinutes: Int?
     @Guide(description: "Repas pris à l'extérieur, s'il est précisé")

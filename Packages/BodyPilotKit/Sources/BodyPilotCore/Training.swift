@@ -102,6 +102,10 @@ public struct DayConstraints: Sendable, Equatable {
     /// Remplacements demandés : clé de l'exercice → nombre de demandes. Chaque demande passe
     /// à la variante suivante, puis revient à l'exercice d'origine.
     public var exerciseSwaps: [String: Int]
+    /// Envie de bouger un jour sans séance prévue : le coach propose une séance en plus.
+    public var wantsExtraSession: Bool
+    /// Dernière séance faite, pour enchaîner sur la suivante plutôt que retravailler les mêmes muscles.
+    public var lastWorkoutTitle: String?
 
     public init(
         availableMinutes: Int? = nil,
@@ -110,7 +114,9 @@ public struct DayConstraints: Sendable, Equatable {
         missedYesterday: Bool = false,
         kneePain: Bool = false,
         traveling: Bool = false,
-        exerciseSwaps: [String: Int] = [:]
+        exerciseSwaps: [String: Int] = [:],
+        wantsExtraSession: Bool = false,
+        lastWorkoutTitle: String? = nil
     ) {
         self.availableMinutes = availableMinutes
         self.lowEnergy = lowEnergy
@@ -119,9 +125,49 @@ public struct DayConstraints: Sendable, Equatable {
         self.kneePain = kneePain
         self.traveling = traveling
         self.exerciseSwaps = exerciseSwaps
+        self.wantsExtraSession = wantsExtraSession
+        self.lastWorkoutTitle = lastWorkoutTitle
     }
 }
 
 public protocol TrainingPlanning: Sendable {
     func trainingDay(for profile: UserProfile, on date: Date, constraints: DayConstraints) -> TrainingDay
+}
+
+/// Famille d'activité sportive, telle que lue dans Santé (Apple Watch ou autres apps).
+public enum ActivityKind: String, Sendable, Codable, CaseIterable {
+    case strength, running, cycling, walking, swimming, intervals, mobility, sport, combat, cardio, other
+
+    public var title: String {
+        switch self {
+        case .strength: "Renforcement"
+        case .running: "Course"
+        case .cycling: "Vélo"
+        case .walking: "Marche"
+        case .swimming: "Natation"
+        case .intervals: "Fractionné"
+        case .mobility: "Mobilité"
+        case .sport: "Sport"
+        case .combat: "Sport de combat"
+        case .cardio: "Cardio"
+        case .other: "Activité"
+        }
+    }
+}
+
+/// Activité enregistrée hors de l'app (Santé), sur une période.
+public struct ActivitySample: Sendable, Equatable, Identifiable {
+    public var id: String
+    public var kind: ActivityKind
+    public var start: Date
+    public var minutes: Double
+    public var kcal: Double?
+
+    public init(id: String, kind: ActivityKind, start: Date, minutes: Double, kcal: Double? = nil) {
+        self.id = id
+        self.kind = kind
+        self.start = start
+        self.minutes = minutes
+        self.kcal = kcal
+    }
 }

@@ -81,6 +81,14 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Un jour déjà renseigné n'est jamais écrasé : la saisie manuelle garde la main.
 - Valeurs hors 25–350 kg écartées ; une mesure déjà importée (même identifiant Santé) ne revient pas.
 
+## Ma semaine et séance en plus (`ProgressInsights/WeekActivityAnalyzer`, `Training/TrainingPlanner`)
+
+- La carte Bouger montre la semaine en cours : minutes bougées par jour, puis chaque activité (séances cochées dans l'app et entraînements de Santé, Apple Watch comprise), avec durée et kcal.
+- Une séance cochée sans renforcement enregistré dans Santé le même jour s'affiche à part ; avec un enregistrement de la Watch, elle n'apparaît qu'une fois.
+- Une activité de Santé d'au moins 20 minutes, hors marche, compte comme une séance dans la régularité, même un jour non prévu.
+- Les jours cochés sont un repère, pas une limite : « J'ai envie de bouger » (bouton des jours de repos, phrase libre ou Siri) donne une séance en plus. Elle enchaîne sur la séance qui suit la dernière cochée, pour faire travailler d'autres muscles. Un jour de séance, la séance prévue ne change pas. « Pas envie de bouger » ne déclenche rien.
+- Apple Watch : la séance du jour ou la marche du jour de repos s'envoie d'une touche. « Planifier ma semaine sur la Watch » place les séances et les marches d'aujourd'hui à dimanche dans l'app Exercice (7 h). Aujourd'hui garde ses ajustements, les jours suivants partent du plan de base. Chaque envoi remplace le précédent.
+
 ## Repas envoyés vers Santé (`Nutrition/HealthMealExport`)
 
 - Avec Santé relié, chaque repas mangé (« Comme prévu », plus ou moins, décrit en texte ou en photo) part dans Santé > Nutrition : énergie consommée, protéines, glucides, lipides, nommés d'après le repas.

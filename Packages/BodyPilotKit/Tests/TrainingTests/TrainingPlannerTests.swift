@@ -169,3 +169,20 @@ private func workout(_ day: TrainingDay) -> Workout? {
     #expect(profile.trainingWeekdays == [4])
     #expect(makeProfile(daysPerWeek: 3).trainingWeekdays == [2, 4, 6])
 }
+
+@Test func wantingToTrainOnARestDayGivesTheSessionAfterTheLastOne() {
+    let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints(wantsExtraSession: true, lastWorkoutTitle: "Full body A"))
+    #expect(workout(result)?.title == "Full body B")
+    #expect(result.notes.contains { $0.hasPrefix("Séance en plus") })
+}
+
+@Test func anExtraSessionWithoutHistoryFollowsTheCalendar() {
+    let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints(wantsExtraSession: true))
+    #expect(workout(result) != nil)
+}
+
+@Test func wantingToTrainOnATrainingDayKeepsTheScheduledSession() {
+    let scheduled = planner.trainingDay(for: makeProfile(), on: monday, constraints: DayConstraints())
+    let eager = planner.trainingDay(for: makeProfile(), on: monday, constraints: DayConstraints(wantsExtraSession: true, lastWorkoutTitle: "Full body A"))
+    #expect(eager == scheduled)
+}

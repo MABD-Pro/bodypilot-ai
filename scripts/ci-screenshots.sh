@@ -62,6 +62,7 @@ shoot 2b-repas-pris -demoData YES -demoMeals breakfast=asPlanned,lunch=hearty -d
 shoot 2c-repas-decrit -demoData YES -demoMeals breakfast=asPlanned -demoDescribed "lunch=une grande assiette de pâtes carbo et un coca" -demoScrollTo nutrition
 shoot 3-aujourdhui-seance -demoData YES -demoScrollTo training
 shoot 3b-seance-exercice-remplace -demoData YES -demoSwap YES -demoScrollTo training
+shoot 3c-ma-semaine -demoData YES -demoActivities YES -demoHealth YES -demoScrollTo week
 shoot 4-aujourdhui-progression -demoData YES -demoScrollTo progress
 shoot 4c-bilan-semaine -demoData YES -demoCheckIn YES -demoScrollTo progress
 shoot 4b-progression-sante -demoData YES -demoHealth YES -demoScrollTo progress

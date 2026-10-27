@@ -49,6 +49,7 @@ public struct DailyCoach: Sendable {
         weekTrainingDays: [Int]? = nil,
         mealIntakes: [MealSlot: MealIntake] = [:],
         describedMeals: [MealSlot: DescribedMeal] = [:],
+        lastWorkoutTitle: String? = nil,
         on date: Date
     ) -> TodayPlan {
         // Les jours de séance de cette semaine, s'ils diffèrent des jours habituels.
@@ -70,7 +71,8 @@ public struct DailyCoach: Sendable {
             today: adjustments,
             yesterday: yesterdayAdjustments,
             availableMinutes: availableMinutes,
-            exerciseSwaps: exerciseSwaps
+            exerciseSwaps: exerciseSwaps,
+            lastWorkoutTitle: lastWorkoutTitle
         )
         let trainingDay = training.trainingDay(for: profile, on: date, constraints: constraints)
 
@@ -93,6 +95,9 @@ public struct DailyCoach: Sendable {
         }
         if adjustments.contains(.missedWorkout) {
             return "Séance ratée, pas de souci. On ne double pas, on reprend au prochain créneau."
+        }
+        if adjustments.contains(.wantsToTrain), training.notes.contains(where: { $0.hasPrefix("Séance en plus") }) {
+            return "Envie de bouger : une séance en plus, qui enchaîne sur la dernière."
         }
         if adjustments.contains(.traveling) {
             return "En déplacement : séance sans matériel et repères simples pour manger."
