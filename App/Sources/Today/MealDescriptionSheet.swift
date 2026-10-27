@@ -1,6 +1,8 @@
 import BodyPilotCore
 import Nutrition
+import PhotosUI
 import SwiftUI
+import UIKit
 
 /// « Qu'as-tu vraiment mangé ? » en une phrase : le coach estime, demande une précision si besoin.
 struct MealDescriptionSheet: View {
@@ -16,6 +18,11 @@ struct MealDescriptionSheet: View {
     @State private var removed: Set<Int> = []
     @State private var isAnalyzing = false
     @FocusState private var isEditing: Bool
+    @State private var photo: UIImage?
+    @State private var pickedItem: PhotosPickerItem?
+    @State private var isShowingCamera = false
+    @State private var isReadingPhoto = false
+    @State private var photoNotRecognized = false
 
     init(slot: MealSlot, initial: DescribedMeal?, save: @escaping (DescribedMeal) -> Void) {
         self.slot = slot
@@ -34,6 +41,29 @@ struct MealDescriptionSheet: View {
                         Text("Comme tu le dirais : « une grande assiette de pâtes carbo et un coca ».")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                    }
+
+                    photoButtons
+
+                    if let photo {
+                        Image(uiImage: photo)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 160)
+                            .frame(maxWidth: .infinity)
+                            .clipShape(.rect(cornerRadius: Theme.Radius.inner))
+                            .overlay {
+                                if isReadingPhoto {
+                                    ProgressView("Je regarde ton assiette…")
+                                        .padding(Theme.Spacing.m)
+                                        .glassEffect(.regular, in: .capsule)
+                                }
+                            }
+                            .transition(.opacity)
+                    }
+
+                    if photoNotRecognized {
+                        CoachNote(text: "Je n'ai pas reconnu ce repas sur la photo. Décris-le en quelques mots, je m'occupe du reste.", tint: slot.tint)
                     }
 
                     TextField("Ton repas", text: $text, axis: .vertical)
@@ -81,7 +111,22 @@ struct MealDescriptionSheet: View {
                 }
             }
         }
-        .onAppear { if parse == nil { isEditing = true } }
+        .onChange(of: pickedItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                    await read(image)
+                }
+                pickedItem = nil
+            }
+        }
+        .fullScreenCover(isPresented: $isShowingCamera) {
+            CameraPicker { image in
+                isShowingCamera = false
+                if let image { Task { await read(image) } }
+            }
+            .ignoresSafeArea()
+        }
         .onChange(of: text) { _, new in
             if new != parse?.text { parse = nil; portions = [:]; removed = [] }
         }
@@ -194,6 +239,52 @@ struct MealDescriptionSheet: View {
         .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
     }
 
+    /// Appareil photo (s'il existe) et photothèque : la photo préremplit la description.
+    private var photoButtons: some View {
+        HStack(spacing: Theme.Spacing.s) {
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button {
+                    isEditing = false
+                    isShowingCamera = true
+                } label: {
+                    Label("Prendre en photo", systemImage: "camera.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Theme.Spacing.s)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.tint(slot.tint.opacity(0.3)).interactive(), in: .capsule)
+            }
+            PhotosPicker(selection: $pickedItem, matching: .images) {
+                Label("Photothèque", systemImage: "photo.on.rectangle")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Theme.Spacing.s)
+            }
+            .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
+        .disabled(isReadingPhoto || isAnalyzing)
+    }
+
+    /// La photo devient une phrase, que l'utilisateur peut corriger avant l'estimation.
+    private func read(_ image: UIImage) async {
+        withAnimation(Theme.springy) {
+            photo = image
+            isReadingPhoto = true
+            photoNotRecognized = false
+        }
+        let sentence = await MealPhotoReader.sentence(for: image)
+        withAnimation(Theme.springy) { isReadingPhoto = false }
+        guard let sentence else {
+            withAnimation(Theme.springy) { photoNotRecognized = true }
+            isEditing = true
+            return
+        }
+        text = sentence
+        await analyze()
+    }
+
     private func analyze() async {
         let input = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty else { return }
@@ -217,6 +308,39 @@ extension MealSlot {
         case .lunch: "au déjeuner"
         case .snack: "à la collation"
         case .dinner: "au dîner"
+        }
+    }
+}
+
+/// Appareil photo système, le temps d'une prise de vue.
+private struct CameraPicker: UIViewControllerRepresentable {
+    let done: (UIImage?) -> Void
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ controller: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(done: done) }
+
+    @MainActor
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let done: (UIImage?) -> Void
+
+        init(done: @escaping (UIImage?) -> Void) {
+            self.done = done
+        }
+
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            done(info[.originalImage] as? UIImage)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            done(nil)
         }
     }
 }

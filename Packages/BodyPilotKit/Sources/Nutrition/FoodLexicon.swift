@@ -58,6 +58,7 @@ enum FoodLexicon {
         LexiconEntry(Foods.tuna, ["thon"], portion: 100, "1 boîte"),
         LexiconEntry(Food("Poisson", kcal: 110, protein: 22, carbs: 0, fat: 2), ["poisson", "cabillaud", "colin", "merlu", "dorade"], portion: 150, "1 filet"),
         LexiconEntry(Food("Jambon", kcal: 115, protein: 20, carbs: 1, fat: 3.5, unit: FoodUnit(grams: 40, singular: "tranche", plural: "tranches")), ["jambon"], portion: 80, "2 tranches", units: ["tranche": 40]),
+        LexiconEntry(Food("Saucisse", kcal: 300, protein: 13, carbs: 2, fat: 27, unit: FoodUnit(grams: 100, singular: "saucisse", plural: "saucisses")), ["saucisse", "merguez", "chipolata", "knacki"], portion: 100, "1 saucisse"),
         LexiconEntry(Foods.eggs, ["oeuf"], portion: 110, "2 œufs"),
         LexiconEntry(Foods.tofu, ["tofu"], portion: 150),
         LexiconEntry(Food("Whey", kcal: 380, protein: 75, carbs: 8, fat: 6), ["whey", "shaker", "shake proteine", "proteine en poudre"], portion: 30, "1 dose"),
