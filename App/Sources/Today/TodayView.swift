@@ -102,7 +102,10 @@ struct TodayView: View {
                             planWeekOnWatch: { await planWeekOnWatch(today: plan.training, weekDays: weekDays, isTodayDone: todayLog?.workoutDone ?? false) },
                             lifts: lifts,
                             usesLoads: profileRecord.profile.equipment == .gym,
-                            logLift: logLift
+                            logLift: logLift,
+                            bodyweightKg: weights.last?.kg ?? profileRecord.startWeightKg,
+                            sex: profileRecord.profile.sex,
+                            upcoming: upcomingDays(after: now)
                         )
                             .id("training")
                         ProgressCard(
@@ -215,6 +218,18 @@ struct TodayView: View {
         let since = calendar.date(byAdding: .weekOfYear, value: -HealthWorkouts.lookbackWeeks, to: .now) ?? .now
         guard let samples = try? await HealthWorkouts.samples(since: since) else { return }
         withAnimation(Theme.springy) { healthActivities = samples }
+    }
+
+    /// Les six prochains jours, chacun avec le planning de sa semaine (jours cochés).
+    private func upcomingDays(after now: Date) -> [UpcomingDay] {
+        (1...6).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: now) else { return nil }
+            let week = weekPlans.first { calendar.isDate($0.weekStart, equalTo: day, toGranularity: .weekOfYear) }
+            let training = CoachFactory.coach.plan(
+                for: profileRecord.profile, weights: weights.map(\.entry), weekTrainingDays: week?.weekdaysRaw, on: day
+            ).training
+            return UpcomingDay(date: calendar.startOfDay(for: day), training: training)
+        }
     }
 
     /// Séances et marches de la semaine, d'aujourd'hui à dimanche, planifiées sur la montre.

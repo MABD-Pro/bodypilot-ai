@@ -22,5 +22,6 @@ Objectif unique de l'app : la recomposition corporelle, c'est-à-dire perdre du 
 
 - Ces recommandations viennent surtout d'études sur des adultes en bonne santé, sur 6 à 12 semaines. Elles ne remplacent pas un avis médical en cas de douleur ou de pathologie.
 - Pour la marche inclinée, il n'existe pas de protocole précis validé (pente, durée) pour la recomposition. La pente de 10 à 12 % est un choix courant et prudent, pas un résultat d'étude.
+- Les charges d'essai (fractions du poids du corps) sont des repères prudents de débutant, pas des normes validées : la première série notée, à 1 à 2 répétitions de la limite, sert de vraie calibration.
 - Le record compare des 1RM estimés, pas des 1RM testés : c'est un indicateur de progression, pas une charge à tenter.
 - Le volume réel dépend des jours cochés : une semaine à 2 séances descend sous les 10 séries par muscle.
