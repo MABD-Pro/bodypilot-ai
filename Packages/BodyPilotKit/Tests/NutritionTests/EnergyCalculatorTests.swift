@@ -21,7 +21,7 @@ private let today = day(2026, 10, 27)
 @Test func caloriesNeverGoBelowSafetyFloor() {
     let small = UserProfile(
         sex: .female, birthDate: day(1966, 1, 1), heightCm: 150, startWeightKg: 48,
-        activity: .sedentary, goal: .loseFat, trainingDaysPerWeek: 2, sessionMinutes: 30, equipment: .none
+        activity: .sedentary, goal: .loseFat, trainingDaysPerWeek: 2, sessionMinutes: 30, equipment: .bodyweight
     )
     let targets = calculator.targets(for: small, currentWeightKg: 48, on: today)
     let bmr = calculator.basalMetabolicRate(sex: .female, weightKg: 48, heightCm: 150, age: 60)

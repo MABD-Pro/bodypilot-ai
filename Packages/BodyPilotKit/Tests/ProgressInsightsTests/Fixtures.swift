@@ -20,7 +20,7 @@ func makeProfile(
     goal: Goal = .loseFat,
     daysPerWeek: Int = 3,
     sessionMinutes: Int = 45,
-    equipment: Equipment = .none
+    equipment: Equipment = .bodyweight
 ) -> UserProfile {
     UserProfile(
         sex: sex,

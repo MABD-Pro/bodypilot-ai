@@ -4,7 +4,7 @@ import BodyPilotCore
 enum WorkoutCatalog {
     static func sessions(for equipment: Equipment) -> [Workout] {
         switch equipment {
-        case .none: [bodyweightA, bodyweightB]
+        case .bodyweight: [bodyweightA, bodyweightB]
         case .gym: [gymA, gymB]
         }
     }

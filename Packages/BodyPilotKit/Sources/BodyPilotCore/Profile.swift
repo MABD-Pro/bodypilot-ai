@@ -31,7 +31,7 @@ public enum Goal: String, CaseIterable, Sendable, Codable {
 
 public enum Equipment: String, CaseIterable, Sendable, Codable {
     /// Poids du corps, à la maison ou en déplacement.
-    case none
+    case bodyweight
     /// Salle de sport (haltères, poulies).
     case gym
 }
