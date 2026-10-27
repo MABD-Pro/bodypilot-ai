@@ -4,8 +4,15 @@ on:
   push:
     branches: [main]
   pull_request:
+    # La doc seule ne change ni le package ni l'app.
+    paths-ignore: ["**.md", "docs/**"]
   # Relance manuelle (onglet Actions) si GitHub n'a pas déclenché la CI d'une PR.
   workflow_dispatch:
+
+# Un nouveau push sur une PR annule le build précédent, devenu inutile.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   package:
@@ -23,14 +30,27 @@ jobs:
   app:
     name: App iOS (XcodeGen + build simulateur)
     runs-on: macos-15
+    # Minutes macOS facturées x10 : le build de la PR suffit, la fusion (squash d'une
+    # branche à jour) produit le même code. Après fusion, seul le package est revérifié.
+    if: github.event_name != 'push'
     permissions:
       contents: write
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
     steps:
       - uses: actions/checkout@v4
       - uses: maxim-lobanov/setup-xcode@v1
+        id: xcode
         with:
           xcode-version: latest-stable
       - run: xcodebuild -version
+      # Modules du SDK précompilés : identiques d'un build à l'autre pour une même version de Xcode.
+      - uses: actions/cache@v4
+        with:
+          path: build/ModuleCache.noindex
+          key: modulecache-${{ steps.xcode.outputs.version }}-${{ hashFiles('project.yml', 'Packages/BodyPilotKit/Package.swift') }}
+          restore-keys: modulecache-${{ steps.xcode.outputs.version }}-
       - run: brew install xcodegen
       - run: xcodegen generate
       - name: Build simulateur et captures d'écran
