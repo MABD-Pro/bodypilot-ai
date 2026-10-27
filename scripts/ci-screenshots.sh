@@ -58,6 +58,7 @@ shoot() {
 shoot 0-chargement -demoData YES -demoHoldSplash YES
 shoot 1-aujourdhui -demoData YES
 shoot 2-aujourdhui-repas -demoData YES -demoScrollTo nutrition
+shoot 2b-repas-pris -demoData YES -demoMeals breakfast=asPlanned,lunch=hearty -demoScrollTo nutrition
 shoot 3-aujourdhui-seance -demoData YES -demoScrollTo training
 shoot 3b-seance-exercice-remplace -demoData YES -demoSwap YES -demoScrollTo training
 shoot 4-aujourdhui-progression -demoData YES -demoScrollTo progress

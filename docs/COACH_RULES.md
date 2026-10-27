@@ -19,6 +19,12 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - « Je mange au restaurant » : le prochain repas principal (déjeuner avant 15 h, dîner ensuite) devient « Au restaurant » avec quatre repères (protéine, légumes, une portion de féculents, un seul extra parmi sauce, dessert ou alcool). La collation est supprimée et son budget va au restaurant.
 - « Je n'ai pas faim » : 85 % des calories, sans descendre sous le plancher de sécurité, collation dense en protéines.
 
+## Repas pris (`Nutrition/MealPlanner`)
+
+- Pour chaque repas, une touche : « Mangé comme prévu », ou bien sauté, plus léger (×0,6), plus copieux (×1,4), beaucoup plus copieux (×1,8). Pas de pesée ni de calcul.
+- Les repas restants se recalculent pour viser le total du jour, dans une limite de ×0,6 à ×1,4 : on ne saute pas un repas pour compenser un excès, on ne double pas le dîner après un déjeuner sauté.
+- Le coach le dit en une phrase, sans culpabiliser : une journée ne fait pas la tendance.
+
 ## Séance du jour (`Training/TrainingPlanner`)
 
 - L'utilisateur coche ses jours de séance habituels (par défaut lundi, mercredi, vendredi). Chaque semaine, il peut ajouter ou retirer un jour d'une touche ; ce choix ne vaut que pour la semaine en cours. Une semaine sans séance est possible. Deux full body alternés, poids du corps ou salle.

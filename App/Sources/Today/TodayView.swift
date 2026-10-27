@@ -34,6 +34,7 @@ struct TodayView: View {
             yesterdayAdjustments: adjustments(on: calendar.date(byAdding: .day, value: -1, to: now) ?? now),
             exerciseSwaps: todayLog?.exerciseSwaps ?? [:],
             weekTrainingDays: weekPlan?.weekdaysRaw,
+            mealIntakes: todayLog?.mealIntakes ?? [:],
             on: now
         )
 
@@ -56,7 +57,7 @@ struct TodayView: View {
                         header(plan: plan, date: now)
                         CommandField(apply: apply)
                         AdjustmentBar(active: todayAdjustments, toggle: toggle)
-                        NutritionCard(targets: plan.targets, meals: plan.meals)
+                        NutritionCard(targets: plan.targets, meals: plan.meals, logIntake: logIntake)
                             .id("nutrition")
                         TrainingCard(
                             training: plan.training,
@@ -215,6 +216,14 @@ struct TodayView: View {
         let log = todayLog()
         withAnimation(Theme.springy) {
             log.exerciseSwapsRaw.append(key)
+        }
+    }
+
+    /// Repas pris : `nil` annule la saisie. Les repas suivants se recalculent aussitôt.
+    private func logIntake(_ slot: MealSlot, _ intake: MealIntake?) {
+        let log = todayLog()
+        withAnimation(Theme.springy) {
+            log.mealIntakes[slot] = intake
         }
     }
 

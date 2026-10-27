@@ -51,11 +51,12 @@ extension DayConstraints {
 extension MealConstraints {
     /// Le restaurant concerne le repas précisé, sinon le prochain repas principal :
     /// le déjeuner le matin, le dîner ensuite.
-    public init(today: Set<QuickAdjustment>, at date: Date, calendar: Calendar, eatingOutSlot: MealSlot? = nil) {
+    public init(today: Set<QuickAdjustment>, at date: Date, calendar: Calendar, eatingOutSlot: MealSlot? = nil, eaten: [MealSlot: MealIntake] = [:]) {
         let hour = calendar.component(.hour, from: date)
         self.init(
             eatingOut: today.contains(.eatingOut) ? (eatingOutSlot ?? (hour < 15 ? .lunch : .dinner)) : nil,
-            lowAppetite: today.contains(.notHungry)
+            lowAppetite: today.contains(.notHungry),
+            eaten: eaten
         )
     }
 }

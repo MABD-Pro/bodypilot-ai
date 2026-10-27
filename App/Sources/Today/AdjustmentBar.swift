@@ -14,7 +14,7 @@ struct AdjustmentBar: View {
             ScrollView(.horizontal) {
                 GlassEffectContainer(spacing: Theme.Spacing.s) {
                     HStack(spacing: Theme.Spacing.s) {
-                        ForEach(QuickAdjustment.allCases, id: \.self) { adjustment in
+                        ForEach(ordered, id: \.self) { adjustment in
                             chip(adjustment)
                         }
                     }
@@ -24,6 +24,11 @@ struct AdjustmentBar: View {
             .scrollIndicators(.hidden)
             .scrollClipDisabled()
         }
+    }
+
+    /// Les ajustements actifs passent en tête : un choix qui change la journée reste toujours visible.
+    private var ordered: [QuickAdjustment] {
+        QuickAdjustment.allCases.filter(active.contains) + QuickAdjustment.allCases.filter { !active.contains($0) }
     }
 
     private func chip(_ adjustment: QuickAdjustment) -> some View {

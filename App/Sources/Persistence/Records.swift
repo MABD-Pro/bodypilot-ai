@@ -125,6 +125,19 @@ final class DayLogRecord {
     var exerciseSwapsRaw: [String] = []
     /// Séance du jour cochée comme faite : base de la régularité affichée dans Progresser.
     var workoutDone = false
+    /// Repas déjà pris, au format « lunch=hearty ».
+    var mealIntakesRaw: [String] = []
+
+    var mealIntakes: [MealSlot: MealIntake] {
+        get {
+            Dictionary(mealIntakesRaw.compactMap { entry -> (MealSlot, MealIntake)? in
+                let parts = entry.split(separator: "=").map(String.init)
+                guard parts.count == 2, let slot = MealSlot(rawValue: parts[0]), let intake = MealIntake(rawValue: parts[1]) else { return nil }
+                return (slot, intake)
+            }, uniquingKeysWith: { _, last in last })
+        }
+        set { mealIntakesRaw = newValue.map { "\($0.key.rawValue)=\($0.value.rawValue)" }.sorted() }
+    }
 
     var exerciseSwaps: [String: Int] {
         exerciseSwapsRaw.reduce(into: [:]) { $0[$1, default: 0] += 1 }

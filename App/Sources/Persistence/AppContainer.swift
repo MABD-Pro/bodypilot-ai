@@ -27,6 +27,10 @@ enum LaunchOptions {
     static var demoCheckIn: Bool { defaults.bool(forKey: "demoCheckIn") }
     /// `-demoSwap YES` : remplace le premier exercice de la séance du jour par sa variante.
     static var demoSwap: Bool { defaults.bool(forKey: "demoSwap") }
+    /// `-demoMeals breakfast=asPlanned,lunch=hearty` : repas déjà pris.
+    static var demoMeals: [String] {
+        (defaults.string(forKey: "demoMeals") ?? "").split(separator: ",").map(String.init)
+    }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }
@@ -122,12 +126,13 @@ enum DemoData {
            let first = workout.exercises.first {
             swaps = [first.key]
         }
-        if !adjustments.isEmpty || !swaps.isEmpty {
+        if !adjustments.isEmpty || !swaps.isEmpty || !LaunchOptions.demoMeals.isEmpty {
             let log = DayLogRecord(day: calendar.startOfDay(for: now))
             log.adjustments = adjustments
             log.availableMinutes = minutes
             log.eatingOutSlot = eatingOutSlot
             log.exerciseSwapsRaw = swaps
+            log.mealIntakesRaw = LaunchOptions.demoMeals
             context.insert(log)
         }
     }

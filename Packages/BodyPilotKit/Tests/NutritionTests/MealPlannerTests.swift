@@ -61,3 +61,57 @@ private let planner = MealPlanner(calculator: EnergyCalculator(calendar: utc))
     // 85 % de 1 250 = 1 062 < 1 200 : on reste au plancher (à l'arrondi des portions près).
     #expect(plan.totals.kcal > 1200 * 0.9)
 }
+
+@Test func heartyLunchLightensTheRestOfTheDay() throws {
+    let targets = NutritionTargets(macros: Macros(kcal: 2200, proteinG: 160, carbsG: 220, fatG: 70), maintenanceKcal: 2600, rationale: "")
+    let date = day(2026, 10, 27)
+    let normal = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints())
+    let after = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints(eaten: [.breakfast: .asPlanned, .lunch: .hearty]))
+
+    let lunch = try #require(after.meals.first { $0.slot == .lunch })
+    #expect(lunch.intake == .hearty)
+    let dinnerBefore = try #require(normal.meals.first { $0.slot == .dinner })
+    let dinnerAfter = try #require(after.meals.first { $0.slot == .dinner })
+    #expect(dinnerAfter.macros.kcal < dinnerBefore.macros.kcal)
+    #expect(abs(after.totals.kcal - 2200) / 2200 < 0.1)
+    #expect(after.notes.contains { $0.hasPrefix("Repas copieux") })
+}
+
+@Test func skippedMealIsOnlyPartlyMadeUp() throws {
+    let targets = NutritionTargets(macros: Macros(kcal: 2200, proteinG: 160, carbsG: 220, fatG: 70), maintenanceKcal: 2600, rationale: "")
+    let date = day(2026, 10, 27)
+    let normal = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints())
+    let after = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints(eaten: [.breakfast: .skipped, .lunch: .skipped]))
+
+    let breakfast = try #require(after.meals.first { $0.slot == .breakfast })
+    #expect(breakfast.macros.kcal == 0)
+    let dinnerBefore = try #require(normal.meals.first { $0.slot == .dinner }).macros.kcal
+    let dinnerAfter = try #require(after.meals.first { $0.slot == .dinner }).macros.kcal
+    // On ne double pas le dîner : au plus +40 % (à l'arrondi des portions près).
+    #expect(dinnerAfter > dinnerBefore)
+    #expect(dinnerAfter < dinnerBefore * 1.5)
+    #expect(after.notes.contains { $0.contains("sans tout rattraper") })
+}
+
+@Test func mealsEatenAsPlannedChangeNothing() {
+    let targets = planner.targets(for: makeProfile(), currentWeightKg: 90, on: day(2026, 10, 27))
+    let date = day(2026, 10, 27)
+    let normal = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints())
+    let after = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints(eaten: [.breakfast: .asPlanned]))
+    #expect(after.meals.map(\.macros) == normal.meals.map(\.macros))
+    #expect(after.notes.isEmpty)
+}
+
+@Test func mealEatenAsPlannedCountsTheAdjustedPortion() throws {
+    let targets = NutritionTargets(macros: Macros(kcal: 2200, proteinG: 160, carbsG: 220, fatG: 70), maintenanceKcal: 2600, rationale: "")
+    let date = day(2026, 10, 27)
+    let proposed = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints(eaten: [.breakfast: .asPlanned, .lunch: .hearty]))
+    let eaten = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints(eaten: [.breakfast: .asPlanned, .lunch: .hearty, .dinner: .asPlanned]))
+
+    // Le dîner allégé qu'on vient de proposer est celui qui a été mangé, pas la portion d'origine.
+    let dinnerProposed = try #require(proposed.meals.first { $0.slot == .dinner })
+    let dinnerEaten = try #require(eaten.meals.first { $0.slot == .dinner })
+    #expect(dinnerEaten.intake == .asPlanned)
+    #expect(dinnerEaten.macros == dinnerProposed.macros)
+    #expect(abs(eaten.totals.kcal - 2200) / 2200 < 0.1)
+}

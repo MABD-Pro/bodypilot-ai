@@ -51,6 +51,26 @@ public enum MealSlot: String, CaseIterable, Sendable, Codable {
     case dinner
 }
 
+/// Ce qui a vraiment été mangé, par rapport au repas prévu. Saisie en une touche, pas de pesée.
+public enum MealIntake: String, CaseIterable, Sendable, Codable {
+    case skipped
+    case light
+    case asPlanned
+    case hearty
+    case veryHearty
+
+    /// Part des calories prévues réellement mangée (estimation volontairement simple).
+    public var factor: Double {
+        switch self {
+        case .skipped: 0
+        case .light: 0.6
+        case .asPlanned: 1
+        case .hearty: 1.4
+        case .veryHearty: 1.8
+        }
+    }
+}
+
 public struct MealItem: Sendable, Equatable {
     public var name: String
     public var grams: Double
@@ -71,13 +91,16 @@ public struct PlannedMeal: Sendable, Equatable {
     public var macros: Macros
     /// Repas pris dehors : des repères plutôt que des quantités.
     public var isEatingOut: Bool
+    /// Déjà mangé : les macros sont alors celles estimées, pas celles prévues.
+    public var intake: MealIntake?
 
-    public init(slot: MealSlot, title: String, items: [MealItem], macros: Macros, isEatingOut: Bool = false) {
+    public init(slot: MealSlot, title: String, items: [MealItem], macros: Macros, isEatingOut: Bool = false, intake: MealIntake? = nil) {
         self.slot = slot
         self.title = title
         self.items = items
         self.macros = macros
         self.isEatingOut = isEatingOut
+        self.intake = intake
     }
 }
 
@@ -99,10 +122,13 @@ public struct MealConstraints: Sendable, Equatable {
     /// Repas pris au restaurant, s'il y en a un.
     public var eatingOut: MealSlot?
     public var lowAppetite: Bool
+    /// Repas déjà pris et ce qui a été mangé : les repas restants s'ajustent.
+    public var eaten: [MealSlot: MealIntake]
 
-    public init(eatingOut: MealSlot? = nil, lowAppetite: Bool = false) {
+    public init(eatingOut: MealSlot? = nil, lowAppetite: Bool = false, eaten: [MealSlot: MealIntake] = [:]) {
         self.eatingOut = eatingOut
         self.lowAppetite = lowAppetite
+        self.eaten = eaten
     }
 }
 
