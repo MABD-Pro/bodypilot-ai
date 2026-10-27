@@ -13,7 +13,7 @@ public struct WorkoutExercise: Sendable, Equatable {
     public var sets: Int
     public var volume: ExerciseVolume
     public var restSeconds: Int
-    /// 1 = essentiel, 3 = accessoire (supprimé en premier quand le temps manque).
+    /// 1 = essentiel, 3 = accessoire, 4 = cardio et marche inclinée (retirés en premier quand le temps manque).
     public var priority: Int
     public var isHighImpact: Bool
     /// Variante sans impact, utilisée en cas de fatigue.

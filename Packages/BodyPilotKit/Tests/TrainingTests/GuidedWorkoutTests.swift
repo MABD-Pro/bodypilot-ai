@@ -6,7 +6,7 @@ import Testing
     let guided = WorkoutCatalog.bodyweightB.guided
     #expect(guided.title == "Full body B")
     #expect(guided.warmupSeconds == 300)
-    #expect(guided.cooldownSeconds == 180)
+    #expect(guided.cooldownSeconds == 120)
     #expect(guided.blocks.count == WorkoutCatalog.bodyweightB.exercises.count)
     #expect(guided.blocks.map(\.iterations) == WorkoutCatalog.bodyweightB.exercises.map(\.sets))
 }
@@ -14,10 +14,10 @@ import Testing
 @Test func repsStayOpenAndTimedSetsAreTimed() {
     let guided = WorkoutCatalog.bodyweightB.guided
     let squats = guided.blocks[0]
-    #expect(squats.steps[0] == GuidedWorkout.Step(isWork: true, goal: .open, label: "Squats sumo · 15 rép."))
-    #expect(squats.steps[1] == GuidedWorkout.Step(isWork: false, goal: .seconds(60), label: "Repos"))
-    let plank = guided.blocks[4]
-    #expect(plank.steps[0].goal == .seconds(25))
+    #expect(squats.steps[0] == GuidedWorkout.Step(isWork: true, goal: .open, label: "Squats tempo lent · 12 rép."))
+    #expect(squats.steps[1] == GuidedWorkout.Step(isWork: false, goal: .seconds(90), label: "Repos"))
+    let plank = guided.blocks[3]
+    #expect(plank.steps[0].goal == .seconds(30))
 }
 
 @Test func restDayHasNoGuidedWorkout() {

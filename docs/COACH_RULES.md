@@ -37,8 +37,10 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 ## Séance du jour (`Training/TrainingPlanner`)
 
-- L'utilisateur coche ses jours de séance habituels (par défaut lundi, mercredi, vendredi). Chaque semaine, il peut ajouter ou retirer un jour d'une touche ; ce choix ne vaut que pour la semaine en cours. Une semaine sans séance est possible. Deux full body alternés, poids du corps ou salle.
-- Jours sans séance : repos actif (marche 30 min).
+- L'utilisateur coche ses jours de séance habituels (par défaut lundi, mercredi, vendredi). Chaque semaine, il peut ajouter ou retirer un jour d'une touche ; ce choix ne vaut que pour la semaine en cours. Une semaine sans séance est possible.
+- Chaque séance enchaîne trois axes : musculation lourde en full body (A et B alternés : à la salle 4 × 5 à 8 répétitions sur les polyarticulaires, repos 2 à 3 min ; au poids du corps, variantes difficiles et tempo lent), puis un cardio varié qui change d'une séance à l'autre (rameur, vélo, corde, elliptique ; à la maison burpees, mountain climbers, jumping jacks, boxe), puis la marche inclinée ou l'escalier (tapis 10 à 12 %, stepper ; à la maison côte ou escaliers), qui sert aussi de retour au calme.
+- Répartition : 60 % du temps pour la force, le reste partagé entre cardio et marche. Sous 30 minutes, la force seule.
+- Jours sans séance : marche inclinée ou escalier, 30 min (marche tranquille en cas de fatigue).
 - « Je n'ai que 20 minutes » : on raccourcit les repos, puis l'échauffement, puis les séries, puis on retire les accessoires. Les exercices essentiels restent. Sous 12 minutes, marche rapide.
 - « Je suis fatigué » : une série de moins (minimum 2), variantes sans impact, effort modéré. Nutrition inchangée.
 - « J'ai mal au genou » : variantes sans flexion chargée ni impact (pont fessier, hip thrust, bird dog…), et conseil de consulter si la douleur est vive, gonfle ou dure. Jour de repos : mobilité douce.

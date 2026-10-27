@@ -92,7 +92,7 @@ struct TrainingCard: View {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                     Text(workout.title)
                         .font(.display(28))
-                    Text("\(workout.exercises.count) exercices · \(workout.exercises.map(\.sets).reduce(0, +)) séries")
+                    Text(workout.summary)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -429,7 +429,24 @@ extension WorkoutExercise {
     var prescription: String {
         switch volume {
         case .reps(let reps): "\(sets) × \(reps)"
+        // Effort continu (marche inclinée, cardio tempo) : en minutes.
+        case .seconds(let seconds) where sets == 1 && seconds >= 120: "\(Int((Double(seconds) / 60).rounded())) min"
         case .seconds(let seconds): "\(sets) × \(seconds) s"
         }
+    }
+
+    /// Cardio et marche inclinée, ajoutés après la force.
+    var isConditioning: Bool { priority >= 4 }
+}
+
+extension Workout {
+    /// « 4 exercices de force · cardio · marche inclinée ».
+    var summary: String {
+        let strength = exercises.filter { !$0.isConditioning }
+        var parts = ["\(strength.count) exercices de force"]
+        let conditioning = exercises.filter(\.isConditioning).count
+        if conditioning >= 1 { parts.append("cardio") }
+        if conditioning >= 2 { parts.append("marche") }
+        return parts.joined(separator: " · ")
     }
 }
