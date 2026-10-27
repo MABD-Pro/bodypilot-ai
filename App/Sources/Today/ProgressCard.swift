@@ -121,27 +121,31 @@ struct ProgressCard: View {
 
     /// Régularité de la semaine : une pastille par séance prévue, pleine quand elle est faite.
     private var consistencyRow: some View {
-        HStack(alignment: .top, spacing: Theme.Spacing.m) {
-            HStack(spacing: 5) {
-                ForEach(0..<max(consistency.planned, consistency.done), id: \.self) { index in
-                    Circle()
-                        .fill(index < consistency.done ? Theme.training : Theme.training.opacity(0.15))
-                        .frame(width: 12, height: 12)
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            HStack(spacing: Theme.Spacing.m) {
+                HStack(spacing: 5) {
+                    ForEach(0..<max(consistency.planned, consistency.done), id: \.self) { index in
+                        Circle()
+                            .fill(index < consistency.done ? Theme.training : Theme.training.opacity(0.15))
+                            .frame(width: 12, height: 12)
+                    }
+                }
+                Text("\(consistency.done)/\(consistency.planned) séances")
+                    .font(.footnote.weight(.semibold))
+                    .monospacedDigit()
+                Spacer(minLength: 0)
+                if consistency.streakWeeks > 1 {
+                    Tag(text: "\(consistency.streakWeeks) sem.", symbol: "flame.fill", tint: Theme.carbs)
                 }
             }
-            .padding(.top, 4)
-            .accessibilityElement()
-            .accessibilityLabel("\(consistency.done) séances sur \(consistency.planned) cette semaine")
+            .accessibilityElement(children: .combine)
             Text(consistency.message)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-            if consistency.streakWeeks > 1 {
-                Tag(text: "\(consistency.streakWeeks) sem.", symbol: "flame.fill", tint: Theme.carbs)
-            }
         }
         .padding(Theme.Spacing.m)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
         .animation(Theme.springy, value: consistency)
     }
