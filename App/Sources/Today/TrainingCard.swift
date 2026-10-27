@@ -117,7 +117,7 @@ struct TrainingCard: View {
                     ExerciseRow(
                         index: index + 1,
                         name: exercise.name,
-                        detail: workout.isStrengthTest ? "Test · 5 rép." : exercise.prescription,
+                        detail: workout.isStrengthTest ? "5 rép." : exercise.prescription,
                         isWarmup: false,
                         isSwapped: exercise.isSwapped,
                         caption: toLog.map(caption),
@@ -207,7 +207,7 @@ struct TrainingCard: View {
                 return .init(text: "Test noté : \(StrengthProgress.label(today))", symbol: "checkmark", tint: Theme.progress)
             }
             if let first = item.ramp.last {
-                return .init(text: "Paliers, puis 5 rép. dès \(first.kg.frenchCompact) kg", symbol: "chart.line.uptrend.xyaxis", tint: Theme.training)
+                return .init(text: "Essai à \(first.kg.frenchCompact) kg", symbol: "chart.line.uptrend.xyaxis", tint: Theme.training)
             }
             return .init(text: "Note ta série de 5 la plus lourde", symbol: "square.and.pencil", tint: .secondary)
         }
