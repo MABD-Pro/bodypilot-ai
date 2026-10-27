@@ -142,6 +142,21 @@ final class DayLogRecord {
     var workoutDone = false
     /// Repas déjà pris, au format « lunch=hearty ».
     var mealIntakesRaw: [String] = []
+    /// Repas décrits en texte, encodés en JSON (aliments et estimations).
+    var describedMealsData: Data?
+
+    var describedMeals: [MealSlot: DescribedMeal] {
+        get {
+            guard let describedMealsData,
+                  let stored = try? JSONDecoder().decode([String: DescribedMeal].self, from: describedMealsData)
+            else { return [:] }
+            return Dictionary(uniqueKeysWithValues: stored.compactMap { key, meal in MealSlot(rawValue: key).map { ($0, meal) } })
+        }
+        set {
+            let stored = Dictionary(uniqueKeysWithValues: newValue.map { ($0.key.rawValue, $0.value) })
+            describedMealsData = stored.isEmpty ? nil : try? JSONEncoder().encode(stored)
+        }
+    }
 
     var mealIntakes: [MealSlot: MealIntake] {
         get {

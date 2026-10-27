@@ -32,7 +32,7 @@ import Testing
 @Test func guessedPortionAsksForConfirmation() throws {
     let parse = MealTextParser.parse("poulet avec du riz")
     #expect(parse.foods.count == 2)
-    #expect(parse.foods.allSatisfy(\.needsPortion))
+    #expect(parse.foods.allSatisfy { $0.needsPortion })
     #expect(parse.needsClarification)
     let chicken = try #require(parse.foods.first)
     let bigger = chicken.resized(by: 1.4, label: "Grande portion")

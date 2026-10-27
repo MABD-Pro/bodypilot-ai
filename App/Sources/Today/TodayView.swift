@@ -16,6 +16,7 @@ struct TodayView: View {
     @Query private var weekPlans: [WeekPlanRecord]
     @Query(sort: \WaistRecord.date) private var waists: [WaistRecord]
     @State private var isAddingWaist = false
+    @State private var describing: MealToDescribe?
     @State private var isAddingWeight = false
     @State private var isEditingProfile = false
 
@@ -38,6 +39,7 @@ struct TodayView: View {
             exerciseSwaps: todayLog?.exerciseSwaps ?? [:],
             weekTrainingDays: weekPlan?.weekdaysRaw,
             mealIntakes: todayLog?.mealIntakes ?? [:],
+            describedMeals: todayLog?.describedMeals ?? [:],
             on: now
         )
 
@@ -60,7 +62,9 @@ struct TodayView: View {
                         header(plan: plan, date: now)
                         CommandField(apply: apply)
                         AdjustmentBar(active: todayAdjustments, toggle: toggle)
-                        NutritionCard(targets: plan.targets, meals: plan.meals, logIntake: logIntake)
+                        NutritionCard(targets: plan.targets, meals: plan.meals, logIntake: logIntake, describe: { slot in
+                            describing = MealToDescribe(slot: slot, current: todayLog?.describedMeals[slot])
+                        })
                             .id("nutrition")
                         TrainingCard(
                             training: plan.training,
@@ -116,6 +120,11 @@ struct TodayView: View {
             }
             .sheet(isPresented: $isAddingWeight) {
                 WeightEntrySheet(initialKg: weights.last?.kg ?? profileRecord.startWeightKg)
+            }
+            .sheet(item: $describing) { item in
+                MealDescriptionSheet(slot: item.slot, initial: item.current) { meal in
+                    saveDescribed(meal, for: item.slot)
+                }
             }
             .sheet(isPresented: $isAddingWaist) {
                 WaistEntrySheet(initialCm: waists.last?.cm ?? 90)
@@ -233,7 +242,18 @@ struct TodayView: View {
         let log = todayLog()
         withAnimation(Theme.springy) {
             log.mealIntakes[slot] = intake
+            if intake == nil { log.describedMeals[slot] = nil }
         }
+    }
+
+    /// Repas décrit en texte : il remplace la saisie d'une touche pour ce repas.
+    private func saveDescribed(_ meal: DescribedMeal, for slot: MealSlot) {
+        let log = todayLog()
+        withAnimation(Theme.springy) {
+            log.describedMeals[slot] = meal
+            log.mealIntakes[slot] = nil
+        }
+        try? context.save()
     }
 
     /// Planning de la semaine : un jour coché ou décoché ne change que cette semaine.
@@ -262,4 +282,11 @@ struct TodayView: View {
 #Preview {
     RootView()
         .modelContainer(AppContainer.preview)
+}
+
+/// Repas en cours de description, pour présenter la feuille de saisie.
+private struct MealToDescribe: Identifiable {
+    let slot: MealSlot
+    let current: DescribedMeal?
+    var id: String { slot.rawValue }
 }

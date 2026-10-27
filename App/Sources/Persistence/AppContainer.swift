@@ -1,6 +1,7 @@
 import BodyPilotCore
 import Coach
 import Foundation
+import Nutrition
 import SwiftData
 import Training
 
@@ -30,6 +31,12 @@ enum LaunchOptions {
     /// `-demoMeals breakfast=asPlanned,lunch=hearty` : repas déjà pris.
     static var demoMeals: [String] {
         (defaults.string(forKey: "demoMeals") ?? "").split(separator: ",").map(String.init)
+    }
+    /// `-demoDescribed "lunch=une grande assiette de pâtes carbo et un coca"` : repas décrit en texte.
+    static var demoDescribed: (slot: MealSlot, text: String)? {
+        let parts = (defaults.string(forKey: "demoDescribed") ?? "").split(separator: "=", maxSplits: 1).map(String.init)
+        guard parts.count == 2, let slot = MealSlot(rawValue: parts[0]) else { return nil }
+        return (slot, parts[1])
     }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
@@ -132,13 +139,16 @@ enum DemoData {
            let first = workout.exercises.first {
             swaps = [first.key]
         }
-        if !adjustments.isEmpty || !swaps.isEmpty || !LaunchOptions.demoMeals.isEmpty {
+        if !adjustments.isEmpty || !swaps.isEmpty || !LaunchOptions.demoMeals.isEmpty || LaunchOptions.demoDescribed != nil {
             let log = DayLogRecord(day: calendar.startOfDay(for: now))
             log.adjustments = adjustments
             log.availableMinutes = minutes
             log.eatingOutSlot = eatingOutSlot
             log.exerciseSwapsRaw = swaps
             log.mealIntakesRaw = LaunchOptions.demoMeals
+            if let described = LaunchOptions.demoDescribed {
+                log.describedMeals = [described.slot: MealTextParser.parse(described.text).meal]
+            }
             context.insert(log)
         }
     }
