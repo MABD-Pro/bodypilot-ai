@@ -3,7 +3,7 @@ name: BodyPilot
 options:
   bundleIdPrefix: com.mabdpro
   deploymentTarget:
-    iOS: "18.0"
+    iOS: "26.0"
   createIntermediateGroups: true
   developmentLanguage: fr
 

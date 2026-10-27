@@ -25,7 +25,8 @@ App (SwiftUI, cible iOS)                ← UI, HealthKit, SwiftData, StoreKit, 
 
 ## Cibles
 
-- iOS 18 minimum. Apple Foundation Models est utilisé seulement sur iOS 26+ via `#available`, avec repli sur le niveau suivant du routeur.
+- iOS 26 minimum (watchOS 26 pour la future app Watch).
+- Apple Foundation Models : disponibilité vérifiée à l'exécution via `SystemLanguageModel.default.availability`, car iOS 26 tourne aussi sur des iPhone sans Apple Intelligence (ou avec Apple Intelligence désactivée). Si le modèle est indisponible, le niveau `onDevice` est retiré des niveaux disponibles du routeur, qui se replie sur le suivant.
 - iPhone uniquement pour l'instant ; Apple Watch prévue.
 
 ## Décisions ouvertes

@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 import PackageDescription
 
 // Modules de domaine BodyPilot.
@@ -7,9 +7,9 @@ import PackageDescription
 let package = Package(
     name: "BodyPilotKit",
     platforms: [
-        .iOS(.v18),
-        .macOS(.v15),
-        .watchOS(.v11),
+        .iOS(.v26),
+        .macOS(.v26),
+        .watchOS(.v26),
     ],
     products: [
         .library(name: "BodyPilotCore", targets: ["BodyPilotCore"]),

@@ -11,7 +11,7 @@ Swift 6, SwiftUI, local-first, backend léger, IA hybride via un routeur de coû
 
 ## Démarrer
 
-Prérequis : Xcode 16 ou plus récent, [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
+Prérequis : Xcode 26 ou plus récent (iOS 26 minimum), [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
 
 ```sh
 xcodegen generate
