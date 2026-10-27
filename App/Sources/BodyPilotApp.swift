@@ -10,7 +10,7 @@ struct BodyPilotApp: App {
     private let container: ModelContainer
 
     init() {
-        container = AppContainer.make()
+        container = AppContainer.shared
     }
 
     var body: some Scene {

@@ -177,13 +177,7 @@ struct TodayView: View {
     private func apply(_ command: InterpretedCommand) {
         let log = todayLog()
         withAnimation(Theme.springy) {
-            log.adjustments = log.adjustments.union(command.adjustments)
-            if let minutes = command.availableMinutes {
-                log.availableMinutes = minutes
-            }
-            if let slot = command.eatingOutSlot {
-                log.eatingOutSlot = slot
-            }
+            DayLogEditor.apply(command, to: log)
         }
     }
 }

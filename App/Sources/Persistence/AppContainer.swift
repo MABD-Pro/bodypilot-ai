@@ -29,6 +29,10 @@ enum LaunchOptions {
 enum AppContainer {
     static let schema = Schema([ProfileRecord.self, WeightRecord.self, DayLogRecord.self])
 
+    /// Conteneur unique de l'app, partagé avec Siri et Raccourcis pour qu'ils voient les mêmes données.
+    @MainActor
+    static let shared = make()
+
     @MainActor
     static func make() -> ModelContainer {
         if LaunchOptions.demoData || LaunchOptions.demoOnboarding {
