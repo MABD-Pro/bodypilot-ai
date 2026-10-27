@@ -28,6 +28,11 @@ struct TrainingCard: View {
     /// Matériel de salle : la saisie part d'une charge, sinon du poids du corps.
     var usesLoads = false
     var logLift: (LiftEntry) -> Void = { _ in }
+    /// Poids et sexe, pour proposer une charge d'essai avant la première série notée.
+    var bodyweightKg: Double?
+    var sex: BiologicalSex = .male
+    /// Séances et marches des prochains jours.
+    var upcoming: [UpcomingDay] = []
 
     @State private var isPreviewingWatch = false
     @State private var logging: LiftToLog?
@@ -50,6 +55,11 @@ struct TrainingCard: View {
 
             ForEach(training.notes, id: \.self) { note in
                 CoachNote(text: note, tint: Theme.training)
+            }
+
+            if !upcoming.isEmpty {
+                UpcomingSection(days: upcoming)
+                    .id("upcoming")
             }
 
             if let week {
@@ -150,7 +160,7 @@ struct TrainingCard: View {
 
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Label(workout.intensityCue, systemImage: "gauge.with.dots.needle.33percent")
-                Label("Touche un exercice pour noter ta meilleure série : le coach suit tes records et fait monter les charges.", systemImage: "trophy")
+                Label("Touche un exercice pour sa technique et pour noter ta meilleure série : le coach suit tes records et fait monter les charges.", systemImage: "trophy")
                 Label("Machine prise ou matériel absent ? Touche \(Image(systemName: "arrow.triangle.2.circlepath")) pour changer d'exercice.", systemImage: "hand.tap")
             }
             .font(.footnote)
@@ -189,13 +199,16 @@ struct TrainingCard: View {
         guard !exercise.isConditioning, case .reps(let planned) = exercise.volume else { return nil }
         let today = lifts.first { $0.exercise == exercise.name && calendar.isDateInToday($0.date) }
         let earlier = lifts.filter { !calendar.isDateInToday($0.date) }
+        let guide = ExerciseGuide.guide(for: exercise.name)
         return LiftToLog(
             exercise: exercise.name,
             plannedReps: planned,
             today: today,
             target: StrengthProgress.target(for: exercise.name, plannedReps: planned, history: earlier),
             isRecord: today.map { StrengthProgress.isRecord($0, previous: earlier) } ?? false,
-            usesLoads: usesLoads
+            usesLoads: usesLoads,
+            guide: guide,
+            startingKg: usesLoads ? bodyweightKg.flatMap { guide?.startingLoad(bodyweightKg: $0, sex: sex) } : nil
         )
     }
 
@@ -211,6 +224,9 @@ struct TrainingCard: View {
                 symbol: target.isIncrease ? "arrow.up.right" : "scope",
                 tint: target.isIncrease ? Theme.training : .secondary
             )
+        }
+        if let start = item.startingKg {
+            return .init(text: "Essai : \(StrengthProgress.label(kg: start, reps: item.plannedReps))", symbol: "scope", tint: .secondary)
         }
         return .init(text: item.usesLoads ? "Note ta charge" : "Note tes répétitions", symbol: "square.and.pencil", tint: .secondary)
     }
@@ -535,6 +551,9 @@ struct LiftToLog: Identifiable {
     let target: LiftTarget?
     let isRecord: Bool
     let usesLoads: Bool
+    let guide: ExerciseGuide?
+    /// Charge d'essai prudente, tant qu'aucune série n'est notée.
+    let startingKg: Double?
     var id: String { exercise }
 }
 
@@ -547,18 +566,29 @@ private struct LiftEntrySheet: View {
     @State private var withLoad: Bool
     @State private var kg: Double
     @State private var reps: Int
+    @State private var showsTechnique = false
 
     init(item: LiftToLog, save: @escaping (LiftEntry) -> Void) {
         self.item = item
         self.save = save
         let start = item.today.map { LiftTarget(kg: $0.kg, reps: $0.reps, isIncrease: false) } ?? item.target
-        let kg = start?.kg ?? (start == nil && item.usesLoads ? 20 : nil)
+        let kg = start?.kg ?? (start == nil && item.usesLoads ? item.startingKg ?? 20 : nil)
         _withLoad = State(initialValue: kg != nil)
         _kg = State(initialValue: kg ?? 10)
         _reps = State(initialValue: start?.reps ?? item.plannedReps)
     }
 
     var body: some View {
+        ScrollView {
+            content
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .presentationDetents([.medium, .large])
+        .sensoryFeedback(.increase, trigger: kg)
+        .sensoryFeedback(.increase, trigger: reps)
+    }
+
+    private var content: some View {
         VStack(spacing: Theme.Spacing.xl) {
             VStack(spacing: Theme.Spacing.xs) {
                 Text(item.exercise)
@@ -568,6 +598,28 @@ private struct LiftEntrySheet: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                if item.guide != nil {
+                    Button {
+                        withAnimation(.snappy) { showsTechnique.toggle() }
+                    } label: {
+                        Label(showsTechnique ? "Masquer la technique" : "Voir la technique", systemImage: "figure.strengthtraining.traditional")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.training)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, Theme.Spacing.xs)
+                }
+                if item.today == nil, item.target == nil, item.startingKg != nil {
+                    Text("Charge d'essai prudente : si tu pouvais faire plus de 3 répétitions de plus, monte la prochaine fois.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+
+            if showsTechnique, let guide = item.guide {
+                technique(guide)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             Toggle("Avec une charge", isOn: $withLoad.animation(.snappy))
@@ -575,7 +627,7 @@ private struct LiftEntrySheet: View {
                 .tint(Theme.training)
 
             if withLoad {
-                counter(value: kg.frenchCompact, unit: "kg", numeric: kg) { up in
+                counter(value: kg.frenchCompact, unit: item.guide?.perDumbbell == true ? "kg par haltère" : "kg", numeric: kg) { up in
                     let step = StrengthProgress.loadStep(for: up ? kg : max(kg - 1, 0))
                     kg = max(0, ((kg + (up ? step : -step)) * 10).rounded() / 10)
                 }
@@ -595,11 +647,35 @@ private struct LiftEntrySheet: View {
             }
             .buttonStyle(.glassProminent)
             .tint(Theme.training)
+
         }
         .padding(Theme.Spacing.xxl)
-        .presentationDetents([.medium, .large])
-        .sensoryFeedback(.increase, trigger: kg)
-        .sensoryFeedback(.increase, trigger: reps)
+    }
+
+    /// Repères de technique, en attendant les démonstrations animées.
+    private func technique(_ guide: ExerciseGuide) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            Label("Technique", systemImage: "figure.strengthtraining.traditional")
+                .font(.headline)
+                .foregroundStyle(Theme.training)
+            Text(guide.muscles)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+            ForEach(Array(guide.cues.enumerated()), id: \.offset) { index, cue in
+                HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
+                    Text("\(index + 1)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Theme.training)
+                        .frame(width: 18)
+                    Text(cue)
+                        .font(.subheadline)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(Theme.Spacing.l)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.training.opacity(0.08), in: .rect(cornerRadius: Theme.Radius.inner))
     }
 
     private func counter(value: String, unit: String, numeric: Double, change: @escaping (Bool) -> Void) -> some View {
@@ -661,5 +737,105 @@ extension Workout {
         if conditioning >= 1 { parts.append("cardio") }
         if conditioning >= 2 { parts.append("marche") }
         return parts.joined(separator: " · ")
+    }
+}
+
+/// Un jour à venir : séance ou marche, déjà calculée par le coach.
+struct UpcomingDay: Identifiable {
+    let date: Date
+    let training: TrainingDay
+    var id: Date { date }
+}
+
+/// « Les prochains jours » : ce qui attend, jour par jour ; une touche déplie les exercices.
+private struct UpcomingSection: View {
+    let days: [UpcomingDay]
+
+    @State private var expanded: Set<Date> = []
+    private let calendar = Calendar.current
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Text("Les prochains jours")
+                .font(.headline)
+            VStack(spacing: 0) {
+                ForEach(days) { day in
+                    row(day)
+                    if day.id != days.last?.id { Divider() }
+                }
+            }
+        }
+    }
+
+    private func row(_ day: UpcomingDay) -> some View {
+        let isOpen = expanded.contains(day.date)
+        let workout: Workout? = if case .workout(let workout) = day.training.kind { workout } else { nil }
+        return VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Button {
+                guard workout != nil else { return }
+                withAnimation(Theme.springy) {
+                    if isOpen { expanded.remove(day.date) } else { expanded.insert(day.date) }
+                }
+            } label: {
+                HStack(spacing: Theme.Spacing.m) {
+                    Text(shortWeekday(day.date))
+                        .font(.subheadline.weight(.semibold))
+                        .frame(width: 44, alignment: .leading)
+                        .accessibilityLabel(calendar.weekdayNames(locale: Theme.locale)[calendar.component(.weekday, from: day.date) - 1])
+                    IconBadge(symbol: workout == nil ? "figure.walk" : "dumbbell.fill", tint: workout == nil ? Theme.progress : Theme.training, size: 26)
+                    Text(title(day))
+                        .font(.subheadline)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: Theme.Spacing.s)
+                    Text("\(day.training.estimatedMinutes) min")
+                        .font(.footnote.weight(.semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isOpen ? 180 : 0))
+                        .opacity(workout == nil ? 0 : 1)
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+
+            if isOpen, let workout {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(Array(workout.exercises.enumerated()), id: \.offset) { _, exercise in
+                        HStack {
+                            Text(exercise.name)
+                                .font(.footnote)
+                            Spacer(minLength: Theme.Spacing.s)
+                            Text(exercise.prescription)
+                                .font(.footnote.weight(.semibold))
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                                .fixedSize()
+                        }
+                    }
+                }
+                .padding(.leading, 44 + Theme.Spacing.m)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
+    /// « Mer. » : laisse la place au titre de la séance.
+    private func shortWeekday(_ date: Date) -> String {
+        var calendar = calendar
+        calendar.locale = Theme.locale
+        return calendar.shortStandaloneWeekdaySymbols[calendar.component(.weekday, from: date) - 1].capitalizingFirstLetter
+    }
+
+    private func title(_ day: UpcomingDay) -> String {
+        switch day.training.kind {
+        case .workout(let workout): workout.title
+        case .activeRest(let title, _): title
+        }
     }
 }

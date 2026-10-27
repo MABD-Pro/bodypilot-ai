@@ -62,6 +62,12 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Record : meilleur 1RM estimé (Epley, plafonné à 12 répétitions) ; au poids du corps, le plus de répétitions. Une série avec charge passe devant le poids du corps. Une première série n'est pas un record ; un record battu est fêté dans la carte Bouger et listé dans Progresser.
 - Objectif suivant : si la dernière série a dépassé les répétitions prévues, charge + ~5 % (pas de 2,5 kg, 1 kg sous 30 kg) ; sinon même charge pour les répétitions prévues. Au poids du corps : une répétition de plus que la dernière fois, une fois les répétitions prévues atteintes.
 - Chaque variante (remplacement, genou) a ses propres records : le nom affiché sert de clé.
+- Fiche exercice (`Training/ExerciseGuide`) : muscles travaillés et 4 consignes de technique pour chaque exercice de force du catalogue et ses variantes, dans la feuille de saisie. Pour les haltères, la charge notée est celle d'un haltère.
+- Charge d'essai (salle, avant toute série notée) : fraction prudente du poids du corps selon l'exercice et le sexe, arrondie vers le bas au pas de charge. Affichée « Essai : … » ; la première série notée la remplace.
+
+## Les prochains jours (carte Bouger)
+
+- Les six jours suivants, chacun calculé avec le planning de sa semaine : séance (titre, durée, exercices dépliables) ou marche.
 
 ## Progression (`ProgressInsights/WeightTrendAnalyzer`)
 
