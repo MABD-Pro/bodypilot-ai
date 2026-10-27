@@ -126,7 +126,9 @@ public struct TrainingPlanner: TrainingPlanning {
         let transition = WorkoutExercise.transitionSeconds
 
         if cardio.restSeconds > 0 {
-            let rounds = max(3, (cardioSeconds - transition + cardio.restSeconds) / (cardio.workSeconds + cardio.restSeconds))
+            // Un nombre pair de tours, plus simple à suivre.
+            let fitting = (cardioSeconds - transition + cardio.restSeconds) / (cardio.workSeconds + cardio.restSeconds)
+            let rounds = max(4, fitting - fitting % 2)
             result.exercises.append(WorkoutExercise(
                 name: cardio.name, sets: rounds, volume: .seconds(cardio.workSeconds), restSeconds: cardio.restSeconds, priority: 4,
                 isHighImpact: cardio.isHighImpact, lowImpactAlternative: cardio.lowImpactAlternative,

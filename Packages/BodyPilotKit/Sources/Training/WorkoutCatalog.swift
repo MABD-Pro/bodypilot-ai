@@ -115,6 +115,8 @@ enum WorkoutCatalog {
 
     // MARK: Marche inclinée ou escalier
 
+    /// La pente et les marches chargent le genou à chaque pas : avec une douleur, marche à plat ou vélo.
+
     struct InclineFormat: Sendable {
         var name: String
         var loadsKnee: Bool
@@ -126,13 +128,13 @@ enum WorkoutCatalog {
         switch equipment {
         case .gym:
             [
-                InclineFormat(name: "Marche inclinée (tapis 10 à 12 %, 5 km/h)", loadsKnee: false, alternatives: ["Escalier (stepper)", "Marche inclinée (tapis 8 %, 5,5 km/h)"]),
-                InclineFormat(name: "Escalier (stepper)", loadsKnee: true, kneeFriendlyAlternative: "Marche inclinée (tapis 8 %, 5 km/h)", alternatives: ["Marche inclinée (tapis 10 à 12 %, 5 km/h)"]),
+                InclineFormat(name: "Marche inclinée (tapis 10 à 12 %, 5 km/h)", loadsKnee: true, kneeFriendlyAlternative: "Vélo à allure douce", alternatives: ["Escalier (stepper)", "Marche inclinée (tapis 8 %, 5,5 km/h)"]),
+                InclineFormat(name: "Escalier (stepper)", loadsKnee: true, kneeFriendlyAlternative: "Vélo à allure douce", alternatives: ["Marche inclinée (tapis 10 à 12 %, 5 km/h)"]),
             ]
         case .bodyweight:
             [
-                InclineFormat(name: "Marche en côte", loadsKnee: false, alternatives: ["Montée d'escaliers", "Marche rapide"]),
-                InclineFormat(name: "Montée d'escaliers", loadsKnee: true, kneeFriendlyAlternative: "Marche en côte douce", alternatives: ["Marche en côte"]),
+                InclineFormat(name: "Marche en côte", loadsKnee: true, kneeFriendlyAlternative: "Marche à plat", alternatives: ["Montée d'escaliers", "Marche rapide"]),
+                InclineFormat(name: "Montée d'escaliers", loadsKnee: true, kneeFriendlyAlternative: "Marche à plat", alternatives: ["Marche en côte"]),
             ]
         }
     }

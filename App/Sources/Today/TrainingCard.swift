@@ -416,6 +416,9 @@ private struct ExerciseRow: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Remplacer \(name)")
+            } else {
+                // Même place réservée : les volumes restent alignés d'une ligne à l'autre.
+                Color.clear.frame(width: 32, height: 32)
             }
         }
         .padding(.vertical, 7)
@@ -431,6 +434,8 @@ extension WorkoutExercise {
         case .reps(let reps): "\(sets) × \(reps)"
         // Effort continu (marche inclinée, cardio tempo) : en minutes.
         case .seconds(let seconds) where sets == 1 && seconds >= 120: "\(Int((Double(seconds) / 60).rounded())) min"
+        // Fractionné : effort puis récupération.
+        case .seconds(let seconds) where isConditioning && restSeconds > 0: "\(sets) × \(seconds) s / \(restSeconds) s"
         case .seconds(let seconds): "\(sets) × \(seconds) s"
         }
     }
