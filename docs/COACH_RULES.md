@@ -56,6 +56,13 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Une série en répétitions reste ouverte (on passe à la suite d'une touche) ; une série chronométrée et le repos ont une durée.
 - Envoi via l'aperçu WorkoutKit : l'utilisateur confirme l'ajout sur sa montre, aucune autorisation supplémentaire.
 
+## Records et charges (`Training/StrengthProgress`)
+
+- Une touche sur un exercice de force aux répétitions note la meilleure série du jour (charge ou poids du corps, répétitions). Une seule par exercice et par jour : une nouvelle saisie remplace la précédente.
+- Record : meilleur 1RM estimé (Epley, plafonné à 12 répétitions) ; au poids du corps, le plus de répétitions. Une série avec charge passe devant le poids du corps. Une première série n'est pas un record ; un record battu est fêté dans la carte Bouger et listé dans Progresser.
+- Objectif suivant : si la dernière série a dépassé les répétitions prévues, charge + ~5 % (pas de 2,5 kg, 1 kg sous 30 kg) ; sinon même charge pour les répétitions prévues. Au poids du corps : une répétition de plus que la dernière fois, une fois les répétitions prévues atteintes.
+- Chaque variante (remplacement, genou) a ses propres records : le nom affiché sert de clé.
+
 ## Progression (`ProgressInsights/WeightTrendAnalyzer`)
 
 - Poids lissé (moyenne mobile exponentielle, 0,25) pour gommer l'eau et le sel.

@@ -189,3 +189,22 @@ final class DayLogRecord {
         set { adjustmentsRaw = newValue.map(\.rawValue).sorted() }
     }
 }
+
+/// Meilleure série d'un exercice pour une séance : base des records et de la progression des charges.
+@Model
+final class LiftRecord {
+    var day: Date = Date.now
+    var exercise: String = ""
+    /// `nil` au poids du corps.
+    var kg: Double?
+    var reps: Int = 0
+
+    init(_ entry: LiftEntry) {
+        day = entry.date
+        exercise = entry.exercise
+        kg = entry.kg
+        reps = entry.reps
+    }
+
+    var entry: LiftEntry { LiftEntry(exercise: exercise, date: day, kg: kg, reps: reps) }
+}

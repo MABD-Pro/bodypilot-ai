@@ -3,6 +3,7 @@ import Charts
 import Coach
 import ProgressInsights
 import SwiftUI
+import Training
 
 /// Lien avec l'app Santé : pesées lues, repas mangés envoyés.
 enum HealthLink {
@@ -22,6 +23,8 @@ struct ProgressCard: View {
     let waistCm: Double?
     /// Variation sur 4 semaines (cm).
     let waistChange: Double?
+    /// Records de force, les plus récents d'abord.
+    var records: [PersonalRecord] = []
     let addWeight: () -> Void
     let addWaist: () -> Void
     let acceptCheckIn: () -> Void
@@ -63,6 +66,10 @@ struct ProgressCard: View {
             consistencyRow
 
             waistRow
+
+            if !records.isEmpty {
+                recordsRow
+            }
 
             if trend.points.count >= 2 {
                 chart
@@ -162,6 +169,30 @@ struct ProgressCard: View {
             .accessibilityLabel("Ajouter un tour de taille")
         }
         .padding(Theme.Spacing.m)
+        .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+    }
+
+    /// Force : en déficit, des charges qui tiennent ou montent montrent que le muscle est gardé.
+    private var recordsRow: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Label("Mes records", systemImage: "trophy.fill")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.carbs)
+            ForEach(records.prefix(4), id: \.entry.exercise) { record in
+                HStack {
+                    Text(record.entry.exercise)
+                        .font(.subheadline)
+                    Spacer(minLength: Theme.Spacing.s)
+                    Text(StrengthProgress.label(record.entry))
+                        .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+            }
+        }
+        .padding(Theme.Spacing.m)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
     }
 

@@ -171,3 +171,20 @@ public struct ActivitySample: Sendable, Equatable, Identifiable {
         self.kcal = kcal
     }
 }
+
+/// Série notée par l'utilisateur : la meilleure série d'un exercice, une par séance.
+public struct LiftEntry: Sendable, Equatable {
+    /// Nom affiché de l'exercice (après remplacement ou adaptation) : chaque variante a ses records.
+    public var exercise: String
+    public var date: Date
+    /// Charge en kg ; `nil` au poids du corps.
+    public var kg: Double?
+    public var reps: Int
+
+    public init(exercise: String, date: Date, kg: Double?, reps: Int) {
+        self.exercise = exercise
+        self.date = date
+        self.kg = kg
+        self.reps = reps
+    }
+}

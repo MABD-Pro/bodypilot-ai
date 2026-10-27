@@ -4,6 +4,7 @@ import Nutrition
 import ProgressInsights
 import SwiftData
 import SwiftUI
+import Training
 import WorkoutKit
 
 /// Écran principal : répond aux trois questions du jour et s'adapte en une touche.
@@ -17,6 +18,7 @@ struct TodayView: View {
     @Query private var dayLogs: [DayLogRecord]
     @Query private var weekPlans: [WeekPlanRecord]
     @Query(sort: \WaistRecord.date) private var waists: [WaistRecord]
+    @Query(sort: \LiftRecord.day) private var liftRecords: [LiftRecord]
     @State private var isAddingWaist = false
     @State private var describing: MealToDescribe?
     @State private var isAddingWeight = false
@@ -68,6 +70,8 @@ struct TodayView: View {
             return DayLogEditor.trainingDays(week: plan, profile: profileRecord.profile).count
         }
 
+        let lifts = liftRecords.map(\.entry)
+
         let checkIn = profileRecord.isCheckInDue(at: now)
             ? CoachFactory.coach.weeklyCheckIn(for: profileRecord.profile, weights: weights.map(\.entry), waists: waists.map(\.entry), on: now)
             : nil
@@ -95,7 +99,10 @@ struct TodayView: View {
                             wantsToTrain: todayAdjustments.contains(.wantsToTrain) ? nil : { toggle(.wantsToTrain) },
                             cancelExtraSession: todayAdjustments.contains(.wantsToTrain) && plan.training.notes.contains { $0.hasPrefix("Séance en plus") }
                                 ? { toggle(.wantsToTrain) } : nil,
-                            planWeekOnWatch: { await planWeekOnWatch(today: plan.training, weekDays: weekDays, isTodayDone: todayLog?.workoutDone ?? false) }
+                            planWeekOnWatch: { await planWeekOnWatch(today: plan.training, weekDays: weekDays, isTodayDone: todayLog?.workoutDone ?? false) },
+                            lifts: lifts,
+                            usesLoads: profileRecord.profile.equipment == .gym,
+                            logLift: logLift
                         )
                             .id("training")
                         ProgressCard(
@@ -107,6 +114,7 @@ struct TodayView: View {
                             consistency: consistency,
                             waistCm: waists.last?.cm,
                             waistChange: plan.waistChangeCm,
+                            records: StrengthProgress.records(in: lifts),
                             addWeight: { isAddingWeight = true },
                             addWaist: { isAddingWaist = true },
                             acceptCheckIn: { acceptCheckIn(checkIn) },
@@ -319,6 +327,19 @@ struct TodayView: View {
         withAnimation(Theme.springy) {
             log.describedMeals[slot] = meal
             log.mealIntakes[slot] = nil
+        }
+        try? context.save()
+    }
+
+    /// Meilleure série du jour : une seule par exercice, la dernière saisie la remplace.
+    private func logLift(_ entry: LiftEntry) {
+        withAnimation(Theme.springy) {
+            if let existing = liftRecords.first(where: { $0.exercise == entry.exercise && calendar.isDate($0.day, inSameDayAs: entry.date) }) {
+                existing.kg = entry.kg
+                existing.reps = entry.reps
+            } else {
+                context.insert(LiftRecord(entry))
+            }
         }
         try? context.save()
     }
