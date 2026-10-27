@@ -2,6 +2,7 @@ import BodyPilotCore
 import Coach
 import Foundation
 import SwiftData
+import Training
 
 /// Lecture et mise à jour du journal du jour, partagées par l'écran Aujourd'hui, Siri et Raccourcis.
 @MainActor
@@ -19,35 +20,6 @@ enum DayLogEditor {
         let created = DayLogRecord(day: calendar.startOfDay(for: .now))
         context.insert(created)
         return created
-    }
-
-    static func weekPlan(containing date: Date, in context: ModelContext, calendar: Calendar = .current) -> WeekPlanRecord? {
-        guard let week = calendar.dateInterval(of: .weekOfYear, for: date) else { return nil }
-        let start = week.start
-        let end = week.end
-        var descriptor = FetchDescriptor<WeekPlanRecord>(predicate: #Predicate { $0.weekStart >= start && $0.weekStart < end })
-        descriptor.fetchLimit = 1
-        return try? context.fetch(descriptor).first
-    }
-
-    /// Jours de séance de la semaine : ceux choisis pour cette semaine, sinon les jours habituels.
-    static func trainingDays(week: WeekPlanRecord?, profile: UserProfile) -> [Int] {
-        week?.weekdaysRaw ?? profile.trainingWeekdays
-    }
-
-    /// Ajoute ou retire un jour de séance pour cette semaine seulement.
-    static func toggleTrainingDay(_ weekday: Int, on date: Date, profile: UserProfile, in context: ModelContext, calendar: Calendar = .current) {
-        let week = weekPlan(containing: date, in: context, calendar: calendar) ?? {
-            let start = calendar.dateInterval(of: .weekOfYear, for: date)?.start ?? calendar.startOfDay(for: date)
-            let created = WeekPlanRecord(weekStart: start, weekdays: profile.trainingWeekdays)
-            context.insert(created)
-            return created
-        }()
-        var days = Set(week.weekdaysRaw)
-        if days.contains(weekday) { days.remove(weekday) } else { days.insert(weekday) }
-        week.weekdaysRaw = days.sorted()
-        // Sans sauvegarde, la vue ne voit pas tout de suite une semaine tout juste créée.
-        try? context.save()
     }
 
     /// Ajoute ce qui a été compris, sans retirer les ajustements déjà choisis.
@@ -68,8 +40,9 @@ enum DayLogEditor {
         let weights = (try? context.fetch(FetchDescriptor<WeightRecord>(sortBy: [SortDescriptor(\.date)]))) ?? []
         let waists = (try? context.fetch(FetchDescriptor<WaistRecord>(sortBy: [SortDescriptor(\.date)]))) ?? []
         let today = log(on: now, in: context, calendar: calendar)
-        let yesterday = calendar.date(byAdding: .day, value: -1, to: now).flatMap { log(on: $0, in: context, calendar: calendar) }
-        let week = weekPlan(containing: now, in: context, calendar: calendar)
+        let start = calendar.startOfDay(for: now)
+        let done = (try? context.fetch(FetchDescriptor<DayLogRecord>(predicate: #Predicate { $0.workoutDone && $0.day < start }))) ?? []
+        let last = lastStrength(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar)
         return CoachFactory.coach.plan(
             for: profile.profile,
             weights: weights.map(\.entry),
@@ -77,25 +50,33 @@ enum DayLogEditor {
             adjustments: today?.adjustments ?? [],
             availableMinutes: today?.availableMinutes,
             eatingOutSlot: today?.eatingOutSlot,
-            yesterdayAdjustments: yesterday?.adjustments ?? [],
             exerciseSwaps: today?.exerciseSwaps ?? [:],
-            weekTrainingDays: week?.weekdaysRaw,
             mealIntakes: today?.mealIntakes ?? [:],
             describedMeals: today?.describedMeals ?? [:],
-            lastWorkoutTitle: lastWorkoutTitle(before: now, in: context, calendar: calendar),
+            lastWorkoutTitle: last.title,
+            lastStrengthDay: last.day,
             on: now
         )
     }
 
-    /// Dernière séance cochée avant ce jour : la séance en plus enchaîne sur la suivante.
-    static func lastWorkoutTitle(before date: Date, in context: ModelContext, calendar: Calendar = .current) -> String? {
+    /// Dernière séance de force avant ce jour : cochée dans l'app (son titre fixe la suivante, A puis B)
+    /// ou enregistrée dans Santé (renforcement d'au moins 20 min, Watch ou autre app).
+    nonisolated static func lastStrength(
+        before date: Date,
+        completed: [(day: Date, title: String?)],
+        samples: [ActivitySample],
+        calendar: Calendar = .current
+    ) -> (day: Date?, title: String?) {
         let start = calendar.startOfDay(for: date)
-        var descriptor = FetchDescriptor<DayLogRecord>(
-            predicate: #Predicate { $0.workoutDone && $0.day < start && $0.doneWorkoutTitle != nil },
-            sortBy: [SortDescriptor(\.day, order: .reverse)]
-        )
-        descriptor.fetchLimit = 1
-        return (try? context.fetch(descriptor))?.first?.doneWorkoutTitle
+        let logged = completed
+            .filter { $0.day < start && $0.title.map(TrainingPlanner.isStrengthSession) == true }
+            .max { $0.day < $1.day }
+        let recorded = samples
+            .filter { $0.kind == .strength && $0.minutes >= 20 && $0.start < start }
+            .map { calendar.startOfDay(for: $0.start) }
+            .max()
+        let day = [logged.map { calendar.startOfDay(for: $0.day) }, recorded].compactMap { $0 }.max()
+        return (day, logged?.title)
     }
 }
 

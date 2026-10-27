@@ -4,7 +4,7 @@ import Foundation
 /// Régularité des séances : combien sont faites cette semaine, et depuis combien de semaines
 /// l'objectif est tenu. Le poids bouge lentement ; la régularité se voit tout de suite.
 public struct WeeklyConsistency: Sendable, Equatable {
-    /// Séances cochées cette semaine (un rattrapage un jour de repos compte aussi).
+    /// Séances de force faites cette semaine.
     public var done: Int
     /// Séances prévues par semaine.
     public var planned: Int

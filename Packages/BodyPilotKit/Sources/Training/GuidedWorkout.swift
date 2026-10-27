@@ -47,7 +47,7 @@ extension Workout {
 }
 
 extension TrainingDay {
-    /// Séance guidée du jour ; rien pour un jour de repos actif.
+    /// Séance guidée du jour ; rien pour une simple marche.
     public var guidedWorkout: GuidedWorkout? {
         guard case .workout(let workout) = kind else { return nil }
         return workout.guided

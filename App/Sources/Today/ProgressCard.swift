@@ -207,7 +207,7 @@ struct ProgressCard: View {
                             .frame(width: 12, height: 12)
                     }
                 }
-                Text("\(consistency.done)/\(consistency.planned) séances")
+                Text("\(consistency.done)/\(consistency.planned) séances de force")
                     .font(.footnote.weight(.semibold))
                     .monospacedDigit()
                 Spacer(minLength: 0)

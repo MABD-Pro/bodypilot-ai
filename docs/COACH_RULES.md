@@ -37,16 +37,15 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 ## Séance du jour (`Training/TrainingPlanner`)
 
-- L'utilisateur coche ses jours de séance habituels (par défaut lundi, mercredi, vendredi). Chaque semaine, il peut ajouter ou retirer un jour d'une touche ; ce choix ne vaut que pour la semaine en cours. Une semaine sans séance est possible.
+- Pas de jours fixes ni de jours de repos : chaque jour a sa séance. Si la dernière séance de force (cochée dans l'app ou renforcement d'au moins 20 min enregistré dans Santé) date d'au moins 48 h, ou s'il n'y en a jamais eu, c'est un full body lourd, A puis B en alternance. Sinon, une séance « Cardio et marche inclinée » (à la maison « Cardio et marche en côte ») : échauffement, cardio varié, marche inclinée, sans force, le temps que les muscles récupèrent.
 - Fondements scientifiques et références : `docs/TRAINING_EVIDENCE.md`.
 - Chaque séance enchaîne trois axes : musculation lourde en full body (A et B alternés : à la salle 4 × 5 à 8 répétitions sur les polyarticulaires, repos 2 à 3 min ; au poids du corps, variantes difficiles et tempo lent), puis un cardio varié qui change d'une séance à l'autre (rameur, vélo, corde, elliptique ; à la maison burpees, mountain climbers, jumping jacks, boxe), puis la marche inclinée ou l'escalier (tapis 10 à 12 %, stepper ; à la maison côte ou escaliers), qui sert aussi de retour au calme.
 - Répartition : 60 % du temps pour la force, le reste partagé entre cardio et marche. Sous 30 minutes, la force seule.
-- Jours sans séance : marche inclinée ou escalier, 30 min (marche tranquille en cas de fatigue).
 - « Je n'ai que 20 minutes » : on raccourcit les repos, puis l'échauffement, puis les séries, puis on retire les accessoires. Les exercices essentiels restent. Sous 12 minutes, marche rapide.
 - « Je suis fatigué » : une série de moins (minimum 2), variantes sans impact, effort modéré. Nutrition inchangée.
-- « J'ai mal au genou » : variantes sans flexion chargée ni impact (pont fessier, hip thrust, bird dog…), et conseil de consulter si la douleur est vive, gonfle ou dure. Jour de repos : mobilité douce.
+- « J'ai mal au genou » : variantes sans flexion chargée ni impact (pont fessier, hip thrust, bird dog…), et conseil de consulter si la douleur est vive, gonfle ou dure. Jour de cardio : la marche en pente devient une marche à plat (ou vélo à la salle).
 - « Je pars en déplacement » : séance au poids du corps, 30 minutes maximum.
-- « J'ai raté ma séance » : jamais deux séances le même jour. Si le lendemain est un jour de repos, la séance y est proposée ; sinon on reprend au créneau suivant.
+- « J'ai raté ma séance » : jamais deux séances le même jour. Une marche tranquille le jour même ; la force non faite revient dès le lendemain, puisque la dernière force date toujours d'au moins 48 h.
 - « Machine prise, pas de barre » : chaque exercice a deux ou trois variantes du même mouvement, avec le même matériel. Une touche passe à la variante suivante, puis revient à l'exercice d'origine. Séries, volume et repos ne changent pas. Le choix vaut pour la journée. Les règles de sécurité restent prioritaires : avec un genou douloureux, une variante qui charge le genou est remplacée par la version qui l'épargne, et celle-ci ne se remplace pas.
 
 ## Séance sur l'Apple Watch (`Training/GuidedWorkout`)
@@ -67,7 +66,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 ## Les prochains jours (carte Bouger)
 
-- Les six jours suivants, chacun calculé avec le planning de sa semaine : séance (titre, durée, exercices dépliables) ou marche.
+- Les six jours suivants, en supposant chaque séance proposée faite : la force revient tous les deux jours, cardio et marche entre deux. Titre, durée, exercices dépliables.
 
 ## Progression (`ProgressInsights/WeightTrendAnalyzer`)
 
@@ -78,7 +77,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 ## Régularité (`ProgressInsights/ConsistencyAnalyzer`)
 
-- L'utilisateur coche « J'ai fait ma séance » (dans l'app ou par Siri). Un jour compte une fois ; un rattrapage un jour de repos compte aussi.
+- La régularité compte les séances de force de la semaine (cochées dans l'app, ou renforcement d'au moins 20 min enregistré dans Santé), pour un objectif de 3 : avec 48 h de récupération, c'est le rythme normal.
 - Semaine du lundi au dimanche : séances faites sur séances prévues, une pastille par séance.
 - Série : semaines complètes d'affilée, la semaine en cours comprise dès qu'elle est bouclée.
 - Le message dit ce qui reste à faire pour boucler la semaine, sans culpabiliser.
@@ -97,13 +96,11 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Un jour déjà renseigné n'est jamais écrasé : la saisie manuelle garde la main.
 - Valeurs hors 25–350 kg écartées ; une mesure déjà importée (même identifiant Santé) ne revient pas.
 
-## Ma semaine et séance en plus (`ProgressInsights/WeekActivityAnalyzer`, `Training/TrainingPlanner`)
+## Ma semaine (`ProgressInsights/WeekActivityAnalyzer`)
 
 - La carte Bouger montre la semaine en cours : minutes bougées par jour, puis chaque activité (séances cochées dans l'app et entraînements de Santé, Apple Watch comprise), avec durée et kcal.
 - Une séance cochée sans renforcement enregistré dans Santé le même jour s'affiche à part ; avec un enregistrement de la Watch, elle n'apparaît qu'une fois.
-- Une activité de Santé d'au moins 20 minutes, hors marche, compte comme une séance dans la régularité, même un jour non prévu.
-- Les jours cochés sont un repère, pas une limite : « J'ai envie de bouger » (bouton des jours de repos, phrase libre ou Siri) donne une séance en plus. Elle enchaîne sur la séance qui suit la dernière cochée, pour faire travailler d'autres muscles. Un jour de séance, la séance prévue ne change pas. « Pas envie de bouger » ne déclenche rien.
-- Apple Watch : la séance du jour ou la marche du jour de repos s'envoie d'une touche. « Planifier ma semaine sur la Watch » place les séances et les marches d'aujourd'hui à dimanche dans l'app Exercice (7 h). Aujourd'hui garde ses ajustements, les jours suivants partent du plan de base. Chaque envoi remplace le précédent.
+- Apple Watch : la séance du jour s'envoie d'une touche. « Planifier ma semaine sur la Watch » place les séances jusqu'à dimanche, calculées comme « Les prochains jours ».
 
 ## Repas envoyés vers Santé (`Nutrition/HealthMealExport`)
 

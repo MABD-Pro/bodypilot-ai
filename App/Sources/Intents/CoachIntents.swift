@@ -14,7 +14,6 @@ enum AdjustmentOption: String, AppEnum {
     case notHungry
     case kneePain
     case traveling
-    case wantsToTrain
 
     static let typeDisplayRepresentation: TypeDisplayRepresentation = "Ajustement"
     static let caseDisplayRepresentations: [AdjustmentOption: DisplayRepresentation] = [
@@ -25,7 +24,6 @@ enum AdjustmentOption: String, AppEnum {
         .notHungry: DisplayRepresentation(title: "je n'ai pas faim", image: .init(systemName: "leaf")),
         .kneePain: DisplayRepresentation(title: "j'ai mal au genou", image: .init(systemName: "bandage")),
         .traveling: DisplayRepresentation(title: "je pars en déplacement", image: .init(systemName: "suitcase.rolling")),
-        .wantsToTrain: DisplayRepresentation(title: "j'ai envie de bouger", image: .init(systemName: "bolt.heart")),
     ]
 
     var adjustment: QuickAdjustment {
@@ -37,7 +35,6 @@ enum AdjustmentOption: String, AppEnum {
         case .notHungry: .notHungry
         case .kneePain: .kneePain
         case .traveling: .traveling
-        case .wantsToTrain: .wantsToTrain
         }
     }
 }

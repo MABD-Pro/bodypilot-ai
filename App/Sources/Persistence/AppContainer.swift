@@ -42,6 +42,8 @@ enum LaunchOptions {
     static var demoActivities: Bool { defaults.bool(forKey: "demoActivities") }
     /// `-demoLifts YES` : profil en salle et séries notées les semaines passées, record du jour sur le premier exercice.
     static var demoLifts: Bool { defaults.bool(forKey: "demoLifts") }
+    /// `-demoRecovery YES` : force faite hier, la séance du jour est cardio et marche.
+    static var demoRecovery: Bool { defaults.bool(forKey: "demoRecovery") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }
@@ -130,8 +132,7 @@ enum DemoData {
             targetWeightKg: 80,
             activity: .moderate,
             goal: .recomposition,
-            // Six séances : les captures montrent une séance quel que soit le jour (sauf le dimanche).
-            trainingDaysPerWeek: 6,
+            trainingDaysPerWeek: 3,
             sessionMinutes: 45,
             equipment: LaunchOptions.demoLifts ? .gym : .bodyweight
         )
@@ -152,14 +153,21 @@ enum DemoData {
             context.insert(WaistRecord(date: date, cm: 95.0 - 0.6 * Double(3 - week)))
         }
 
-        // Trois semaines de séances cochées, pour afficher la régularité.
-        let trainingWeekdays = profile.trainingWeekdays
+        // Trois semaines de séances cochées : force un jour sur deux (B la plus récente, donc A
+        // aujourd'hui), cardio et marche entre deux. Avec -demoRecovery, la force date d'hier.
+        let recovery = LaunchOptions.demoRecovery
+        let conditioningTitle = profile.equipment == .gym ? "Cardio et marche inclinée" : "Cardio et marche en côte"
+        var strengthCount = 0
         for offset in 1...21 {
-            guard let date = calendar.date(byAdding: .day, value: -offset, to: now),
-                  trainingWeekdays.contains(calendar.component(.weekday, from: date))
-            else { continue }
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
             let log = DayLogRecord(day: calendar.startOfDay(for: date))
             log.workoutDone = true
+            if offset % 2 == (recovery ? 1 : 0) {
+                log.doneWorkoutTitle = strengthCount % 2 == 0 ? "Full body B" : "Full body A"
+                strengthCount += 1
+            } else {
+                log.doneWorkoutTitle = conditioningTitle
+            }
             context.insert(log)
         }
 

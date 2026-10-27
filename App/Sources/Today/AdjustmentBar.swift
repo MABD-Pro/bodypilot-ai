@@ -62,13 +62,12 @@ extension QuickAdjustment {
         case .notHungry: "leaf"
         case .kneePain: "bandage"
         case .traveling: "suitcase.rolling"
-        case .wantsToTrain: "bolt.heart"
         }
     }
 
     var tint: Color {
         switch self {
-        case .shortOnTime, .traveling, .wantsToTrain: Theme.training
+        case .shortOnTime, .traveling: Theme.training
         case .tired: Theme.fat
         case .missedWorkout, .kneePain: Theme.protein
         case .eatingOut, .notHungry: Theme.nutrition
@@ -85,7 +84,6 @@ extension QuickAdjustment {
         case .notHungry: "pas faim"
         case .kneePain: "genou"
         case .traveling: "déplacement"
-        case .wantsToTrain: "envie de bouger"
         }
     }
 }

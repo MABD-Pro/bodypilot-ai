@@ -49,7 +49,7 @@ extension TrainingDay {
         return nil
     }
 
-    /// La séance guidée, ou la marche du jour de repos avec son objectif de durée.
+    /// La séance guidée, ou la marche du jour avec son objectif de durée.
     var watchPlan: WorkoutPlan? {
         switch kind {
         case .workout(let workout):

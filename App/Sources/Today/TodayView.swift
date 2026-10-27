@@ -16,7 +16,6 @@ struct TodayView: View {
     @AppStorage("healthWeightSync") private var healthSync = false
     @Query(sort: \WeightRecord.date) private var weights: [WeightRecord]
     @Query private var dayLogs: [DayLogRecord]
-    @Query private var weekPlans: [WeekPlanRecord]
     @Query(sort: \WaistRecord.date) private var waists: [WaistRecord]
     @Query(sort: \LiftRecord.day) private var liftRecords: [LiftRecord]
     @State private var isAddingWaist = false
@@ -32,12 +31,9 @@ struct TodayView: View {
         let now = Date.now
         let todayLog = log(on: now)
         let todayAdjustments = todayLog?.adjustments ?? []
-        let weekPlan = weekPlans.first { calendar.isDate($0.weekStart, equalTo: now, toGranularity: .weekOfYear) }
-        let weekDays = DayLogEditor.trainingDays(week: weekPlan, profile: profileRecord.profile)
         let doneLogs = dayLogs.filter(\.workoutDone)
-        let lastWorkoutTitle = doneLogs
-            .filter { $0.day < calendar.startOfDay(for: now) && $0.doneWorkoutTitle != nil }
-            .max { $0.day < $1.day }?.doneWorkoutTitle
+        let completed = doneLogs.map { (day: $0.day, title: $0.doneWorkoutTitle) }
+        let lastStrength = DayLogEditor.lastStrength(before: now, completed: completed, samples: healthActivities, calendar: calendar)
         let plan = CoachFactory.coach.plan(
             for: profileRecord.profile,
             weights: weights.map(\.entry),
@@ -45,30 +41,31 @@ struct TodayView: View {
             adjustments: todayAdjustments,
             availableMinutes: todayLog?.availableMinutes,
             eatingOutSlot: todayLog?.eatingOutSlot,
-            yesterdayAdjustments: adjustments(on: calendar.date(byAdding: .day, value: -1, to: now) ?? now),
             exerciseSwaps: todayLog?.exerciseSwaps ?? [:],
-            weekTrainingDays: weekPlan?.weekdaysRaw,
             mealIntakes: todayLog?.mealIntakes ?? [:],
             describedMeals: todayLog?.describedMeals ?? [:],
-            lastWorkoutTitle: lastWorkoutTitle,
+            lastWorkoutTitle: lastStrength.title,
+            lastStrengthDay: lastStrength.day,
             on: now
         )
+        // Les jours suivants supposent la séance du jour faite.
+        let afterToday = strength(after: plan.training, on: now, otherwise: lastStrength)
 
         let activityAnalyzer = WeekActivityAnalyzer(calendar: calendar)
         let week = activityAnalyzer.week(
             of: now,
             samples: healthActivities,
-            completed: doneLogs.map { (day: $0.day, title: $0.doneWorkoutTitle) },
+            completed: completed,
             sessionMinutes: profileRecord.profile.sessionMinutes
         )
-        // Une séance enregistrée par la Watch compte comme une séance cochée.
+        // Régularité : séances de force de la semaine, cochées ou enregistrées par la Watch.
+        let strengthDays = completed.filter { $0.title.map(TrainingPlanner.isStrengthSession) == true }.map(\.day)
+            + healthActivities.filter { $0.kind == .strength && $0.minutes >= 20 }.map(\.start)
         let consistency = ConsistencyAnalyzer(calendar: calendar).consistency(
-            completedDays: activityAnalyzer.sessionDays(completedDays: doneLogs.map(\.day), samples: healthActivities),
+            completedDays: strengthDays,
+            plannedPerWeek: TrainingPlanner.weeklyStrengthTarget,
             on: now
-        ) { day in
-            let plan = weekPlans.first { calendar.isDate($0.weekStart, equalTo: day, toGranularity: .weekOfYear) }
-            return DayLogEditor.trainingDays(week: plan, profile: profileRecord.profile).count
-        }
+        )
 
         let lifts = liftRecords.map(\.entry)
 
@@ -92,20 +89,15 @@ struct TodayView: View {
                             swap: swapExercise,
                             isDone: todayLog?.workoutDone ?? false,
                             toggleDone: { toggleWorkoutDone(title: plan.training.workoutTitle) },
-                            weekDays: weekDays,
-                            toggleWeekDay: toggleWeekDay,
                             week: week,
                             healthLinked: healthLink == .on,
-                            wantsToTrain: todayAdjustments.contains(.wantsToTrain) ? nil : { toggle(.wantsToTrain) },
-                            cancelExtraSession: todayAdjustments.contains(.wantsToTrain) && plan.training.notes.contains { $0.hasPrefix("Séance en plus") }
-                                ? { toggle(.wantsToTrain) } : nil,
-                            planWeekOnWatch: { await planWeekOnWatch(today: plan.training, weekDays: weekDays, isTodayDone: todayLog?.workoutDone ?? false) },
+                            planWeekOnWatch: { await planWeekOnWatch(today: plan.training, isTodayDone: todayLog?.workoutDone ?? false, after: afterToday) },
                             lifts: lifts,
                             usesLoads: profileRecord.profile.equipment == .gym,
                             logLift: logLift,
                             bodyweightKg: weights.last?.kg ?? profileRecord.startWeightKg,
                             sex: profileRecord.profile.sex,
-                            upcoming: upcomingDays(after: now)
+                            upcoming: forecast(from: calendar.date(byAdding: .day, value: 1, to: now) ?? now, days: 6, last: afterToday)
                         )
                             .id("training")
                         ProgressCard(
@@ -220,31 +212,35 @@ struct TodayView: View {
         withAnimation(Theme.springy) { healthActivities = samples }
     }
 
-    /// Les six prochains jours, chacun avec le planning de sa semaine (jours cochés).
-    private func upcomingDays(after now: Date) -> [UpcomingDay] {
-        (1...6).compactMap { offset in
-            guard let day = calendar.date(byAdding: .day, value: offset, to: now) else { return nil }
-            let week = weekPlans.first { calendar.isDate($0.weekStart, equalTo: day, toGranularity: .weekOfYear) }
+    /// Les jours à venir, en supposant chaque séance proposée faite : la force revient au plus
+    /// tous les deux jours, cardio et marche entre deux.
+    private func forecast(from start: Date, days: Int, last: (day: Date?, title: String?)) -> [UpcomingDay] {
+        var last = last
+        var result: [UpcomingDay] = []
+        for offset in 0..<days {
+            guard let day = calendar.date(byAdding: .day, value: offset, to: start) else { break }
             let training = CoachFactory.coach.plan(
-                for: profileRecord.profile, weights: weights.map(\.entry), weekTrainingDays: week?.weekdaysRaw, on: day
+                for: profileRecord.profile, weights: weights.map(\.entry), lastWorkoutTitle: last.title, lastStrengthDay: last.day, on: day
             ).training
-            return UpcomingDay(date: calendar.startOfDay(for: day), training: training)
+            if case .workout(let workout) = training.kind, workout.hasStrength {
+                last = (calendar.startOfDay(for: day), workout.title)
+            }
+            result.append(UpcomingDay(date: calendar.startOfDay(for: day), training: training))
         }
+        return result
     }
 
-    /// Séances et marches de la semaine, d'aujourd'hui à dimanche, planifiées sur la montre.
+    /// Séances de la semaine, d'aujourd'hui à dimanche, planifiées sur la montre.
     /// Aujourd'hui garde ses ajustements ; les jours suivants partent du plan de base.
-    private func planWeekOnWatch(today: TrainingDay, weekDays: [Int], isTodayDone: Bool) async -> Bool {
-        guard let week = calendar.dateInterval(of: .weekOfYear, for: .now) else { return false }
+    private func planWeekOnWatch(today: TrainingDay, isTodayDone: Bool, after last: (day: Date?, title: String?)) async -> Bool {
+        guard let week = calendar.dateInterval(of: .weekOfYear, for: .now),
+              let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: .now))
+        else { return false }
+        let remaining = calendar.dateComponents([.day], from: tomorrow, to: week.end).day ?? 0
         var plans: [(day: Date, plan: WorkoutPlan)] = []
-        var day = calendar.startOfDay(for: .now)
-        while day < week.end {
-            let training: TrainingDay? = calendar.isDateInToday(day)
-                ? (isTodayDone ? nil : today)
-                : CoachFactory.coach.plan(for: profileRecord.profile, weights: weights.map(\.entry), weekTrainingDays: weekDays, on: day).training
-            if let plan = training?.watchPlan { plans.append((day, plan)) }
-            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
-            day = next
+        if !isTodayDone, let plan = today.watchPlan { plans.append((calendar.startOfDay(for: .now), plan)) }
+        for upcoming in forecast(from: tomorrow, days: max(remaining, 0), last: last) {
+            if let plan = upcoming.training.watchPlan { plans.append((upcoming.date, plan)) }
         }
         return await WatchSchedule.replace(with: plans, calendar: calendar)
     }
@@ -293,8 +289,10 @@ struct TodayView: View {
         dayLogs.first { calendar.isDate($0.day, inSameDayAs: date) }
     }
 
-    private func adjustments(on date: Date) -> Set<QuickAdjustment> {
-        log(on: date)?.adjustments ?? []
+    /// Dernière force une fois la séance du jour faite.
+    private func strength(after training: TrainingDay, on day: Date, otherwise last: (day: Date?, title: String?)) -> (day: Date?, title: String?) {
+        guard case .workout(let workout) = training.kind, workout.hasStrength else { return last }
+        return (calendar.startOfDay(for: day), workout.title)
     }
 
     private func todayLog() -> DayLogRecord {
@@ -357,13 +355,6 @@ struct TodayView: View {
             }
         }
         try? context.save()
-    }
-
-    /// Planning de la semaine : un jour coché ou décoché ne change que cette semaine.
-    private func toggleWeekDay(_ weekday: Int) {
-        withAnimation(Theme.springy) {
-            DayLogEditor.toggleTrainingDay(weekday, on: .now, profile: profileRecord.profile, in: context, calendar: calendar)
-        }
     }
 
     private func toggleWorkoutDone(title: String?) {
