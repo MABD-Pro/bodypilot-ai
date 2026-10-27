@@ -1,4 +1,5 @@
 import BodyPilotCore
+import Foundation
 import Testing
 @testable import Training
 
@@ -22,4 +23,19 @@ import Testing
     #expect(lunge.startingLoad(bodyweightKg: 80, sex: .male) == 8)
     // Au poids du corps, pas de charge d'essai.
     #expect(ExerciseGuide.guide(for: "Pompes")?.startingLoad(bodyweightKg: 80, sex: .male) == nil)
+}
+
+@Test func everyGuidedExerciseHasADemonstration() {
+    // Toutes les fiches ont une vidéo choisie, sauf le rowing à la porte (aucune vidéo correcte trouvée).
+    let withoutVideo = Set(ExerciseGuide.catalog.keys).filter { !ExerciseDemonstration.hasChosenVideo(for: $0) }
+    #expect(withoutVideo == ["Rowing serviette à la porte"])
+    #expect(Set(ExerciseDemonstration.videos.keys).isSubset(of: ExerciseGuide.catalog.keys))
+}
+
+@Test func demonstrationLinksToTheVideoOrToASearch() {
+    #expect(ExerciseDemonstration.url(for: "Squat à la barre").absoluteString == "https://www.youtube.com/watch?v=K5HuVGYcp50")
+    let search = ExerciseDemonstration.url(for: "Rowing serviette à la porte")
+    #expect(search.host() == "www.youtube.com")
+    #expect(search.path() == "/results")
+    #expect(URLComponents(url: search, resolvingAgainstBaseURL: false)?.queryItems?.first?.value == "Rowing serviette à la porte technique")
 }
