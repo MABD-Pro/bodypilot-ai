@@ -1,0 +1,34 @@
+# Architecture
+
+Voir [PRINCIPLES.md](PRINCIPLES.md) pour les exigences qui la motivent.
+
+## Vue d'ensemble
+
+```
+App (SwiftUI, cible iOS)                ← UI, HealthKit, SwiftData, StoreKit, App Intents
+ └── Packages/BodyPilotKit (Swift Package, Swift 6)
+      ├── BodyPilotCore     types partagés, protocoles        (aucune dépendance)
+      ├── AIRouter          routage des traitements IA         → BodyPilotCore
+      ├── Nutrition         programme alimentaire, repas       → BodyPilotCore
+      ├── Training          programme sportif, séances         → BodyPilotCore
+      ├── ProgressInsights  poids, mensurations, records       → BodyPilotCore
+      └── Coach             orchestration, ajustements du jour → BodyPilotCore, AIRouter
+```
+
+## Règles
+
+- **Modules découplés.** Nutrition, Training et ProgressInsights ne se connaissent pas. Le Coach les consomme via des protocoles déclarés dans BodyPilotCore ; l'App injecte les implémentations.
+- **Domaine sans UI.** Les modules du package n'importent ni SwiftUI ni SwiftData. Ils restent testables sur Linux (CI) et réutilisables pour l'Apple Watch. La persistance (SwiftData) et les frameworks système vivent dans l'App, derrière des protocoles.
+- **Local-first.** Les identifiants (`EntityID`) sont générés sur l'appareil. Le stockage local est la source de vérité ; la synchronisation viendra plus tard avec une gestion explicite des conflits.
+- **Coût IA maîtrisé.** Toute demande passe par `AIRouter`, qui choisit le niveau le moins coûteux capable de la traiter (déterministe > embarqué > cloud éco > cloud avancé) et refuse le cloud quand le budget est atteint. Chaque appel produit un `AIUsageRecord` (tokens, coût, latence, succès).
+- **Fournisseurs remplaçables.** Aucun SDK de fournisseur IA dans les modules de domaine. Les appels cloud passeront par le backend (proxy), jamais avec une clé dans l'app.
+
+## Cibles
+
+- iOS 18 minimum. Apple Foundation Models est utilisé seulement sur iOS 26+ via `#available`, avec repli sur le niveau suivant du routeur.
+- iPhone uniquement pour l'instant ; Apple Watch prévue.
+
+## Décisions ouvertes
+
+- Backend (auth, sync, proxy IA, quotas) : à comparer selon coût total, sécurité, maintenance.
+- SwiftData ou Core Data : SwiftData par défaut, à confirmer quand la synchronisation sera conçue.
