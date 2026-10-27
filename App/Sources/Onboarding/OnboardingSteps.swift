@@ -59,11 +59,11 @@ struct RhythmStep: View {
             }
 
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                Text("Séances par semaine").font(.headline)
-                Picker("Séances par semaine", selection: $draft.trainingDays) {
-                    ForEach(2...5, id: \.self) { Text("\($0)").tag($0) }
-                }
-                .pickerStyle(.segmented)
+                Text("Tes jours de séance habituels").font(.headline)
+                WeekdayPicker(selected: $draft.trainingWeekdays)
+                Text("Tu pourras les changer chaque semaine depuis l'écran Aujourd'hui.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
@@ -86,6 +86,40 @@ struct RhythmStep: View {
                 }
             }
         }
+    }
+}
+
+/// Jours de la semaine à cocher ; au moins un reste sélectionné.
+struct WeekdayPicker: View {
+    @Binding var selected: [Int]
+
+    private let calendar = Calendar.current
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(calendar.orderedWeekdays, id: \.self) { weekday in
+                let isOn = selected.contains(weekday)
+                Button {
+                    withAnimation(Theme.springy) {
+                        if isOn {
+                            if selected.count > 1 { selected.removeAll { $0 == weekday } }
+                        } else {
+                            selected = (selected + [weekday]).sorted()
+                        }
+                    }
+                } label: {
+                    Text(calendar.initialWeekdayLetters(locale: Theme.locale)[weekday - 1])
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 40)
+                        .foregroundStyle(isOn ? Color.white : .secondary)
+                        .background(isOn ? Theme.training : Theme.training.opacity(0.08), in: .circle)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(calendar.weekdayNames(locale: Theme.locale)[weekday - 1])
+                .accessibilityAddTraits(isOn ? .isSelected : [])
+            }
+        }
+        .sensoryFeedback(.selection, trigger: selected)
     }
 }
 

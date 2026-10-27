@@ -77,3 +77,15 @@ private let monday = day(2026, 10, 26)
     let plan = coach.plan(for: makeProfile(), weights: [], adjustments: [.kneePain, .tired, .eatingOut], on: monday)
     #expect(plan.headline.contains("Genou"))
 }
+
+@Test func weekTrainingDaysOverrideUsualDays() {
+    let tuesday = day(2026, 10, 27)
+    let usual = coach.plan(for: makeProfile(), weights: [], on: tuesday)
+    if case .workout = usual.training.kind { Issue.record("Mardi est un jour de repos par défaut") }
+
+    let moved = coach.plan(for: makeProfile(), weights: [], weekTrainingDays: [3, 5], on: tuesday)
+    if case .workout = moved.training.kind {} else { Issue.record("Mardi a été choisi cette semaine") }
+
+    let noTraining = coach.plan(for: makeProfile(), weights: [], weekTrainingDays: [], on: monday)
+    if case .workout = noTraining.training.kind { Issue.record("Aucune séance choisie cette semaine") }
+}

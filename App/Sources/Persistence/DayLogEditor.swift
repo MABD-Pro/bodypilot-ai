@@ -21,6 +21,33 @@ enum DayLogEditor {
         return created
     }
 
+    static func weekPlan(containing date: Date, in context: ModelContext, calendar: Calendar = .current) -> WeekPlanRecord? {
+        guard let week = calendar.dateInterval(of: .weekOfYear, for: date) else { return nil }
+        let start = week.start
+        let end = week.end
+        var descriptor = FetchDescriptor<WeekPlanRecord>(predicate: #Predicate { $0.weekStart >= start && $0.weekStart < end })
+        descriptor.fetchLimit = 1
+        return try? context.fetch(descriptor).first
+    }
+
+    /// Jours de séance de la semaine : ceux choisis pour cette semaine, sinon les jours habituels.
+    static func trainingDays(week: WeekPlanRecord?, profile: UserProfile) -> [Int] {
+        week?.weekdaysRaw ?? profile.trainingWeekdays
+    }
+
+    /// Ajoute ou retire un jour de séance pour cette semaine seulement.
+    static func toggleTrainingDay(_ weekday: Int, on date: Date, profile: UserProfile, in context: ModelContext, calendar: Calendar = .current) {
+        let week = weekPlan(containing: date, in: context, calendar: calendar) ?? {
+            let start = calendar.dateInterval(of: .weekOfYear, for: date)?.start ?? calendar.startOfDay(for: date)
+            let created = WeekPlanRecord(weekStart: start, weekdays: profile.trainingWeekdays)
+            context.insert(created)
+            return created
+        }()
+        var days = Set(week.weekdaysRaw)
+        if days.contains(weekday) { days.remove(weekday) } else { days.insert(weekday) }
+        week.weekdaysRaw = days.sorted()
+    }
+
     /// Ajoute ce qui a été compris, sans retirer les ajustements déjà choisis.
     static func apply(_ command: InterpretedCommand, to log: DayLogRecord) {
         log.adjustments = log.adjustments.union(command.adjustments)
@@ -39,6 +66,7 @@ enum DayLogEditor {
         let weights = (try? context.fetch(FetchDescriptor<WeightRecord>(sortBy: [SortDescriptor(\.date)]))) ?? []
         let today = log(on: now, in: context, calendar: calendar)
         let yesterday = calendar.date(byAdding: .day, value: -1, to: now).flatMap { log(on: $0, in: context, calendar: calendar) }
+        let week = weekPlan(containing: now, in: context, calendar: calendar)
         return CoachFactory.coach.plan(
             for: profile.profile,
             weights: weights.map(\.entry),
@@ -47,6 +75,7 @@ enum DayLogEditor {
             eatingOutSlot: today?.eatingOutSlot,
             yesterdayAdjustments: yesterday?.adjustments ?? [],
             exerciseSwaps: today?.exerciseSwaps ?? [:],
+            weekTrainingDays: week?.weekdaysRaw,
             on: now
         )
     }

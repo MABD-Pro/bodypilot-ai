@@ -32,7 +32,7 @@ enum LaunchOptions {
 }
 
 enum AppContainer {
-    static let schema = Schema([ProfileRecord.self, WeightRecord.self, DayLogRecord.self])
+    static let schema = Schema([ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self])
 
     /// Conteneur unique de l'app, partagé avec Siri et Raccourcis pour qu'ils voient les mêmes données.
     @MainActor
@@ -98,7 +98,7 @@ enum DemoData {
         }
 
         // Trois semaines de séances cochées, pour afficher la régularité.
-        let trainingWeekdays = TrainingPlanner.trainingWeekdays(daysPerWeek: profile.trainingDaysPerWeek)
+        let trainingWeekdays = profile.trainingWeekdays
         for offset in 1...21 {
             guard let date = calendar.date(byAdding: .day, value: -offset, to: now),
                   trainingWeekdays.contains(calendar.component(.weekday, from: date))

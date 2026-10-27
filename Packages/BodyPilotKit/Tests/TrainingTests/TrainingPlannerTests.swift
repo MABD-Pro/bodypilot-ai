@@ -145,3 +145,27 @@ private func workout(_ day: TrainingDay) -> Workout? {
         #expect(Set(exercise.alternatives).count == exercise.alternatives.count)
     }
 }
+
+@Test func chosenWeekdaysDriveTheSchedule() {
+    // Mardi et samedi choisis : lundi devient un jour de repos, mardi un jour de séance.
+    var profile = makeProfile()
+    profile.trainingWeekdays = [3, 7]
+    #expect(!planner.isTrainingDay(monday, for: profile))
+    #expect(planner.isTrainingDay(tuesday, for: profile))
+    #expect(workout(planner.trainingDay(for: profile, on: tuesday, constraints: DayConstraints())) != nil)
+}
+
+@Test func emptyWeekGivesActiveRestEveryDay() {
+    var profile = makeProfile()
+    profile.trainingWeekdays = []
+    #expect(workout(planner.trainingDay(for: profile, on: monday, constraints: DayConstraints())) == nil)
+}
+
+@Test func profileKeepsAtLeastOneUsualDay() {
+    let profile = UserProfile(
+        sex: .male, birthDate: day(1991, 1, 1), heightCm: 180, startWeightKg: 90, activity: .moderate, goal: .loseFat,
+        trainingDaysPerWeek: 3, trainingWeekdays: [9, 0], sessionMinutes: 45, equipment: .bodyweight
+    )
+    #expect(profile.trainingWeekdays == [4])
+    #expect(makeProfile(daysPerWeek: 3).trainingWeekdays == [2, 4, 6])
+}

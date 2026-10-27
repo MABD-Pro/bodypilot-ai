@@ -13,6 +13,7 @@ struct TodayView: View {
     @AppStorage("healthWeightSync") private var healthSync = false
     @Query(sort: \WeightRecord.date) private var weights: [WeightRecord]
     @Query private var dayLogs: [DayLogRecord]
+    @Query private var weekPlans: [WeekPlanRecord]
     @State private var isAddingWeight = false
     @State private var isEditingProfile = false
 
@@ -22,6 +23,8 @@ struct TodayView: View {
         let now = Date.now
         let todayLog = log(on: now)
         let todayAdjustments = todayLog?.adjustments ?? []
+        let weekPlan = weekPlans.first { calendar.isDate($0.weekStart, equalTo: now, toGranularity: .weekOfYear) }
+        let weekDays = DayLogEditor.trainingDays(week: weekPlan, profile: profileRecord.profile)
         let plan = CoachFactory.coach.plan(
             for: profileRecord.profile,
             weights: weights.map(\.entry),
@@ -30,12 +33,13 @@ struct TodayView: View {
             eatingOutSlot: todayLog?.eatingOutSlot,
             yesterdayAdjustments: adjustments(on: calendar.date(byAdding: .day, value: -1, to: now) ?? now),
             exerciseSwaps: todayLog?.exerciseSwaps ?? [:],
+            weekTrainingDays: weekPlan?.weekdaysRaw,
             on: now
         )
 
         let consistency = ConsistencyAnalyzer(calendar: calendar).consistency(
             completedDays: dayLogs.filter(\.workoutDone).map(\.day),
-            plannedPerWeek: profileRecord.profile.trainingDaysPerWeek,
+            plannedPerWeek: weekDays.count,
             on: now
         )
 
@@ -56,7 +60,9 @@ struct TodayView: View {
                             training: plan.training,
                             swap: swapExercise,
                             isDone: todayLog?.workoutDone ?? false,
-                            toggleDone: toggleWorkoutDone
+                            toggleDone: toggleWorkoutDone,
+                            weekDays: weekDays,
+                            toggleWeekDay: toggleWeekDay
                         )
                             .id("training")
                         ProgressCard(
@@ -207,6 +213,13 @@ struct TodayView: View {
         let log = todayLog()
         withAnimation(Theme.springy) {
             log.exerciseSwapsRaw.append(key)
+        }
+    }
+
+    /// Planning de la semaine : un jour coché ou décoché ne change que cette semaine.
+    private func toggleWeekDay(_ weekday: Int) {
+        withAnimation(Theme.springy) {
+            DayLogEditor.toggleTrainingDay(weekday, on: .now, profile: profileRecord.profile, in: context, calendar: calendar)
         }
     }
 

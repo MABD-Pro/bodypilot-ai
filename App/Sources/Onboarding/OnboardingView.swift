@@ -129,7 +129,7 @@ struct ProfileDraft {
     var weightKg: Double = 80
     var targetWeightKg: Double = 74
     var activity: ActivityLevel = .light
-    var trainingDays: Int = 3
+    var trainingWeekdays: [Int] = UserProfile.defaultTrainingWeekdays(count: 3)
     var sessionMinutes: Int = 45
     var equipment: Equipment = .bodyweight
     var id = EntityID()
@@ -145,7 +145,7 @@ struct ProfileDraft {
         weightKg = profile.startWeightKg
         targetWeightKg = profile.targetWeightKg ?? profile.startWeightKg
         activity = profile.activity
-        trainingDays = profile.trainingDaysPerWeek
+        trainingWeekdays = profile.trainingWeekdays
         sessionMinutes = profile.sessionMinutes
         equipment = profile.equipment
     }
@@ -160,7 +160,8 @@ struct ProfileDraft {
             targetWeightKg: goal == .maintain ? nil : targetWeightKg,
             activity: activity,
             goal: goal,
-            trainingDaysPerWeek: trainingDays,
+            trainingDaysPerWeek: trainingWeekdays.count,
+            trainingWeekdays: trainingWeekdays,
             sessionMinutes: sessionMinutes,
             equipment: equipment
         )

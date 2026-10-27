@@ -18,6 +18,8 @@ final class ProfileRecord {
     var activityRaw: String = ActivityLevel.light.rawValue
     var goalRaw: String = Goal.loseFat.rawValue
     var trainingDaysPerWeek: Int = 3
+    /// Jours de séance habituels (1 = dimanche … 7 = samedi). Vide : répartition par défaut.
+    var trainingWeekdaysRaw: [Int] = []
     var sessionMinutes: Int = 45
     var equipmentRaw: String = Equipment.bodyweight.rawValue
     /// Correction issue des bilans hebdomadaires ; jamais écrasée par l'édition du profil.
@@ -39,6 +41,7 @@ final class ProfileRecord {
         activityRaw = profile.activity.rawValue
         goalRaw = profile.goal.rawValue
         trainingDaysPerWeek = profile.trainingDaysPerWeek
+        trainingWeekdaysRaw = profile.trainingWeekdays
         sessionMinutes = profile.sessionMinutes
         equipmentRaw = profile.equipment.rawValue
     }
@@ -60,6 +63,7 @@ final class ProfileRecord {
             activity: ActivityLevel(rawValue: activityRaw) ?? .light,
             goal: Goal(rawValue: goalRaw) ?? .loseFat,
             trainingDaysPerWeek: trainingDaysPerWeek,
+            trainingWeekdays: trainingWeekdaysRaw.isEmpty ? nil : trainingWeekdaysRaw,
             sessionMinutes: sessionMinutes,
             equipment: Equipment(rawValue: equipmentRaw) ?? .bodyweight,
             calorieAdjustmentKcal: calorieAdjustmentKcal
@@ -93,6 +97,19 @@ final class WeightRecord {
     }
 
     var entry: WeightEntry { WeightEntry(date: date, kg: kg) }
+}
+
+/// Jours de séance d'une semaine donnée, quand ils diffèrent des jours habituels.
+@Model
+final class WeekPlanRecord {
+    /// Début de la semaine (selon le calendrier de l'appareil).
+    var weekStart: Date = Date.now
+    var weekdaysRaw: [Int] = []
+
+    init(weekStart: Date, weekdays: [Int]) {
+        self.weekStart = weekStart
+        self.weekdaysRaw = weekdays
+    }
 }
 
 /// Ajustements déclarés pour une journée : la mémoire des décisions du coach.
