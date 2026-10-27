@@ -93,6 +93,8 @@ struct TodayView: View {
                             week: week,
                             healthLinked: healthLink == .on,
                             wantsToTrain: todayAdjustments.contains(.wantsToTrain) ? nil : { toggle(.wantsToTrain) },
+                            cancelExtraSession: todayAdjustments.contains(.wantsToTrain) && plan.training.notes.contains { $0.hasPrefix("Séance en plus") }
+                                ? { toggle(.wantsToTrain) } : nil,
                             planWeekOnWatch: { await planWeekOnWatch(today: plan.training, weekDays: weekDays, isTodayDone: todayLog?.workoutDone ?? false) }
                         )
                             .id("training")

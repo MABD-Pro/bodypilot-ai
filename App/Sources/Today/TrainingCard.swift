@@ -19,6 +19,8 @@ struct TrainingCard: View {
     var healthLinked = false
     /// Un jour de repos, l'envie de bouger donne une séance en plus.
     var wantsToTrain: (() -> Void)?
+    /// Séance en plus en cours : retour possible à la marche prévue.
+    var cancelExtraSession: (() -> Void)?
     /// Planifie la semaine sur la Watch ; `false` si l'autorisation est refusée.
     var planWeekOnWatch: (() async -> Bool)?
 
@@ -98,6 +100,15 @@ struct TrainingCard: View {
                 DurationBadge(minutes: training.estimatedMinutes)
             }
 
+            if let cancelExtraSession {
+                Button(action: cancelExtraSession) {
+                    Label("Séance en plus · revenir à la marche", systemImage: "arrow.uturn.backward")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.training)
+                }
+                .buttonStyle(.plain)
+            }
+
             VStack(spacing: 0) {
                 ExerciseRow(index: 0, name: "Échauffement", detail: "\(workout.warmupMinutes) min", isWarmup: true)
                 ForEach(Array(workout.exercises.enumerated()), id: \.offset) { index, exercise in
@@ -166,32 +177,44 @@ struct TrainingCard: View {
     }
 
     /// Jour de repos : la marche part sur la montre, ou une séance en plus si l'envie est là.
+    @ViewBuilder
     private var restActions: some View {
-        HStack(spacing: Theme.Spacing.s) {
-            if let plan = training.watchPlan {
-                Button {
-                    isPreviewingWatch = true
-                } label: {
-                    Label("Sur ma Watch", systemImage: "applewatch")
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
-                }
-                .buttonStyle(.glass)
-                .workoutPreview(plan, isPresented: $isPreviewingWatch)
+        // Côte à côte si la place suffit, sinon l'un sous l'autre (grands textes, petits écrans).
+        let buttons = ViewThatFits(in: .horizontal) {
+            HStack(spacing: Theme.Spacing.s) { restButtons }
+            VStack(spacing: Theme.Spacing.s) { restButtons }
+        }
+        if let plan = training.watchPlan {
+            buttons.workoutPreview(plan, isPresented: $isPreviewingWatch)
+        } else {
+            buttons
+        }
+    }
+
+    @ViewBuilder
+    private var restButtons: some View {
+        if training.watchPlan != nil {
+            Button {
+                isPreviewingWatch = true
+            } label: {
+                Label("Sur ma Watch", systemImage: "applewatch")
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
             }
-            if let wantsToTrain {
-                Button(action: wantsToTrain) {
-                    Label("Envie de bouger", systemImage: "bolt.heart")
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
-                }
-                .buttonStyle(.glassProminent)
-                .tint(Theme.training)
+            .buttonStyle(.glass)
+        }
+        if let wantsToTrain {
+            Button(action: wantsToTrain) {
+                Label("Envie de bouger", systemImage: "bolt.heart")
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
             }
+            .buttonStyle(.glassProminent)
+            .tint(Theme.training)
         }
     }
 }
