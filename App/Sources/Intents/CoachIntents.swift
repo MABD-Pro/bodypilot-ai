@@ -88,6 +88,20 @@ struct TodayPlanIntent: AppIntent {
     }
 }
 
+struct WorkoutDoneIntent: AppIntent {
+    static let title: LocalizedStringResource = "J'ai fait ma séance"
+    static let description: IntentDescription? = IntentDescription("Coche la séance du jour pour suivre ta régularité.")
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let context = AppContainer.shared.mainContext
+        let log = DayLogEditor.todayLog(in: context)
+        log.workoutDone = true
+        try? context.save()
+        return .result(dialog: "Bravo, séance cochée. La régularité, c'est ce qui fait les résultats.")
+    }
+}
+
 @MainActor
 enum CoachIntents {
     /// Enregistre l'ajustement dans le journal du jour et renvoie la confirmation à dire.
@@ -142,6 +156,15 @@ struct BodyPilotShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Dire au coach",
             systemImageName: "sparkles"
+        )
+        AppShortcut(
+            intent: WorkoutDoneIntent(),
+            phrases: [
+                "J'ai fait ma séance dans \(.applicationName)",
+                "Séance terminée dans \(.applicationName)",
+            ],
+            shortTitle: "Séance faite",
+            systemImageName: "checkmark.seal"
         )
     }
 }

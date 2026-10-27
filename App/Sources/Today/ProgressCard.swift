@@ -1,6 +1,7 @@
 import BodyPilotCore
 import Charts
 import Coach
+import ProgressInsights
 import SwiftUI
 
 /// Lien avec l'app Santé pour les pesées.
@@ -17,6 +18,7 @@ struct ProgressCard: View {
     let profile: UserProfile
     let health: HealthLink
     let checkIn: CalorieSuggestion?
+    let consistency: WeeklyConsistency
     let addWeight: () -> Void
     let acceptCheckIn: () -> Void
     let dismissCheckIn: () -> Void
@@ -53,6 +55,8 @@ struct ProgressCard: View {
                     .font(.subheadline)
                     .fixedSize(horizontal: false, vertical: true)
             }
+
+            consistencyRow
 
             if trend.points.count >= 2 {
                 chart
@@ -113,6 +117,33 @@ struct ProgressCard: View {
         }
         .padding(Theme.Spacing.m)
         .background(Theme.progress.opacity(0.10), in: .rect(cornerRadius: Theme.Radius.inner))
+    }
+
+    /// Régularité de la semaine : une pastille par séance prévue, pleine quand elle est faite.
+    private var consistencyRow: some View {
+        HStack(alignment: .top, spacing: Theme.Spacing.m) {
+            HStack(spacing: 5) {
+                ForEach(0..<max(consistency.planned, consistency.done), id: \.self) { index in
+                    Circle()
+                        .fill(index < consistency.done ? Theme.training : Theme.training.opacity(0.15))
+                        .frame(width: 12, height: 12)
+                }
+            }
+            .padding(.top, 4)
+            .accessibilityElement()
+            .accessibilityLabel("\(consistency.done) séances sur \(consistency.planned) cette semaine")
+            Text(consistency.message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            if consistency.streakWeeks > 1 {
+                Tag(text: "\(consistency.streakWeeks) sem.", symbol: "flame.fill", tint: Theme.carbs)
+            }
+        }
+        .padding(Theme.Spacing.m)
+        .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+        .animation(Theme.springy, value: consistency)
     }
 
     /// Proposer Santé tant qu'il n'est pas branché ; ensuite, un simple rappel discret.

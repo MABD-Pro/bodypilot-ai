@@ -106,6 +106,8 @@ final class DayLogRecord {
     var eatingOutSlotRaw: String?
     /// Une entrée par remplacement demandé, par clé d'exercice (le coach passe à la variante suivante).
     var exerciseSwapsRaw: [String] = []
+    /// Séance du jour cochée comme faite : base de la régularité affichée dans Progresser.
+    var workoutDone = false
 
     var exerciseSwaps: [String: Int] {
         exerciseSwapsRaw.reduce(into: [:]) { $0[$1, default: 0] += 1 }

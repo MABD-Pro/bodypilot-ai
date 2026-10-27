@@ -8,6 +8,8 @@ struct TrainingCard: View {
     let training: TrainingDay
     /// Remplace l'exercice (par sa clé) par la variante suivante.
     var swap: (String) -> Void = { _ in }
+    var isDone = false
+    var toggleDone: () -> Void = {}
 
     @State private var isPreviewingWatch = false
 
@@ -75,6 +77,17 @@ struct TrainingCard: View {
                 .tint(Theme.training)
                 .workoutPreview(plan, isPresented: $isPreviewingWatch)
             }
+
+            Button(action: toggleDone) {
+                Label(isDone ? "Séance faite" : "J'ai fait ma séance", systemImage: isDone ? "checkmark.seal.fill" : "checkmark.circle")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(isDone ? Theme.progress : .primary)
+                    .contentTransition(.symbolEffect(.replace))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.glass)
+            .sensoryFeedback(.success, trigger: isDone) { _, done in done }
         }
     }
 
