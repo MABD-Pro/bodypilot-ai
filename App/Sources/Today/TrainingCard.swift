@@ -320,8 +320,9 @@ private struct FeelingPicker: View {
                         Label(feeling.label, systemImage: feeling.symbol)
                             .font(.footnote.weight(.semibold))
                             .lineLimit(1)
-                            .minimumScaleFactor(0.85)
+                            .minimumScaleFactor(0.75)
                             .foregroundStyle(isOn ? Color.white : Color.primary)
+                            .padding(.horizontal, 6)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, Theme.Spacing.s)
                     }
@@ -360,7 +361,10 @@ private struct OptionsPicker: View {
             }
             .padding(.horizontal, Theme.Spacing.m)
             .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
-            CoachNote(text: options.reason, tint: Theme.training)
+            // La raison n'accompagne que la recommandation : un autre choix est celui de l'utilisateur.
+            if choice == options.recommended {
+                CoachNote(text: options.reason, tint: Theme.training)
+            }
         }
         .sensoryFeedback(.selection, trigger: choice)
     }
