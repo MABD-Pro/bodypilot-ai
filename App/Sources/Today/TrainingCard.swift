@@ -1,9 +1,13 @@
 import BodyPilotCore
 import SwiftUI
+import Training
+import WorkoutKit
 
 /// « Quel entraînement dois-je effectuer ? »
 struct TrainingCard: View {
     let training: TrainingDay
+
+    @State private var isPreviewingWatch = false
 
     var body: some View {
         CoachCard(eyebrow: "Bouger", symbol: "figure.strengthtraining.functional", tint: Theme.training) {
@@ -44,6 +48,21 @@ struct TrainingCard: View {
             Label(workout.intensityCue, systemImage: "gauge.with.dots.needle.33percent")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+
+            if let plan = workout.guided.watchPlan {
+                // La séance déjà adaptée (temps, fatigue, genou) part sur la montre, guidée série par série.
+                Button {
+                    isPreviewingWatch = true
+                } label: {
+                    Label("Envoyer sur ma Watch", systemImage: "applewatch")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(Theme.training)
+                .workoutPreview(plan, isPresented: $isPreviewingWatch)
+            }
         }
     }
 
