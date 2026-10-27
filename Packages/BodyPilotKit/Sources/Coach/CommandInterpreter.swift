@@ -22,25 +22,71 @@ public struct InterpretedCommand: Sendable, Equatable {
     }
 }
 
+/// Proposition brute d'un modèle de langage, avant contrôle par les règles du coach.
+public struct CommandDraft: Sendable, Equatable {
+    public var adjustments: Set<QuickAdjustment>
+    public var availableMinutes: Int?
+    public var eatingOutSlot: MealSlot?
+
+    public init(adjustments: Set<QuickAdjustment>, availableMinutes: Int? = nil, eatingOutSlot: MealSlot? = nil) {
+        self.adjustments = adjustments
+        self.availableMinutes = availableMinutes
+        self.eatingOutSlot = eatingOutSlot
+    }
+}
+
+/// Modèle de langage capable de lire une phrase libre (Foundation Models sur l'iPhone).
+/// Implémenté dans l'app : le package reste indépendant du fournisseur.
+public protocol CommandLanguageModel: Sendable {
+    func draft(for text: String) async throws -> CommandDraft
+}
+
 /// Transforme « je mange au resto ce soir et j'ai mal au genou » en ajustements.
 ///
 /// Passe par l'AIRouter : le niveau déterministe (mots-clés) couvre les phrases courantes,
-/// gratuitement et hors ligne. Un modèle embarqué pourra prendre le relais pour les autres.
+/// gratuitement et hors ligne. Si rien n'est reconnu, un modèle embarqué prend le relais,
+/// jamais le cloud ; sa réponse repasse par les mêmes bornes que les mots-clés.
 public struct CommandInterpreter: Sendable {
     public static let feature = "command-parsing"
+    /// Au-delà, la phrase n'est pas un ajustement du jour : inutile de solliciter le modèle.
+    static let maxModelInputLength = 280
 
     public var router: AIRouter
+    public var model: (any CommandLanguageModel)?
 
-    public init(router: AIRouter = AIRouter(availableTiers: [.deterministic])) {
+    public init(router: AIRouter = AIRouter(availableTiers: [.deterministic]), model: (any CommandLanguageModel)? = nil) {
         self.router = router
+        self.model = model
     }
 
+    /// Mots-clés seuls : instantané, sans modèle.
     public func interpret(_ text: String) -> InterpretedCommand? {
         let request = AIRequest(feature: Self.feature, minimumTier: .deterministic)
         guard case .route(let tier) = router.route(request, usage: AIUsageSnapshot()), tier == .deterministic else {
             return nil
         }
         return KeywordParser.parse(text)
+    }
+
+    /// Mots-clés d'abord, puis le modèle embarqué pour les tournures qu'ils ne couvrent pas.
+    public func understand(_ text: String) async -> InterpretedCommand? {
+        let keywords = interpret(text)
+        if let keywords, keywords.isUnderstood { return keywords }
+        guard let model, text.count <= Self.maxModelInputLength,
+              case .route(let tier) = router.route(AIRequest(feature: Self.feature, minimumTier: .onDevice), usage: AIUsageSnapshot()),
+              tier == .onDevice,
+              let draft = try? await model.draft(for: text)
+        else { return keywords }
+        return Self.checked(draft, tier: tier)
+    }
+
+    /// Mêmes bornes que les mots-clés : temps entre 5 et 120 min, repas seulement si restaurant.
+    static func checked(_ draft: CommandDraft, tier: AITier) -> InterpretedCommand {
+        var adjustments = draft.adjustments
+        let minutes = draft.availableMinutes.flatMap { (5...120).contains($0) ? $0 : nil }
+        if minutes != nil { adjustments.insert(.shortOnTime) }
+        let slot = adjustments.contains(.eatingOut) ? draft.eatingOutSlot.flatMap { $0 == .lunch || $0 == .dinner ? $0 : nil } : nil
+        return InterpretedCommand(adjustments: adjustments, availableMinutes: minutes, eatingOutSlot: slot, tier: tier)
     }
 }
 
