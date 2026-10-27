@@ -108,22 +108,22 @@ public struct TrainingPlanner: TrainingPlanning {
         let title = equipment == .gym ? "Cardio et marche inclinée" : "Cardio et marche en côte"
         let base = Workout(
             title: title, warmupMinutes: 5, cooldownMinutes: 0, exercises: [],
-            intensityCue: "Cardio : effort soutenu mais contrôlé. Marche : tu peux parler, avec un léger essoufflement."
+            intensityCue: "Tout à allure modérée : tu peux parler, avec un léger essoufflement."
         )
-        // Muscles en récupération : cardio sans impact (moins d'interférence, Wilson et al., 2012).
-        return withConditioning(base, budget: budget, equipment: equipment, on: date, lowImpactOnly: true)
+        // Muscles en récupération : cardio continu, modéré et sans impact (moins d'interférence, Wilson et al., 2012).
+        return withConditioning(base, budget: budget, equipment: equipment, on: date, recovery: true)
     }
 
     /// Force d'abord (60 % du temps), puis un cardio qui change d'une séance à l'autre,
     /// puis la marche inclinée ou l'escalier, qui fait aussi office de retour au calme.
-    func withConditioning(_ strength: Workout, budget: Int, equipment: Equipment, on date: Date, lowImpactOnly: Bool = false) -> Workout {
+    func withConditioning(_ strength: Workout, budget: Int, equipment: Equipment, on date: Date, recovery: Bool = false) -> Workout {
         var result = fit(strength, toMinutes: Int(Double(budget) * Self.strengthShare))
         result.cooldownMinutes = 0
         let remaining = budget - result.estimatedMinutes
         guard remaining >= 8 else { return strength }
 
         let index = calendar.ordinality(of: .day, in: .era, for: date) ?? 0
-        let cardioFormats = WorkoutCatalog.cardio(for: equipment).filter { !lowImpactOnly || !$0.isHighImpact }
+        let cardioFormats = recovery ? WorkoutCatalog.recoveryCardio(for: equipment) : WorkoutCatalog.cardio(for: equipment)
         let inclineFormats = WorkoutCatalog.incline(for: equipment)
         let cardio = cardioFormats[index % cardioFormats.count]
         let incline = inclineFormats[index % inclineFormats.count]
