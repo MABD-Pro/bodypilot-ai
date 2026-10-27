@@ -27,11 +27,18 @@ cd Packages/BodyPilotKit
 swift test
 ```
 
+## Design
+
+Design system dans `App/Sources/DesignSystem` : une couleur par question du jour (corail pour manger, bleu pour bouger, vert pour progresser), typographie SF arrondie, cartes en Liquid Glass sur un fond dégradé. L'icône et le logo de lancement sont générés par `scripts/generate_brand_assets.py`.
+
+La CI capture les écrans clés sur simulateur avec des données de démo (`scripts/ci-screenshots.sh`) : artefact `captures` de chaque exécution. En local, les mêmes options de lancement fonctionnent dans le schéma Xcode : `-demoData YES`, `-demoOnboarding YES`, `-demoAdjustments tired,shortOnTime`.
+
 ## Structure
 
 ```
 App/                     cible iOS SwiftUI
 Packages/BodyPilotKit/   modules de domaine (Core, AIRouter, Nutrition, Training, ProgressInsights, Coach)
-docs/                    principes et architecture
+docs/                    principes, architecture, règles du coach
+scripts/                 captures CI, génération de l'icône
 project.yml              définition XcodeGen
 ```

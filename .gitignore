@@ -29,3 +29,8 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Info.plist généré par XcodeGen (voir project.yml)
+App/Info.plist
+screenshots/
+build.log

@@ -29,9 +29,11 @@ jobs:
       - run: xcodebuild -version
       - run: brew install xcodegen
       - run: xcodegen generate
-      - run: >
-          xcodebuild build
-          -project BodyPilot.xcodeproj
-          -scheme BodyPilot
-          -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO
+      - name: Build simulateur et captures d'écran
+        run: scripts/ci-screenshots.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: captures
+          path: screenshots/
+          if-no-files-found: ignore
