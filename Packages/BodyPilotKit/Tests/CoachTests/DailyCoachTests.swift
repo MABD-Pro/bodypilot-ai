@@ -48,8 +48,8 @@ private let monday = day(2026, 10, 26)
 }
 
 @Test func quickAdjustmentsMapToConstraints() {
-    let constraints = DayConstraints(today: [.shortOnTime, .tired], yesterday: [.missedWorkout])
-    #expect(constraints == DayConstraints(availableMinutes: 20, lowEnergy: true, missedToday: false, missedYesterday: true))
+    let constraints = DayConstraints(today: [.shortOnTime, .tired])
+    #expect(constraints == DayConstraints(availableMinutes: 20, lowEnergy: true, missedToday: false))
     #expect(DayConstraints(today: [.shortOnTime], availableMinutes: 15).availableMinutes == 15)
     #expect(DayConstraints(today: [], availableMinutes: 15).availableMinutes == nil)
 }
@@ -78,14 +78,10 @@ private let monday = day(2026, 10, 26)
     #expect(plan.headline.contains("Genou"))
 }
 
-@Test func weekTrainingDaysOverrideUsualDays() {
+@Test func theDayAfterStrengthSaysTheMusclesRecover() {
     let tuesday = day(2026, 10, 27)
-    let usual = coach.plan(for: makeProfile(), weights: [], on: tuesday)
-    if case .workout = usual.training.kind { Issue.record("Mardi est un jour de repos par défaut") }
-
-    let moved = coach.plan(for: makeProfile(), weights: [], weekTrainingDays: [3, 5], on: tuesday)
-    if case .workout = moved.training.kind {} else { Issue.record("Mardi a été choisi cette semaine") }
-
-    let noTraining = coach.plan(for: makeProfile(), weights: [], weekTrainingDays: [], on: monday)
-    if case .workout = noTraining.training.kind { Issue.record("Aucune séance choisie cette semaine") }
+    let plan = coach.plan(for: makeProfile(), weights: [], lastWorkoutTitle: "Full body A", lastStrengthDay: monday, on: tuesday)
+    guard case .workout(let workout) = plan.training.kind else { Issue.record("Chaque jour a sa séance"); return }
+    #expect(!workout.hasStrength)
+    #expect(plan.headline.hasPrefix("Muscles en récupération"))
 }

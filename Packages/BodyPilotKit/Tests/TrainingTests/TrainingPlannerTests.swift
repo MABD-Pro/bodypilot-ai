@@ -1,3 +1,4 @@
+import Foundation
 import BodyPilotCore
 import Testing
 @testable import Training
@@ -23,11 +24,52 @@ private func workout(_ day: TrainingDay) -> Workout? {
     #expect(result.estimatedMinutes <= 45)
 }
 
-@Test func restDayProposesActiveRecovery() {
-    let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints())
-    #expect(result.kind == .activeRest(title: "Marche en côte ou escaliers", minutes: 30))
-    let gym = planner.trainingDay(for: makeProfile(equipment: .gym), on: tuesday, constraints: DayConstraints())
-    #expect(gym.kind == .activeRest(title: "Marche inclinée ou escalier", minutes: 30))
+@Test func theDayAfterStrengthIsCardioAndInclineWalk() throws {
+    let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints(lastStrengthDay: monday))
+    let session = try #require(workout(result))
+    #expect(session.title == "Cardio et marche en côte")
+    #expect(!session.hasStrength)
+    #expect(session.exercises.count == 2)
+    #expect(result.estimatedMinutes <= 45 && result.estimatedMinutes >= 40)
+    #expect(result.notes.contains { $0.contains("48 h") })
+    // Cardio continu et sans impact les jours de récupération, quel que soit le format du jour.
+    for offset in 0..<8 {
+        let date = try #require(utc.date(byAdding: .day, value: offset, to: tuesday))
+        let yesterday = try #require(utc.date(byAdding: .day, value: -1, to: date))
+        for equipment in Equipment.allCases {
+            let recovery = try #require(workout(planner.trainingDay(for: makeProfile(equipment: equipment), on: date, constraints: DayConstraints(lastStrengthDay: yesterday))))
+            #expect(!recovery.exercises.contains { $0.isHighImpact })
+            #expect(recovery.exercises.allSatisfy { $0.sets == 1 && $0.restSeconds == 0 })
+        }
+    }
+    let gym = try #require(workout(planner.trainingDay(for: makeProfile(equipment: .gym), on: tuesday, constraints: DayConstraints(lastStrengthDay: monday))))
+    #expect(gym.title == "Cardio et marche inclinée")
+}
+
+@Test func strengthComesBackAfterFortyEightHours() throws {
+    let wednesday = day(2026, 10, 28)
+    let result = planner.trainingDay(for: makeProfile(), on: wednesday, constraints: DayConstraints(lastWorkoutTitle: "Full body A", lastStrengthDay: monday))
+    let session = try #require(workout(result))
+    #expect(session.hasStrength)
+    #expect(session.title == "Full body B")
+}
+
+@Test func everyDayHasASessionAndStrengthNeverFollowsStrength() throws {
+    var last: Date?
+    var title: String?
+    var strengthDays = 0
+    for offset in 0..<7 {
+        let date = try #require(utc.date(byAdding: .day, value: offset, to: monday))
+        let session = try #require(workout(planner.trainingDay(for: makeProfile(), on: date, constraints: DayConstraints(lastWorkoutTitle: title, lastStrengthDay: last))))
+        if session.hasStrength {
+            if let last { #expect(utc.dateComponents([.day], from: last, to: date).day ?? 0 >= 2) }
+            last = date
+            title = session.title
+            strengthDays += 1
+        }
+    }
+    // Lundi, mercredi, vendredi, dimanche : 4 séances de force sur 7 jours.
+    #expect(strengthDays == 4)
 }
 
 @Test func twentyMinutesKeepsEssentialExercises() throws {
@@ -61,23 +103,20 @@ private func workout(_ day: TrainingDay) -> Workout? {
 @Test func missedWorkoutIsNeverDoubled() {
     let missed = planner.trainingDay(for: makeProfile(), on: monday, constraints: DayConstraints(missedToday: true))
     #expect(workout(missed) == nil)
-    // Mercredi est un jour d'entraînement : une seule séance, même après un raté lundi… et mardi.
-    let wednesday = day(2026, 10, 28)
-    let next = planner.trainingDay(for: makeProfile(), on: wednesday, constraints: DayConstraints(missedYesterday: true))
-    #expect(workout(next) != nil)
 }
 
-@Test func missedWorkoutIsCaughtUpOnFollowingRestDay() throws {
-    let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints(missedYesterday: true))
-    let caughtUp = try #require(workout(result))
-    #expect(caughtUp.title == planner.scheduledWorkout(for: makeProfile(), on: monday).title)
+@Test func aMissedStrengthSessionIsProposedAgainTheNextDay() throws {
+    // Force samedi, rien de fait lundi : mardi, la force revient.
+    let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints(lastWorkoutTitle: "Full body A", lastStrengthDay: day(2026, 10, 24)))
+    #expect(try #require(workout(result)).title == "Full body B")
 }
 
-@Test func sessionsAlternateDuringTheWeek() {
-    let wednesday = day(2026, 10, 28)
-    let first = planner.scheduledWorkout(for: makeProfile(), on: monday)
-    let second = planner.scheduledWorkout(for: makeProfile(), on: wednesday)
-    #expect(first.title != second.title)
+@Test func sessionsAlternateAThenB() {
+    #expect(planner.nextWorkout(after: nil, for: makeProfile(), on: monday).title == "Full body A")
+    #expect(planner.nextWorkout(after: "Full body A", for: makeProfile(), on: monday).title == "Full body B")
+    #expect(planner.nextWorkout(after: "Full body B", for: makeProfile(), on: monday).title == "Full body A")
+    #expect(TrainingPlanner.isStrengthSession("Full body B"))
+    #expect(!TrainingPlanner.isStrengthSession("Cardio et marche en côte"))
 }
 
 @Test func kneePainRemovesEveryKneeLoadingExercise() throws {
@@ -92,9 +131,11 @@ private func workout(_ day: TrainingDay) -> Workout? {
     }
 }
 
-@Test func kneePainOnRestDayProposesGentleMobility() {
-    let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints(kneePain: true))
-    #expect(result.kind == .activeRest(title: "Mobilité douce", minutes: 15))
+@Test func kneePainOnARecoveryDayKeepsTheWalkFlat() throws {
+    let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints(kneePain: true, lastStrengthDay: monday))
+    let session = try #require(workout(result))
+    #expect(!session.exercises.contains { $0.loadsKnee || $0.isHighImpact })
+    #expect(session.exercises.contains { $0.name == "Marche à plat" })
 }
 
 @Test func travelingUsesBodyweightWithinThirtyMinutes() throws {
@@ -150,21 +191,6 @@ private func workout(_ day: TrainingDay) -> Workout? {
     }
 }
 
-@Test func chosenWeekdaysDriveTheSchedule() {
-    // Mardi et samedi choisis : lundi devient un jour de repos, mardi un jour de séance.
-    var profile = makeProfile()
-    profile.trainingWeekdays = [3, 7]
-    #expect(!planner.isTrainingDay(monday, for: profile))
-    #expect(planner.isTrainingDay(tuesday, for: profile))
-    #expect(workout(planner.trainingDay(for: profile, on: tuesday, constraints: DayConstraints())) != nil)
-}
-
-@Test func emptyWeekGivesActiveRestEveryDay() {
-    var profile = makeProfile()
-    profile.trainingWeekdays = []
-    #expect(workout(planner.trainingDay(for: profile, on: monday, constraints: DayConstraints())) == nil)
-}
-
 @Test func profileKeepsAtLeastOneUsualDay() {
     let profile = UserProfile(
         sex: .male, birthDate: day(1991, 1, 1), heightCm: 180, startWeightKg: 90, activity: .moderate, goal: .loseFat,
@@ -172,23 +198,6 @@ private func workout(_ day: TrainingDay) -> Workout? {
     )
     #expect(profile.trainingWeekdays == [4])
     #expect(makeProfile(daysPerWeek: 3).trainingWeekdays == [2, 4, 6])
-}
-
-@Test func wantingToTrainOnARestDayGivesTheSessionAfterTheLastOne() {
-    let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints(wantsExtraSession: true, lastWorkoutTitle: "Full body A"))
-    #expect(workout(result)?.title == "Full body B")
-    #expect(result.notes.contains { $0.hasPrefix("Séance en plus") })
-}
-
-@Test func anExtraSessionWithoutHistoryFollowsTheCalendar() {
-    let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints(wantsExtraSession: true))
-    #expect(workout(result) != nil)
-}
-
-@Test func wantingToTrainOnATrainingDayKeepsTheScheduledSession() {
-    let scheduled = planner.trainingDay(for: makeProfile(), on: monday, constraints: DayConstraints())
-    let eager = planner.trainingDay(for: makeProfile(), on: monday, constraints: DayConstraints(wantsExtraSession: true, lastWorkoutTitle: "Full body A"))
-    #expect(eager == scheduled)
 }
 
 @Test(arguments: [Equipment.bodyweight, .gym], [45, 60])

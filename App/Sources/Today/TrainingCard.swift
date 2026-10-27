@@ -11,16 +11,9 @@ struct TrainingCard: View {
     var swap: (String) -> Void = { _ in }
     var isDone = false
     var toggleDone: () -> Void = {}
-    /// Jours de séance de cette semaine (1 = dimanche … 7 = samedi).
-    var weekDays: [Int] = []
-    var toggleWeekDay: (Int) -> Void = { _ in }
     /// Ce qui a vraiment été fait cette semaine (séances cochées et activités de Santé).
     var week: WeekActivity?
     var healthLinked = false
-    /// Un jour de repos, l'envie de bouger donne une séance en plus.
-    var wantsToTrain: (() -> Void)?
-    /// Séance en plus en cours : retour possible à la marche prévue.
-    var cancelExtraSession: (() -> Void)?
     /// Planifie la semaine sur la Watch ; `false` si l'autorisation est refusée.
     var planWeekOnWatch: (() async -> Bool)?
     /// Meilleures séries notées, toutes séances confondues.
@@ -44,17 +37,11 @@ struct TrainingCard: View {
 
     var body: some View {
         CoachCard(eyebrow: "Bouger", symbol: "figure.strengthtraining.functional", tint: Theme.training) {
-            WeekStrip(selected: weekDays, toggle: toggleWeekDay)
-
             switch training.kind {
             case .workout(let workout):
                 workoutContent(workout)
             case .activeRest(let title, let minutes):
                 restContent(title: title, minutes: minutes)
-            }
-
-            ForEach(training.notes, id: \.self) { note in
-                CoachNote(text: note, tint: Theme.training)
             }
 
             if !upcoming.isEmpty {
@@ -99,8 +86,8 @@ struct TrainingCard: View {
     private var watchWeekCaption: String {
         switch watchWeek {
         case .refused: "Autorise BodyPilot dans Réglages > Confidentialité > Santé pour planifier sur la montre."
-        case .sent: "Séances et marches des jours de repos sont dans l'app Exercice de ta montre, jour par jour."
-        default: "Séances et marches des jours de repos, jusqu'à dimanche. Touche à nouveau après un changement."
+        case .sent: "Les séances de la semaine sont dans l'app Exercice de ta montre, jour par jour."
+        default: "Force, cardio et marche, jusqu'à dimanche. Touche à nouveau après une séance ou un changement."
         }
     }
 
@@ -118,14 +105,7 @@ struct TrainingCard: View {
                 DurationBadge(minutes: training.estimatedMinutes)
             }
 
-            if let cancelExtraSession {
-                Button(action: cancelExtraSession) {
-                    Label("Séance en plus · revenir à la marche", systemImage: "arrow.uturn.backward")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(Theme.training)
-                }
-                .buttonStyle(.plain)
-            }
+            notes
 
             if let celebration {
                 Label(celebration, systemImage: "trophy.fill")
@@ -160,7 +140,9 @@ struct TrainingCard: View {
 
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Label(workout.intensityCue, systemImage: "gauge.with.dots.needle.33percent")
-                Label("Touche un exercice pour sa technique et pour noter ta meilleure série : le coach suit tes records et fait monter les charges.", systemImage: "trophy")
+                if workout.hasStrength {
+                    Label("Touche un exercice pour sa technique et pour noter ta meilleure série : le coach suit tes records et fait monter les charges.", systemImage: "trophy")
+                }
                 Label("Machine prise ou matériel absent ? Touche \(Image(systemName: "arrow.triangle.2.circlepath")) pour changer d'exercice.", systemImage: "hand.tap")
             }
             .font(.footnote)
@@ -191,6 +173,13 @@ struct TrainingCard: View {
             }
             .buttonStyle(.glass)
             .sensoryFeedback(.success, trigger: isDone) { _, done in done }
+        }
+    }
+
+    /// Pourquoi la séance est ainsi (récupération, genou, fatigue…), juste sous son titre.
+    private var notes: some View {
+        ForEach(training.notes, id: \.self) { note in
+            CoachNote(text: note, tint: Theme.training)
         }
     }
 
@@ -251,18 +240,19 @@ struct TrainingCard: View {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                     Text(title)
                         .font(.display(24))
-                    Text("Bouger un peu aide à récupérer et à garder le cap.")
+                    Text("Bouger un peu, même court, garde le rythme.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
                 DurationBadge(minutes: minutes)
             }
+            notes
             restActions
         }
     }
 
-    /// Jour de repos : la marche part sur la montre, ou une séance en plus si l'envie est là.
+    /// Marche (séance ratée, très peu de temps) : elle part sur la montre.
     @ViewBuilder
     private var restActions: some View {
         // L'un sous l'autre, pleine largeur : les libellés restent entiers sur tous les écrans.
@@ -287,17 +277,6 @@ struct TrainingCard: View {
                     .padding(.vertical, 4)
             }
             .buttonStyle(.glass)
-        }
-        if let wantsToTrain {
-            Button(action: wantsToTrain) {
-                Label("Envie de bouger", systemImage: "bolt.heart")
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-            }
-            .buttonStyle(.glassProminent)
-            .tint(Theme.training)
         }
     }
 }
@@ -382,52 +361,7 @@ private struct WeekSection: View {
     }
 }
 
-/// Les 7 jours de la semaine en cours : une touche ajoute ou retire une séance, pour cette semaine.
-private struct WeekStrip: View {
-    let selected: [Int]
-    let toggle: (Int) -> Void
-
-    private let calendar = Calendar.current
-
-    var body: some View {
-        let today = calendar.component(.weekday, from: .now)
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            HStack(spacing: 6) {
-                ForEach(calendar.orderedWeekdays, id: \.self) { weekday in
-                    let isOn = selected.contains(weekday)
-                    Button {
-                        toggle(weekday)
-                    } label: {
-                        Text(calendar.initialWeekdayLetters(locale: Theme.locale)[weekday - 1])
-                            .font(.footnote.weight(.semibold))
-                            .frame(maxWidth: .infinity, minHeight: 34)
-                            .foregroundStyle(isOn ? Color.white : (weekday == today ? Theme.training : .secondary))
-                            .background(isOn ? Theme.training : Theme.training.opacity(0.08), in: .circle)
-                            .overlay {
-                                if weekday == today {
-                                    Circle().strokeBorder(Theme.training, lineWidth: 2).padding(-3)
-                                }
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(calendar.weekdayNames(locale: Theme.locale)[weekday - 1])
-                    .accessibilityAddTraits(isOn ? .isSelected : [])
-                }
-            }
-            Text("Tes jours de séance cette semaine. Touche un jour pour l'ajouter ou le retirer.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .sensoryFeedback(.selection, trigger: selected)
-    }
-}
-
 extension Calendar {
-    /// Jours de la semaine dans l'ordre local (lundi d'abord en France).
-    var orderedWeekdays: [Int] {
-        (0..<7).map { (firstWeekday - 1 + $0) % 7 + 1 }
-    }
-
     func initialWeekdayLetters(locale: Locale) -> [String] {
         var calendar = self
         calendar.locale = locale
@@ -732,7 +666,7 @@ extension Workout {
     /// « 4 exercices de force · cardio · marche inclinée ».
     var summary: String {
         let strength = exercises.filter { !$0.isConditioning }
-        var parts = ["\(strength.count) exercices de force"]
+        var parts: [String] = strength.isEmpty ? [] : ["\(strength.count) exercice\(strength.count > 1 ? "s" : "") de force"]
         let conditioning = exercises.filter(\.isConditioning).count
         if conditioning >= 1 { parts.append("cardio") }
         if conditioning >= 2 { parts.append("marche") }
@@ -782,7 +716,7 @@ private struct UpcomingSection: View {
                         .font(.subheadline.weight(.semibold))
                         .frame(width: 44, alignment: .leading)
                         .accessibilityLabel(calendar.weekdayNames(locale: Theme.locale)[calendar.component(.weekday, from: day.date) - 1])
-                    IconBadge(symbol: workout == nil ? "figure.walk" : "dumbbell.fill", tint: workout == nil ? Theme.progress : Theme.training, size: 26)
+                    IconBadge(symbol: symbol(for: workout), tint: workout?.hasStrength == true ? Theme.training : Theme.progress, size: 26)
                     Text(title(day))
                         .font(.subheadline)
                         .lineLimit(2)
@@ -823,6 +757,12 @@ private struct UpcomingSection: View {
             }
         }
         .padding(.vertical, 8)
+    }
+
+    /// Force en bleu, cardio et marche en vert : l'alternance se lit d'un coup d'œil.
+    private func symbol(for workout: Workout?) -> String {
+        guard let workout else { return "figure.walk" }
+        return workout.hasStrength ? "dumbbell.fill" : "heart.fill"
     }
 
     /// « Mer. » : laisse la place au titre de la séance.

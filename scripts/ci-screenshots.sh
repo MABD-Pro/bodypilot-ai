@@ -65,6 +65,7 @@ shoot 3b-seance-exercice-remplace -demoData YES -demoSwap YES -demoScrollTo trai
 shoot 3c-ma-semaine -demoData YES -demoActivities YES -demoHealth YES -demoScrollTo week
 shoot 3d-records-seance -demoData YES -demoLifts YES -demoScrollTo training
 shoot 3e-prochains-jours -demoData YES -demoLifts YES -demoScrollTo upcoming
+shoot 3f-recuperation -demoData YES -demoRecovery YES -demoScrollTo training
 shoot 4-aujourdhui-progression -demoData YES -demoScrollTo progress
 shoot 4c-bilan-semaine -demoData YES -demoCheckIn YES -demoScrollTo progress
 shoot 4b-progression-sante -demoData YES -demoHealth YES -demoScrollTo progress

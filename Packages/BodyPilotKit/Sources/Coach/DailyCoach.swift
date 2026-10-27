@@ -44,19 +44,13 @@ public struct DailyCoach: Sendable {
         adjustments: Set<QuickAdjustment> = [],
         availableMinutes: Int? = nil,
         eatingOutSlot: MealSlot? = nil,
-        yesterdayAdjustments: Set<QuickAdjustment> = [],
         exerciseSwaps: [String: Int] = [:],
-        weekTrainingDays: [Int]? = nil,
         mealIntakes: [MealSlot: MealIntake] = [:],
         describedMeals: [MealSlot: DescribedMeal] = [:],
         lastWorkoutTitle: String? = nil,
+        lastStrengthDay: Date? = nil,
         on date: Date
     ) -> TodayPlan {
-        // Les jours de séance de cette semaine, s'ils diffèrent des jours habituels.
-        var profile = profile
-        if let weekTrainingDays {
-            profile.trainingWeekdays = UserProfile.normalized(weekTrainingDays, allowEmpty: true)
-        }
         let trend = progress.trend(of: weights, for: profile, on: date)
         let waistChange = progress.waistChange(of: waists, on: date)
         let weight = trend.currentTrendKg ?? profile.startWeightKg
@@ -69,10 +63,10 @@ public struct DailyCoach: Sendable {
         )
         let constraints = DayConstraints(
             today: adjustments,
-            yesterday: yesterdayAdjustments,
             availableMinutes: availableMinutes,
             exerciseSwaps: exerciseSwaps,
-            lastWorkoutTitle: lastWorkoutTitle
+            lastWorkoutTitle: lastWorkoutTitle,
+            lastStrengthDay: lastStrengthDay
         )
         let trainingDay = training.trainingDay(for: profile, on: date, constraints: constraints)
 
@@ -96,9 +90,6 @@ public struct DailyCoach: Sendable {
         if adjustments.contains(.missedWorkout) {
             return "Séance ratée, pas de souci. On ne double pas, on reprend au prochain créneau."
         }
-        if adjustments.contains(.wantsToTrain), training.notes.contains(where: { $0.hasPrefix("Séance en plus") }) {
-            return "Envie de bouger : une séance en plus, qui enchaîne sur la dernière."
-        }
         if adjustments.contains(.traveling) {
             return "En déplacement : séance sans matériel et repères simples pour manger."
         }
@@ -119,9 +110,12 @@ public struct DailyCoach: Sendable {
             if adjustments.contains(.shortOnTime) {
                 return "Séance express de \(training.estimatedMinutes) min : l'essentiel, rien de plus."
             }
+            if !workout.hasStrength {
+                return "Muscles en récupération : \(workout.title.lowercased()), \(training.estimatedMinutes) min."
+            }
             return "\(workout.title) en \(training.estimatedMinutes) min et \(kcal.frenchInteger) kcal au menu."
         case .activeRest(_, let minutes):
-            return "Jour de récupération : \(minutes) min de marche et des repas qui nourrissent."
+            return "Aujourd'hui : \(minutes) min de marche et des repas qui nourrissent."
         }
     }
 

@@ -67,6 +67,9 @@ public struct Workout: Sendable, Equatable {
         self.exercises = exercises
         self.intensityCue = intensityCue
     }
+
+    /// Contient de la force (et pas seulement du cardio et de la marche).
+    public var hasStrength: Bool { exercises.contains { $0.priority < 4 } }
 }
 
 public enum TrainingDayKind: Sendable, Equatable {
@@ -93,8 +96,6 @@ public struct DayConstraints: Sendable, Equatable {
     public var availableMinutes: Int?
     public var lowEnergy: Bool
     public var missedToday: Bool
-    /// La séance d'hier a été ratée : rattrapable si aujourd'hui est un jour de repos.
-    public var missedYesterday: Bool
     /// Douleur au genou : aucun exercice qui le charge.
     public var kneePain: Bool
     /// En déplacement : pas de matériel, peu de temps.
@@ -102,31 +103,29 @@ public struct DayConstraints: Sendable, Equatable {
     /// Remplacements demandés : clé de l'exercice → nombre de demandes. Chaque demande passe
     /// à la variante suivante, puis revient à l'exercice d'origine.
     public var exerciseSwaps: [String: Int]
-    /// Envie de bouger un jour sans séance prévue : le coach propose une séance en plus.
-    public var wantsExtraSession: Bool
-    /// Dernière séance faite, pour enchaîner sur la suivante plutôt que retravailler les mêmes muscles.
+    /// Dernière séance de force faite, pour enchaîner sur la suivante (A puis B).
     public var lastWorkoutTitle: String?
+    /// Jour de la dernière séance de force faite : 48 h de récupération avant la suivante.
+    public var lastStrengthDay: Date?
 
     public init(
         availableMinutes: Int? = nil,
         lowEnergy: Bool = false,
         missedToday: Bool = false,
-        missedYesterday: Bool = false,
         kneePain: Bool = false,
         traveling: Bool = false,
         exerciseSwaps: [String: Int] = [:],
-        wantsExtraSession: Bool = false,
-        lastWorkoutTitle: String? = nil
+        lastWorkoutTitle: String? = nil,
+        lastStrengthDay: Date? = nil
     ) {
         self.availableMinutes = availableMinutes
         self.lowEnergy = lowEnergy
         self.missedToday = missedToday
-        self.missedYesterday = missedYesterday
         self.kneePain = kneePain
         self.traveling = traveling
         self.exerciseSwaps = exerciseSwaps
-        self.wantsExtraSession = wantsExtraSession
         self.lastWorkoutTitle = lastWorkoutTitle
+        self.lastStrengthDay = lastStrengthDay
     }
 }
 

@@ -29,7 +29,7 @@ struct OnboardingView: View {
         var subtitle: String {
             switch self {
             case .body: "Objectif : perdre du gras et gagner du muscle. Tout reste sur ton iPhone."
-            case .rhythm: "Je cale les séances sur ta semaine, pas l'inverse."
+            case .rhythm: "Une séance chaque jour, dosée selon ta récupération."
             }
         }
     }

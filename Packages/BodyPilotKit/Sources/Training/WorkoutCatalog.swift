@@ -113,6 +113,24 @@ enum WorkoutCatalog {
         }
     }
 
+    /// Jours de récupération musculaire : effort continu et modéré (zone 2), sans impact
+    /// ni gainage intense, pour ne pas retarder la prochaine séance lourde.
+    static func recoveryCardio(for equipment: Equipment) -> [CardioFormat] {
+        switch equipment {
+        case .gym:
+            [
+                CardioFormat(name: "Vélo à allure modérée", workSeconds: 0, restSeconds: 0, alternatives: ["Elliptique à allure modérée", "Rameur à allure modérée"]),
+                CardioFormat(name: "Elliptique à allure modérée", workSeconds: 0, restSeconds: 0, alternatives: ["Vélo à allure modérée", "Rameur à allure modérée"]),
+                CardioFormat(name: "Rameur à allure modérée", workSeconds: 0, restSeconds: 0, alternatives: ["Vélo à allure modérée", "Elliptique à allure modérée"]),
+            ]
+        case .bodyweight:
+            [
+                CardioFormat(name: "Marche rapide", workSeconds: 0, restSeconds: 0, alternatives: ["Boxe dans le vide, allure modérée", "Pas chassés"]),
+                CardioFormat(name: "Boxe dans le vide, allure modérée", workSeconds: 0, restSeconds: 0, alternatives: ["Marche rapide", "Pas chassés"]),
+            ]
+        }
+    }
+
     // MARK: Marche inclinée ou escalier
 
     /// La pente et les marches chargent le genou à chaque pas : avec une douleur, marche à plat ou vélo.

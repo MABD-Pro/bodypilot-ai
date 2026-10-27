@@ -1,8 +1,9 @@
 import BodyPilotCore
 import Foundation
 
-/// Planificateur de séances par règles : calendrier hebdomadaire fixe, séances alternées,
-/// ajustements du jour (temps, fatigue, séance ratée) dans des limites de sécurité.
+/// Planificateur de séances par règles. Pas de jours fixes : chaque jour a sa séance.
+/// Force lourde en full body quand la précédente date d'au moins 48 h, sinon cardio et marche
+/// inclinée, puis les ajustements du jour (temps, fatigue, genou) dans des limites de sécurité.
 public struct TrainingPlanner: TrainingPlanning {
     public var calendar: Calendar
 
@@ -19,6 +20,10 @@ public struct TrainingPlanner: TrainingPlanning {
     static let strengthShare = 0.6
     /// Repos minimal conservé sur les exercices principaux quand la séance est resserrée.
     static let mainLiftRestSeconds = 120
+    /// Jours entre deux séances de force lourde sur les mêmes muscles (48 h).
+    public static let strengthRecoveryDays = 2
+    /// Séances de force visées par semaine : chaque muscle 2 à 3 fois (Schoenfeld et al., 2016).
+    public static let weeklyStrengthTarget = 3
 
     public init(calendar: Calendar = .current) {
         self.calendar = calendar
@@ -29,8 +34,16 @@ public struct TrainingPlanner: TrainingPlanning {
         UserProfile.defaultTrainingWeekdays(count: daysPerWeek)
     }
 
-    public func isTrainingDay(_ date: Date, for profile: UserProfile) -> Bool {
-        profile.trainingWeekdays.contains(calendar.component(.weekday, from: date))
+    /// Titre d'une séance de force du catalogue (et non d'une séance cardio et marche).
+    public static func isStrengthSession(_ title: String) -> Bool {
+        (WorkoutCatalog.sessions(for: .gym) + WorkoutCatalog.sessions(for: .bodyweight)).contains { $0.title == title }
+    }
+
+    /// Force possible ce jour-là : jamais faite, ou faite il y a au moins 48 h.
+    public func isStrengthDay(_ date: Date, lastStrengthDay: Date?) -> Bool {
+        guard let lastStrengthDay else { return true }
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: lastStrengthDay), to: calendar.startOfDay(for: date)).day ?? 0
+        return days >= Self.strengthRecoveryDays
     }
 
     public func trainingDay(for profile: UserProfile, on date: Date, constraints: DayConstraints) -> TrainingDay {
@@ -40,37 +53,25 @@ public struct TrainingPlanner: TrainingPlanning {
             profile.sessionMinutes = min(profile.sessionMinutes, Self.travelMaxMinutes)
         }
         var notes: [String] = []
-        let workout: Workout
 
-        if isTrainingDay(date, for: profile) {
-            if constraints.missedToday {
-                let minutes = 15
-                return TrainingDay(
-                    kind: .activeRest(title: "Marche tranquille", minutes: minutes),
-                    estimatedMinutes: minutes,
-                    notes: ["Séance ratée : on ne la double pas. Si demain est un jour de repos, elle y sera proposée."]
-                )
-            }
-            workout = scheduledWorkout(for: profile, on: date)
-            if constraints.missedYesterday {
-                notes.append("Séance d'hier non rattrapée : on ne fait jamais deux séances le même jour.")
-            }
-        } else {
-            let yesterday = calendar.date(byAdding: .day, value: -1, to: date) ?? date
-            if constraints.missedYesterday && isTrainingDay(yesterday, for: profile) && !constraints.missedToday {
-                workout = scheduledWorkout(for: profile, on: yesterday)
-                notes.append("Rattrapage de la séance d'hier, puisque aujourd'hui est libre.")
-            } else if constraints.wantsExtraSession && !constraints.missedToday {
-                workout = nextWorkout(after: constraints.lastWorkoutTitle, for: profile, on: date)
-                notes.append(constraints.lastWorkoutTitle.map { "Séance en plus : la suite de « \($0) », pour faire travailler d'autres muscles." }
-                    ?? "Séance en plus : les jours cochés sont un repère, pas une limite.")
-            } else {
-                return restDay(for: profile, constraints: constraints)
-            }
+        if constraints.missedToday {
+            let minutes = 15
+            return TrainingDay(
+                kind: .activeRest(title: "Marche tranquille", minutes: minutes),
+                estimatedMinutes: minutes,
+                notes: ["Séance ratée : on ne la double pas. Le coach la repropose au prochain jour."]
+            )
         }
 
         let budget = min(constraints.availableMinutes ?? profile.sessionMinutes, profile.sessionMinutes)
-        let composed = budget >= Self.threeAxisMinutes ? withConditioning(workout, budget: budget, equipment: profile.equipment, on: date) : workout
+        let composed: Workout
+        if isStrengthDay(date, lastStrengthDay: constraints.lastStrengthDay) {
+            let strength = nextWorkout(after: constraints.lastWorkoutTitle, for: profile, on: date)
+            composed = budget >= Self.threeAxisMinutes ? withConditioning(strength, budget: budget, equipment: profile.equipment, on: date) : strength
+        } else {
+            composed = conditioningWorkout(budget: budget, equipment: profile.equipment, on: date)
+            notes.append("Force faite hier : aujourd'hui cardio et marche, les muscles récupèrent 48 h avant la prochaine séance lourde.")
+        }
 
         // Les remplacements choisis passent avant les règles de sécurité : une variante qui
         // charge le genou est elle aussi remplacée si le genou est douloureux.
@@ -87,10 +88,11 @@ public struct TrainingPlanner: TrainingPlanning {
             notes.append("Fatigue : une série de moins, pas d'impacts, effort modéré.")
         }
 
-        if budget < Self.minimumWorkoutMinutes {
+        if budget < Self.minimumWorkoutMinutes || adapted.exercises.isEmpty {
+            let minutes = max(min(budget, 30), 10)
             return TrainingDay(
-                kind: .activeRest(title: "Marche rapide", minutes: max(budget, 10)),
-                estimatedMinutes: max(budget, 10),
+                kind: .activeRest(title: "Marche rapide", minutes: minutes),
+                estimatedMinutes: minutes,
                 notes: notes + ["Moins de \(Self.minimumWorkoutMinutes) minutes : une marche rapide vaut mieux qu'une séance bâclée."]
             )
         }
@@ -101,24 +103,27 @@ public struct TrainingPlanner: TrainingPlanning {
         return TrainingDay(kind: .workout(adapted), estimatedMinutes: adapted.estimatedMinutes, notes: notes)
     }
 
-    func scheduledWorkout(for profile: UserProfile, on date: Date) -> Workout {
-        let sessions = WorkoutCatalog.sessions(for: profile.equipment)
-        let weekdays = profile.trainingWeekdays
-        let position = weekdays.firstIndex(of: calendar.component(.weekday, from: date)) ?? 0
-        let week = calendar.component(.weekOfYear, from: date)
-        return sessions[(week * weekdays.count + position) % sessions.count]
+    /// Jour de récupération musculaire : cardio varié puis marche inclinée ou escalier.
+    func conditioningWorkout(budget: Int, equipment: Equipment, on date: Date) -> Workout {
+        let title = equipment == .gym ? "Cardio et marche inclinée" : "Cardio et marche en côte"
+        let base = Workout(
+            title: title, warmupMinutes: 5, cooldownMinutes: 0, exercises: [],
+            intensityCue: "Tout à allure modérée : tu peux parler, avec un léger essoufflement."
+        )
+        // Muscles en récupération : cardio continu, modéré et sans impact (moins d'interférence, Wilson et al., 2012).
+        return withConditioning(base, budget: budget, equipment: equipment, on: date, recovery: true)
     }
 
     /// Force d'abord (60 % du temps), puis un cardio qui change d'une séance à l'autre,
     /// puis la marche inclinée ou l'escalier, qui fait aussi office de retour au calme.
-    func withConditioning(_ strength: Workout, budget: Int, equipment: Equipment, on date: Date) -> Workout {
+    func withConditioning(_ strength: Workout, budget: Int, equipment: Equipment, on date: Date, recovery: Bool = false) -> Workout {
         var result = fit(strength, toMinutes: Int(Double(budget) * Self.strengthShare))
         result.cooldownMinutes = 0
         let remaining = budget - result.estimatedMinutes
         guard remaining >= 8 else { return strength }
 
         let index = calendar.ordinality(of: .day, in: .era, for: date) ?? 0
-        let cardioFormats = WorkoutCatalog.cardio(for: equipment)
+        let cardioFormats = recovery ? WorkoutCatalog.recoveryCardio(for: equipment) : WorkoutCatalog.cardio(for: equipment)
         let inclineFormats = WorkoutCatalog.incline(for: equipment)
         let cardio = cardioFormats[index % cardioFormats.count]
         let incline = inclineFormats[index % inclineFormats.count]
@@ -158,29 +163,11 @@ public struct TrainingPlanner: TrainingPlanning {
         return result
     }
 
-    /// La séance qui suit la dernière faite dans la rotation ; sans historique, celle du calendrier.
+    /// La séance de force qui suit la dernière faite (A puis B) ; sans historique, la A.
     func nextWorkout(after title: String?, for profile: UserProfile, on date: Date) -> Workout {
         let sessions = WorkoutCatalog.sessions(for: profile.equipment)
-        guard let title, let index = sessions.firstIndex(where: { $0.title == title }) else {
-            return scheduledWorkout(for: profile, on: date)
-        }
+        guard let title, let index = sessions.firstIndex(where: { $0.title == title }) else { return sessions[0] }
         return sessions[(index + 1) % sessions.count]
-    }
-
-    private func restDay(for profile: UserProfile, constraints: DayConstraints) -> TrainingDay {
-        if constraints.kneePain {
-            return TrainingDay(
-                kind: .activeRest(title: "Mobilité douce", minutes: 15),
-                estimatedMinutes: 15,
-                notes: ["Genou : marche seulement si elle est indolore. Sinon, mobilité du haut du corps et du bassin."]
-            )
-        }
-        let minutes = (profile.goal == .loseFat || profile.goal == .recomposition) && !constraints.lowEnergy ? 30 : 20
-        let incline = profile.equipment == .gym ? "Marche inclinée ou escalier" : "Marche en côte ou escaliers"
-        let title = constraints.lowEnergy ? "Marche tranquille" : incline
-        let available = constraints.availableMinutes.map { min($0, minutes) } ?? minutes
-        let notes = constraints.traveling ? ["Déplacement : profite-en pour découvrir les lieux à pied."] : []
-        return TrainingDay(kind: .activeRest(title: title, minutes: available), estimatedMinutes: available, notes: notes)
     }
 
     /// Remplace chaque exercice demandé par sa variante : la n-ième demande donne la n-ième variante,
