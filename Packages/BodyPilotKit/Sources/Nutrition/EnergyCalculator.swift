@@ -21,7 +21,7 @@ public struct EnergyCalculator: Sendable {
         let maintenance = bmr * profile.activity.factor
 
         var kcal: Double
-        let explanation: String
+        var explanation: String
         switch profile.goal {
         case .loseFat:
             let deficit = min(maintenance * SafetyLimits.deficitRatio, SafetyLimits.maxDeficitKcal)
@@ -40,6 +40,14 @@ public struct EnergyCalculator: Sendable {
             kcal = maintenance + surplus
             explanation = "Dépense estimée \(maintenance.frenchInteger) kcal, plus \(surplus.frenchInteger) kcal pour construire du muscle en limitant le gras."
         }
+        if profile.calorieAdjustmentKcal != 0 {
+            let adjusted = clampAdjusted(kcal + profile.calorieAdjustmentKcal, planned: kcal, bmr: bmr, maintenance: maintenance, profile: profile)
+            let applied = adjusted - kcal
+            if abs(applied) >= 1 {
+                explanation += " Ajusté de \(applied > 0 ? "+" : "")\(applied.frenchInteger) kcal après tes bilans de la semaine."
+            }
+            kcal = adjusted
+        }
         kcal = (kcal / 10).rounded() * 10
 
         let proteinReferenceKg = proteinReferenceWeight(weightKg: currentWeightKg, heightCm: profile.heightCm)
@@ -52,6 +60,14 @@ public struct EnergyCalculator: Sendable {
             maintenanceKcal: maintenance,
             rationale: explanation
         )
+    }
+
+    /// Une correction de bilan ne franchit jamais les garde-fous : pas sous le plancher de sécurité,
+    /// pas de surplus pendant une perte de gras, pas plus que le surplus maximal sinon.
+    private func clampAdjusted(_ kcal: Double, planned: Double, bmr: Double, maintenance: Double, profile: UserProfile) -> Double {
+        let floor = min(max(bmr, SafetyLimits.minimumKcal(for: profile.sex)), planned)
+        let ceiling = max(planned, profile.goal == .loseFat ? maintenance : maintenance + SafetyLimits.maxSurplusKcal)
+        return min(max(kcal, floor), ceiling)
     }
 
     private func proteinPerKg(for goal: Goal) -> Double {

@@ -32,6 +32,10 @@ struct TodayView: View {
             on: now
         )
 
+        let checkIn = profileRecord.isCheckInDue(at: now)
+            ? CoachFactory.coach.weeklyCheckIn(for: profileRecord.profile, weights: weights.map(\.entry), on: now)
+            : nil
+
         NavigationStack {
             ScrollViewReader { proxy in
                 ScrollView {
@@ -48,7 +52,10 @@ struct TodayView: View {
                             message: plan.progressMessage,
                             profile: profileRecord.profile,
                             health: healthLink,
+                            checkIn: checkIn,
                             addWeight: { isAddingWeight = true },
+                            acceptCheckIn: { acceptCheckIn(checkIn) },
+                            dismissCheckIn: { withAnimation(Theme.springy) { profileRecord.lastCheckInAt = .now } },
                             connectHealth: { Task { await connectHealth() } },
                             disconnectHealth: { healthSync = false }
                         )
@@ -84,6 +91,14 @@ struct TodayView: View {
             .sheet(isPresented: $isEditingProfile) {
                 OnboardingView(editing: profileRecord)
             }
+        }
+    }
+
+    private func acceptCheckIn(_ suggestion: CalorieSuggestion?) {
+        guard let suggestion else { return }
+        withAnimation(Theme.springy) {
+            profileRecord.calorieAdjustmentKcal += suggestion.deltaKcal
+            profileRecord.lastCheckInAt = .now
         }
     }
 

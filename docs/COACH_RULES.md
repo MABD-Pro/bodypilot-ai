@@ -42,6 +42,13 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Vitesse : régression linéaire sur 21 jours, au moins 3 pesées sur 7 jours.
 - Perte de gras : en bonne voie entre −0,1 % et −1 % du poids par semaine ; au-delà de −1 %, le coach suggère +150 kcal. Le coach suggère, l'utilisateur décide.
 
+## Bilan de la semaine (`Coach/WeeklyCheckIn`)
+
+- Au plus une fois par semaine, sur la carte Progresser. Le coach propose, l'utilisateur applique ou repousse.
+- Perte trop rapide (plus de 1 % par semaine) : +150 kcal. Prise trop rapide (plus de 0,5 %) : −150 kcal.
+- Stagnation ou mauvaise direction : correction seulement si c'était déjà le cas une semaine plus tôt (pas de réaction à l'eau).
+- Corrections cumulées limitées à ±450 kcal ; jamais sous le plancher de sécurité, jamais de surplus pendant une perte de gras. Sans effet réel, pas de proposition.
+
 ## Pesées importées de Santé (`ProgressInsights/WeightImportPlanner`)
 
 - Lecture seule du poids (HealthKit, `bodyMass`), 90 jours en arrière à la connexion, puis à chaque retour dans l'app. Aucune donnée ne quitte l'iPhone.

@@ -22,6 +22,8 @@ enum LaunchOptions {
     static var demoCommand: String? { defaults.string(forKey: "demoCommand") }
     /// `-demoHealth YES` : affiche le suivi Santé comme connecté, sans interroger HealthKit.
     static var demoHealth: Bool { defaults.bool(forKey: "demoHealth") }
+    /// `-demoCheckIn YES` : pesées en perte rapide, pour afficher le bilan de la semaine.
+    static var demoCheckIn: Bool { defaults.bool(forKey: "demoCheckIn") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }
@@ -87,7 +89,8 @@ enum DemoData {
         for offset in 0..<24 {
             let index = 23 - offset
             guard index % 5 != 3, let date = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
-            let kg = 88.0 - 0.09 * Double(index) + noise[index % noise.count]
+            let perDay = LaunchOptions.demoCheckIn ? 0.17 : 0.09
+            let kg = 88.0 - perDay * Double(index) + noise[index % noise.count]
             context.insert(WeightRecord(date: date, kg: (kg * 10).rounded() / 10))
         }
 
