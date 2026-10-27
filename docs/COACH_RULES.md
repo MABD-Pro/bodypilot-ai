@@ -43,6 +43,13 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Vitesse : régression linéaire sur 21 jours, au moins 3 pesées sur 7 jours.
 - Perte de gras : en bonne voie entre −0,1 % et −1 % du poids par semaine ; au-delà de −1 %, le coach suggère +150 kcal. Le coach suggère, l'utilisateur décide.
 
+## Régularité (`ProgressInsights/ConsistencyAnalyzer`)
+
+- L'utilisateur coche « J'ai fait ma séance » (dans l'app ou par Siri). Un jour compte une fois ; un rattrapage un jour de repos compte aussi.
+- Semaine du lundi au dimanche : séances faites sur séances prévues, une pastille par séance.
+- Série : semaines complètes d'affilée, la semaine en cours comprise dès qu'elle est bouclée.
+- Le message dit ce qui reste à faire pour boucler la semaine, sans culpabiliser.
+
 ## Bilan de la semaine (`Coach/WeeklyCheckIn`)
 
 - Au plus une fois par semaine, sur la carte Progresser. Le coach propose, l'utilisateur applique ou repousse.

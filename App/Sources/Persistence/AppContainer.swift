@@ -2,6 +2,7 @@ import BodyPilotCore
 import Coach
 import Foundation
 import SwiftData
+import Training
 
 /// Options de lancement pour les aperçus et les captures d'écran de la CI.
 enum LaunchOptions {
@@ -94,6 +95,17 @@ enum DemoData {
             let perDay = LaunchOptions.demoCheckIn ? 0.17 : 0.09
             let kg = 88.0 - perDay * Double(index) + noise[index % noise.count]
             context.insert(WeightRecord(date: date, kg: (kg * 10).rounded() / 10))
+        }
+
+        // Trois semaines de séances cochées, pour afficher la régularité.
+        let trainingWeekdays = TrainingPlanner.trainingWeekdays(daysPerWeek: profile.trainingDaysPerWeek)
+        for offset in 1...21 {
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: now),
+                  trainingWeekdays.contains(calendar.component(.weekday, from: date))
+            else { continue }
+            let log = DayLogRecord(day: calendar.startOfDay(for: date))
+            log.workoutDone = true
+            context.insert(log)
         }
 
         var adjustments = LaunchOptions.demoAdjustments

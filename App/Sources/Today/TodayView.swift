@@ -33,6 +33,12 @@ struct TodayView: View {
             on: now
         )
 
+        let consistency = ConsistencyAnalyzer(calendar: calendar).consistency(
+            completedDays: dayLogs.filter(\.workoutDone).map(\.day),
+            plannedPerWeek: profileRecord.profile.trainingDaysPerWeek,
+            on: now
+        )
+
         let checkIn = profileRecord.isCheckInDue(at: now)
             ? CoachFactory.coach.weeklyCheckIn(for: profileRecord.profile, weights: weights.map(\.entry), on: now)
             : nil
@@ -46,7 +52,12 @@ struct TodayView: View {
                         AdjustmentBar(active: todayAdjustments, toggle: toggle)
                         NutritionCard(targets: plan.targets, meals: plan.meals)
                             .id("nutrition")
-                        TrainingCard(training: plan.training, swap: swapExercise)
+                        TrainingCard(
+                            training: plan.training,
+                            swap: swapExercise,
+                            isDone: todayLog?.workoutDone ?? false,
+                            toggleDone: toggleWorkoutDone
+                        )
                             .id("training")
                         ProgressCard(
                             trend: plan.trend,
@@ -54,6 +65,7 @@ struct TodayView: View {
                             profile: profileRecord.profile,
                             health: healthLink,
                             checkIn: checkIn,
+                            consistency: consistency,
                             addWeight: { isAddingWeight = true },
                             acceptCheckIn: { acceptCheckIn(checkIn) },
                             dismissCheckIn: { withAnimation(Theme.springy) { profileRecord.lastCheckInAt = .now } },
@@ -195,6 +207,13 @@ struct TodayView: View {
         let log = todayLog()
         withAnimation(Theme.springy) {
             log.exerciseSwapsRaw.append(key)
+        }
+    }
+
+    private func toggleWorkoutDone() {
+        let log = todayLog()
+        withAnimation(Theme.springy) {
+            log.workoutDone.toggle()
         }
     }
 
