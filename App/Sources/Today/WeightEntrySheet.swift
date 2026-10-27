@@ -68,14 +68,15 @@ struct WeightEntrySheet: View {
     }
 }
 
-/// Tour de taille : même geste que la pesée, au demi-centimètre.
+/// Tour de taille : même geste que la pesée, par pas d'un demi-centimètre.
 struct WaistEntrySheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @State private var cm: Double
 
     init(initialCm: Double) {
-        _cm = State(initialValue: (initialCm * 2).rounded() / 2)
+        // Dernière mesure exacte : enregistrer sans toucher ne crée pas de variation fictive.
+        _cm = State(initialValue: (initialCm * 10).rounded() / 10)
     }
 
     var body: some View {
@@ -123,7 +124,7 @@ struct WaistEntrySheet: View {
 
     private func step(_ delta: Double, symbol: String) -> some View {
         Button {
-            withAnimation(.snappy) { cm = ((cm + delta) * 2).rounded() / 2 }
+            withAnimation(.snappy) { cm = ((cm + delta) * 10).rounded() / 10 }
         } label: {
             Image(systemName: symbol)
                 .font(.title2.weight(.bold))

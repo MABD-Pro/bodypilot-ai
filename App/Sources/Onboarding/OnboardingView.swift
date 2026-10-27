@@ -57,7 +57,10 @@ struct OnboardingView: View {
                 }
                 .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
             }
+            // Chaque étape repart du haut, sans reprendre le défilement de la précédente.
+            .id(step)
             .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
 
             Button(action: next) {
                 Text(step == .rhythm ? (editing == nil ? "Voir mon plan du jour" : "Enregistrer") : "Continuer")
