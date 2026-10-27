@@ -1,0 +1,59 @@
+# Génère BodyPilot.xcodeproj : `xcodegen generate` (le .xcodeproj n'est pas versionné).
+name: BodyPilot
+options:
+  bundleIdPrefix: com.mabdpro
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  developmentLanguage: fr
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+
+packages:
+  BodyPilotKit:
+    path: Packages/BodyPilotKit
+
+targets:
+  BodyPilot:
+    type: application
+    platform: iOS
+    sources:
+      - App/Sources
+      - App/Resources
+    dependencies:
+      - package: BodyPilotKit
+        product: BodyPilotCore
+      - package: BodyPilotKit
+        product: AIRouter
+      - package: BodyPilotKit
+        product: Nutrition
+      - package: BodyPilotKit
+        product: Training
+      - package: BodyPilotKit
+        product: ProgressInsights
+      - package: BodyPilotKit
+        product: Coach
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mabdpro.bodypilot
+        PRODUCT_NAME: BodyPilot
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: BodyPilot
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SWIFT_EMIT_LOC_STRINGS: YES
+
+schemes:
+  BodyPilot:
+    build:
+      targets:
+        BodyPilot: all
