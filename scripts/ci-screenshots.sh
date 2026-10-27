@@ -18,20 +18,30 @@ print((pro or phones)[0]["udid"])
 ')
 echo "Simulateur : $UDID"
 
+# Démarrage du simulateur en parallèle de la compilation.
+xcrun simctl boot "$UDID" || true
+
+start=$SECONDS
 xcodebuild build \
   -project BodyPilot.xcodeproj \
   -scheme BodyPilot \
   -destination "id=$UDID" \
   -derivedDataPath build \
+  -skipMacroValidation \
+  -skipPackagePluginValidation \
+  ONLY_ACTIVE_ARCH=YES \
+  COMPILER_INDEX_STORE_ENABLE=NO \
   CODE_SIGNING_ALLOWED=NO > build.log 2>&1 || {
     grep -E "error:" build.log | sort -u | head -n 80
     tail -n 40 build.log
     exit 1
   }
 
+echo "Compilation : $((SECONDS - start)) s"
+
 APP=$(find build/Build/Products -name 'BodyPilot.app' -maxdepth 2 | head -n 1)
 
-xcrun simctl boot "$UDID" || true
+start=$SECONDS
 xcrun simctl bootstatus "$UDID" -b
 xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
 xcrun simctl install "$UDID" "$APP"
@@ -57,3 +67,4 @@ shoot 6b-phrase-resto-genou-seance -demoData YES -demoCommand "J'ai mal au genou
 shoot 7-accueil -demoOnboarding YES
 xcrun simctl ui "$UDID" appearance dark
 shoot 8-aujourdhui-sombre -demoData YES
+echo "Captures : $((SECONDS - start)) s"
