@@ -89,7 +89,7 @@ struct CommandField: View {
         withAnimation(Theme.springy) {
             if let result, result.isUnderstood {
                 apply(result)
-                feedback = .understood(summary(of: result))
+                feedback = .understood(result.summary)
                 text = ""
                 isFocused = false
             } else {
@@ -100,15 +100,5 @@ struct CommandField: View {
             try? await Task.sleep(for: .seconds(4))
             withAnimation(Theme.springy) { feedback = nil }
         }
-    }
-
-    private func summary(of command: InterpretedCommand) -> String {
-        var parts = QuickAdjustment.allCases
-            .filter { command.adjustments.contains($0) && !($0 == .shortOnTime && command.availableMinutes != nil) }
-            .map(\.shortLabel)
-        if let minutes = command.availableMinutes {
-            parts.insert("\(minutes) min", at: 0)
-        }
-        return parts.joined(separator: ", ")
     }
 }
