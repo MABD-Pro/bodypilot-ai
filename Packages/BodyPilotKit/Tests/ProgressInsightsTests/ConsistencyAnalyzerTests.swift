@@ -53,3 +53,14 @@ private func weeksBack(_ weeks: Int, weekdays: [Int] = [0, 2, 4]) -> [Date] {
     #expect(result.done == 1)
     #expect(result.message == "Encore 1 séance pour boucler la semaine.")
 }
+
+@Test func changingThisWeekKeepsPastStreak() {
+    // Deux semaines passées à 3 sur 3 ; cette semaine passe à 5 jours prévus.
+    let days = weeksBack(1) + weeksBack(2) + [day(2026, 10, 26)]
+    let thisWeek = utc.dateInterval(of: .weekOfYear, for: wednesday)!
+    let result = analyzer.consistency(completedDays: days, on: wednesday) { date in
+        thisWeek.contains(date) ? 5 : 3
+    }
+    #expect(result.planned == 5)
+    #expect(result.streakWeeks == 2)
+}

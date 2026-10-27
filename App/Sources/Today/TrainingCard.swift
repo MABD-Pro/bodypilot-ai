@@ -10,11 +10,16 @@ struct TrainingCard: View {
     var swap: (String) -> Void = { _ in }
     var isDone = false
     var toggleDone: () -> Void = {}
+    /// Jours de séance de cette semaine (1 = dimanche … 7 = samedi).
+    var weekDays: [Int] = []
+    var toggleWeekDay: (Int) -> Void = { _ in }
 
     @State private var isPreviewingWatch = false
 
     var body: some View {
         CoachCard(eyebrow: "Bouger", symbol: "figure.strengthtraining.functional", tint: Theme.training) {
+            WeekStrip(selected: weekDays, toggle: toggleWeekDay)
+
             switch training.kind {
             case .workout(let workout):
                 workoutContent(workout)
@@ -104,6 +109,65 @@ struct TrainingCard: View {
             Spacer(minLength: 0)
             DurationBadge(minutes: minutes)
         }
+    }
+}
+
+/// Les 7 jours de la semaine en cours : une touche ajoute ou retire une séance, pour cette semaine.
+private struct WeekStrip: View {
+    let selected: [Int]
+    let toggle: (Int) -> Void
+
+    private let calendar = Calendar.current
+
+    var body: some View {
+        let today = calendar.component(.weekday, from: .now)
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            HStack(spacing: 6) {
+                ForEach(calendar.orderedWeekdays, id: \.self) { weekday in
+                    let isOn = selected.contains(weekday)
+                    Button {
+                        toggle(weekday)
+                    } label: {
+                        Text(calendar.initialWeekdayLetters(locale: Theme.locale)[weekday - 1])
+                            .font(.footnote.weight(.semibold))
+                            .frame(maxWidth: .infinity, minHeight: 34)
+                            .foregroundStyle(isOn ? Color.white : (weekday == today ? Theme.training : .secondary))
+                            .background(isOn ? Theme.training : Theme.training.opacity(0.08), in: .circle)
+                            .overlay {
+                                if weekday == today {
+                                    Circle().strokeBorder(Theme.training, lineWidth: 2).padding(-3)
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(calendar.weekdayNames(locale: Theme.locale)[weekday - 1])
+                    .accessibilityAddTraits(isOn ? .isSelected : [])
+                }
+            }
+            Text("Tes jours de séance cette semaine. Touche un jour pour l'ajouter ou le retirer.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .sensoryFeedback(.selection, trigger: selected)
+    }
+}
+
+extension Calendar {
+    /// Jours de la semaine dans l'ordre local (lundi d'abord en France).
+    var orderedWeekdays: [Int] {
+        (0..<7).map { (firstWeekday - 1 + $0) % 7 + 1 }
+    }
+
+    func initialWeekdayLetters(locale: Locale) -> [String] {
+        var calendar = self
+        calendar.locale = locale
+        return calendar.veryShortStandaloneWeekdaySymbols
+    }
+
+    func weekdayNames(locale: Locale) -> [String] {
+        var calendar = self
+        calendar.locale = locale
+        return calendar.standaloneWeekdaySymbols
     }
 }
 

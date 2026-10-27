@@ -43,8 +43,14 @@ public struct DailyCoach: Sendable {
         eatingOutSlot: MealSlot? = nil,
         yesterdayAdjustments: Set<QuickAdjustment> = [],
         exerciseSwaps: [String: Int] = [:],
+        weekTrainingDays: [Int]? = nil,
         on date: Date
     ) -> TodayPlan {
+        // Les jours de séance de cette semaine, s'ils diffèrent des jours habituels.
+        var profile = profile
+        if let weekTrainingDays {
+            profile.trainingWeekdays = UserProfile.normalized(weekTrainingDays, allowEmpty: true)
+        }
         let trend = progress.trend(of: weights, for: profile, on: date)
         let weight = trend.currentTrendKg ?? profile.startWeightKg
         let targets = nutrition.targets(for: profile, currentWeightKg: weight, on: date)

@@ -47,7 +47,8 @@ public struct UserProfile: Sendable, Equatable, Codable {
     public var targetWeightKg: Double?
     public var activity: ActivityLevel
     public var goal: Goal
-    public var trainingDaysPerWeek: Int
+    /// Jours de séance choisis (1 = dimanche … 7 = samedi, comme `Calendar`), triés.
+    public var trainingWeekdays: [Int]
     public var sessionMinutes: Int
     public var equipment: Equipment
     /// Correction décidée lors des bilans hebdomadaires (kcal/jour), appliquée dans les limites de sécurité.
@@ -63,6 +64,7 @@ public struct UserProfile: Sendable, Equatable, Codable {
         activity: ActivityLevel,
         goal: Goal,
         trainingDaysPerWeek: Int,
+        trainingWeekdays: [Int]? = nil,
         sessionMinutes: Int,
         equipment: Equipment,
         calorieAdjustmentKcal: Double = 0
@@ -75,10 +77,31 @@ public struct UserProfile: Sendable, Equatable, Codable {
         self.targetWeightKg = targetWeightKg
         self.activity = activity
         self.goal = goal
-        self.trainingDaysPerWeek = trainingDaysPerWeek
+        self.trainingWeekdays = Self.normalized(trainingWeekdays ?? Self.defaultTrainingWeekdays(count: trainingDaysPerWeek))
         self.sessionMinutes = sessionMinutes
         self.equipment = equipment
         self.calorieAdjustmentKcal = calorieAdjustmentKcal
+    }
+
+    public var trainingDaysPerWeek: Int { trainingWeekdays.count }
+
+    /// Répartition par défaut, avec des jours de récupération entre les séances.
+    public static func defaultTrainingWeekdays(count: Int) -> [Int] {
+        switch min(max(count, 1), 6) {
+        case 1: [4]
+        case 2: [2, 5]
+        case 3: [2, 4, 6]
+        case 4: [2, 3, 5, 6]
+        case 5: [2, 3, 4, 6, 7]
+        default: [2, 3, 4, 5, 6, 7]
+        }
+    }
+
+    /// Jours valides, sans doublon. Le rythme habituel garde au moins un jour ; une semaine
+    /// donnée peut n'en avoir aucun (vacances, semaine chargée).
+    public static func normalized(_ weekdays: [Int], allowEmpty: Bool = false) -> [Int] {
+        let valid = Set(weekdays.filter { (1...7).contains($0) }).sorted()
+        return valid.isEmpty && !allowEmpty ? defaultTrainingWeekdays(count: 1) : valid
     }
 
     public func age(on date: Date, calendar: Calendar) -> Int {

@@ -21,7 +21,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 ## Séance du jour (`Training/TrainingPlanner`)
 
-- Calendrier fixe selon le nombre de séances (ex. 3 : lundi, mercredi, vendredi), deux full body alternés, poids du corps ou salle.
+- L'utilisateur coche ses jours de séance habituels (par défaut lundi, mercredi, vendredi). Chaque semaine, il peut ajouter ou retirer un jour d'une touche ; ce choix ne vaut que pour la semaine en cours. Une semaine sans séance est possible. Deux full body alternés, poids du corps ou salle.
 - Jours sans séance : repos actif (marche 30 min en perte de gras, 20 min sinon).
 - « Je n'ai que 20 minutes » : on raccourcit les repos, puis l'échauffement, puis les séries, puis on retire les accessoires. Les exercices essentiels restent. Sous 12 minutes, marche rapide.
 - « Je suis fatigué » : une série de moins (minimum 2), variantes sans impact, effort modéré. Nutrition inchangée.

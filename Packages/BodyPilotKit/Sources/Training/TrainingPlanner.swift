@@ -17,20 +17,13 @@ public struct TrainingPlanner: TrainingPlanning {
         self.calendar = calendar
     }
 
-    /// Jours d'entraînement (1 = dimanche … 7 = samedi), répartis pour laisser des jours de récupération.
+    /// Jours d'entraînement par défaut, pour un nombre de séances donné.
     public static func trainingWeekdays(daysPerWeek: Int) -> [Int] {
-        switch min(max(daysPerWeek, 1), 6) {
-        case 1: [4]
-        case 2: [2, 5]
-        case 3: [2, 4, 6]
-        case 4: [2, 3, 5, 6]
-        case 5: [2, 3, 4, 6, 7]
-        default: [2, 3, 4, 5, 6, 7]
-        }
+        UserProfile.defaultTrainingWeekdays(count: daysPerWeek)
     }
 
     public func isTrainingDay(_ date: Date, for profile: UserProfile) -> Bool {
-        Self.trainingWeekdays(daysPerWeek: profile.trainingDaysPerWeek).contains(calendar.component(.weekday, from: date))
+        profile.trainingWeekdays.contains(calendar.component(.weekday, from: date))
     }
 
     public func trainingDay(for profile: UserProfile, on date: Date, constraints: DayConstraints) -> TrainingDay {
@@ -97,7 +90,7 @@ public struct TrainingPlanner: TrainingPlanning {
 
     func scheduledWorkout(for profile: UserProfile, on date: Date) -> Workout {
         let sessions = WorkoutCatalog.sessions(for: profile.equipment)
-        let weekdays = Self.trainingWeekdays(daysPerWeek: profile.trainingDaysPerWeek)
+        let weekdays = profile.trainingWeekdays
         let position = weekdays.firstIndex(of: calendar.component(.weekday, from: date)) ?? 0
         let week = calendar.component(.weekOfYear, from: date)
         return sessions[(week * weekdays.count + position) % sessions.count]
