@@ -112,3 +112,22 @@ private struct FakeMealModel: MealLanguageModel {
     }
     #expect(after.notes.isEmpty)
 }
+
+@Test func photoLabelsBecomeASentenceTheParserReads() throws {
+    let sentence = try #require(PhotoLabelReader.sentence(from: [
+        (identifier: "food", confidence: 0.95),
+        (identifier: "spaghetti", confidence: 0.8),
+        (identifier: "pasta", confidence: 0.7),
+        (identifier: "salad", confidence: 0.5),
+        (identifier: "wine", confidence: 0.1),
+    ]))
+    #expect(sentence == "pâtes, salade composée")
+    #expect(MealTextParser.parse(sentence).foods.map(\.name) == ["Pâtes", "Salade composée"])
+    #expect(PhotoLabelReader.sentence(from: [(identifier: "plate", confidence: 0.9)]) == nil)
+}
+
+@Test func everyPhotoLabelIsKnownToTheParser() {
+    for name in Set(PhotoLabelReader.names.values) {
+        #expect(!MealTextParser.parse(name).foods.isEmpty, "\(name)")
+    }
+}

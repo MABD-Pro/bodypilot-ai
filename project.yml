@@ -33,6 +33,7 @@ targets:
           UIImageName: LaunchLogo
           UIImageRespectsSafeAreaInsets: false
         NSHealthShareUsageDescription: BodyPilot lit ton poids dans Santé pour suivre ta tendance sans saisie. Rien ne quitte ton iPhone.
+        NSCameraUsageDescription: BodyPilot photographie ton repas pour estimer ce que tu as mangé. La photo est analysée sur ton iPhone et n'est pas conservée.
     entitlements:
       path: App/BodyPilot.entitlements
       properties:
