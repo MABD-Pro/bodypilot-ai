@@ -9,6 +9,7 @@ import SwiftData
 enum AdjustmentOption: String, AppEnum {
     case shortOnTime
     case tired
+    case sore
     case missedWorkout
     case eatingOut
     case notHungry
@@ -19,6 +20,7 @@ enum AdjustmentOption: String, AppEnum {
     static let caseDisplayRepresentations: [AdjustmentOption: DisplayRepresentation] = [
         .shortOnTime: DisplayRepresentation(title: "je n'ai que 20 minutes", image: .init(systemName: "timer")),
         .tired: DisplayRepresentation(title: "je suis fatigué", image: .init(systemName: "battery.25percent")),
+        .sore: DisplayRepresentation(title: "j'ai des courbatures", image: .init(systemName: "figure.cooldown")),
         .missedWorkout: DisplayRepresentation(title: "j'ai raté ma séance", image: .init(systemName: "arrow.uturn.backward")),
         .eatingOut: DisplayRepresentation(title: "je mange au restaurant", image: .init(systemName: "fork.knife")),
         .notHungry: DisplayRepresentation(title: "je n'ai pas faim", image: .init(systemName: "leaf")),
@@ -30,6 +32,7 @@ enum AdjustmentOption: String, AppEnum {
         switch self {
         case .shortOnTime: .shortOnTime
         case .tired: .tired
+        case .sore: .sore
         case .missedWorkout: .missedWorkout
         case .eatingOut: .eatingOut
         case .notHungry: .notHungry
@@ -122,6 +125,7 @@ enum CoachIntents {
         let training = switch plan.training.kind {
         case .workout(let workout): "Séance : \(workout.title), \(plan.training.estimatedMinutes) minutes."
         case .activeRest(let title, let minutes): "\(title), \(minutes) minutes."
+        case .rest: "Repos aujourd'hui."
         }
         let macros = plan.targets.macros
         return "\(plan.headline) \(training) Objectif : \(macros.kcal.frenchInteger) kcal, dont \(macros.proteinG.frenchInteger) g de protéines."

@@ -27,6 +27,7 @@ struct OnDeviceCommandModel: CommandLanguageModel {
         var adjustments: Set<QuickAdjustment> = []
         if parsed.shortOnTime { adjustments.insert(.shortOnTime) }
         if parsed.tired { adjustments.insert(.tired) }
+        if parsed.sore { adjustments.insert(.sore) }
         if parsed.missedWorkout { adjustments.insert(.missedWorkout) }
         if parsed.eatingOut { adjustments.insert(.eatingOut) }
         if parsed.notHungry { adjustments.insert(.notHungry) }
@@ -42,6 +43,8 @@ struct ParsedDay {
     var shortOnTime: Bool
     @Guide(description: "Fatigué, épuisé, a mal dormi, manque d'énergie")
     var tired: Bool
+    @Guide(description: "Courbatures, muscles douloureux après une séance")
+    var sore: Bool
     @Guide(description: "A raté ou sauté sa séance de sport")
     var missedWorkout: Bool
     @Guide(description: "Mange au restaurant, chez quelqu'un ou à l'extérieur aujourd'hui")

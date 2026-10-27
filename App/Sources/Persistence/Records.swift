@@ -146,6 +146,13 @@ final class DayLogRecord {
     var mealIntakesRaw: [String] = []
     /// Repas décrits en texte, encodés en JSON (aliments et estimations).
     var describedMealsData: Data?
+    /// Proposition d'entraînement choisie ; `nil` : celle que le coach recommande.
+    var trainingChoiceRaw: String?
+
+    var trainingChoice: TrainingChoice? {
+        get { trainingChoiceRaw.flatMap(TrainingChoice.init(rawValue:)) }
+        set { trainingChoiceRaw = newValue?.rawValue }
+    }
 
     var describedMeals: [MealSlot: DescribedMeal] {
         get {

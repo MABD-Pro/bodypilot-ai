@@ -31,7 +31,7 @@ private func workout(_ day: TrainingDay) -> Workout? {
     #expect(!session.hasStrength)
     #expect(session.exercises.count == 2)
     #expect(result.estimatedMinutes <= 45 && result.estimatedMinutes >= 40)
-    #expect(result.notes.contains { $0.contains("48 h") })
+    #expect(planner.options(for: makeProfile(), on: tuesday, constraints: DayConstraints(lastStrengthDay: monday)).reason.contains("48 h"))
     // Cardio continu et sans impact les jours de récupération, quel que soit le format du jour.
     for offset in 0..<8 {
         let date = try #require(utc.date(byAdding: .day, value: offset, to: tuesday))

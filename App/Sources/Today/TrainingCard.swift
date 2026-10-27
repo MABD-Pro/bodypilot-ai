@@ -1,4 +1,5 @@
 import BodyPilotCore
+import Coach
 import ProgressInsights
 import SwiftUI
 import Training
@@ -7,6 +8,13 @@ import WorkoutKit
 /// « Quel entraînement dois-je effectuer ? »
 struct TrainingCard: View {
     let training: TrainingDay
+    /// Les propositions du jour ; `nil` : la séance seule.
+    var options: TrainingOptions?
+    var choice: TrainingChoice?
+    var choose: (TrainingChoice) -> Void = { _ in }
+    /// Ajustements du jour, pour l'état de « Comment te sens-tu ? ».
+    var adjustments: Set<QuickAdjustment> = []
+    var setFeeling: (Feeling) -> Void = { _ in }
     /// Remplace l'exercice (par sa clé) par la variante suivante.
     var swap: (String) -> Void = { _ in }
     var isDone = false
@@ -14,8 +22,6 @@ struct TrainingCard: View {
     /// Ce qui a vraiment été fait cette semaine (séances cochées et activités de Santé).
     var week: WeekActivity?
     var healthLinked = false
-    /// Planifie la semaine sur la Watch ; `false` si l'autorisation est refusée.
-    var planWeekOnWatch: (() async -> Bool)?
     /// Meilleures séries notées, toutes séances confondues.
     var lifts: [LiftEntry] = []
     /// Matériel de salle : la saisie part d'une charge, sinon du poids du corps.
@@ -29,58 +35,28 @@ struct TrainingCard: View {
     @State private var logging: LiftToLog?
     @State private var celebration: String?
     private let calendar = Calendar.current
-    @State private var watchWeek: WatchWeekState = .idle
-
-    private enum WatchWeekState { case idle, sending, sent, refused }
 
     var body: some View {
         CoachCard(eyebrow: "Bouger", symbol: "figure.strengthtraining.functional", tint: Theme.training) {
+            if let options {
+                FeelingPicker(adjustments: adjustments, set: setFeeling)
+                OptionsPicker(options: options, choice: choice ?? options.recommended, choose: choose)
+                    .id("options")
+            }
+
             switch training.kind {
             case .workout(let workout):
                 workoutContent(workout)
             case .activeRest(let title, let minutes):
                 restContent(title: title, minutes: minutes)
+            case .rest:
+                fullRestContent
             }
 
             if let week {
                 WeekSection(week: week, healthLinked: healthLinked)
                     .id("week")
             }
-
-            if let planWeekOnWatch, WatchSchedule.isSupported {
-                watchWeekButton(planWeekOnWatch)
-            }
-        }
-    }
-
-    private func watchWeekButton(_ plan: @escaping () async -> Bool) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            Button {
-                watchWeek = .sending
-                Task { watchWeek = await plan() ? .sent : .refused }
-            } label: {
-                Label(watchWeek == .sent ? "Semaine planifiée sur ta Watch" : "Planifier ma semaine sur la Watch",
-                      systemImage: watchWeek == .sent ? "checkmark.circle.fill" : "applewatch.radiowaves.left.and.right")
-                    .font(.subheadline.weight(.semibold))
-                    .contentTransition(.symbolEffect(.replace))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-            }
-            .buttonStyle(.glass)
-            .disabled(watchWeek == .sending)
-            .sensoryFeedback(.success, trigger: watchWeek) { _, state in state == .sent }
-            Text(watchWeekCaption)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var watchWeekCaption: String {
-        switch watchWeek {
-        case .refused: "Autorise BodyPilot dans Réglages > Confidentialité > Santé pour planifier sur la montre."
-        case .sent: "Les séances de la semaine sont dans l'app Exercice de ta montre, jour par jour."
-        default: "Force, cardio et marche, jusqu'à dimanche. Touche à nouveau après une séance ou un changement."
         }
     }
 
@@ -261,6 +237,21 @@ struct TrainingCard: View {
         }
     }
 
+    /// Repos complet : rien à faire, sinon bien récupérer.
+    private var fullRestContent: some View {
+        HStack(spacing: Theme.Spacing.l) {
+            IconBadge(symbol: "bed.double.fill", tint: Theme.training, size: 52)
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                Text("Repos")
+                    .font(.display(24))
+                Text("Sommeil, protéines et un peu de marche si l'envie te prend : les muscles se construisent aussi au repos.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
     /// Marche (séance ratée, très peu de temps) : elle part sur la montre.
     @ViewBuilder
     private var restActions: some View {
@@ -286,6 +277,159 @@ struct TrainingCard: View {
                     .padding(.vertical, 4)
             }
             .buttonStyle(.glass)
+        }
+    }
+}
+
+/// Ressenti du matin, en une touche.
+enum Feeling: CaseIterable {
+    case great, sore, tired
+
+    var label: String {
+        switch self {
+        case .great: "En forme"
+        case .sore: "Courbatures"
+        case .tired: "Fatigué"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .great: "sun.max.fill"
+        case .sore: "figure.cooldown"
+        case .tired: "battery.25percent"
+        }
+    }
+}
+
+/// « Comment te sens-tu ? » : le coach en tient compte pour sa recommandation.
+private struct FeelingPicker: View {
+    let adjustments: Set<QuickAdjustment>
+    let set: (Feeling) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Text("Comment te sens-tu ?")
+                .font(.headline)
+            HStack(spacing: Theme.Spacing.s) {
+                ForEach(Feeling.allCases, id: \.self) { feeling in
+                    let isOn = isSelected(feeling)
+                    Button {
+                        set(feeling)
+                    } label: {
+                        Label(feeling.label, systemImage: feeling.symbol)
+                            .font(.footnote.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                            .foregroundStyle(isOn ? Color.white : Color.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Theme.Spacing.s)
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(isOn ? .regular.tint(Theme.training).interactive() : .regular.interactive(), in: .capsule)
+                    .accessibilityAddTraits(isOn ? .isSelected : [])
+                }
+            }
+        }
+    }
+
+    private func isSelected(_ feeling: Feeling) -> Bool {
+        switch feeling {
+        case .great: !adjustments.contains(.tired) && !adjustments.contains(.sore)
+        case .sore: adjustments.contains(.sore)
+        case .tired: adjustments.contains(.tired)
+        }
+    }
+}
+
+/// « Aujourd'hui, au choix » : 2 ou 3 activités et le repos, la recommandée marquée.
+private struct OptionsPicker: View {
+    let options: TrainingOptions
+    let choice: TrainingChoice
+    let choose: (TrainingChoice) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Text("Aujourd'hui, au choix")
+                .font(.headline)
+            VStack(spacing: 0) {
+                ForEach(options.options, id: \.choice) { option in
+                    row(option)
+                    if option.choice != options.options.last?.choice { Divider() }
+                }
+            }
+            .padding(.horizontal, Theme.Spacing.m)
+            .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+            CoachNote(text: options.reason, tint: Theme.training)
+        }
+        .sensoryFeedback(.selection, trigger: choice)
+    }
+
+    private func row(_ option: TrainingOption) -> some View {
+        let isChosen = option.choice == choice
+        return Button {
+            choose(option.choice)
+        } label: {
+            HStack(spacing: Theme.Spacing.m) {
+                Image(systemName: option.choice.symbol)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(option.choice.tint)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(option.title)
+                        .font(.subheadline.weight(isChosen ? .semibold : .regular))
+                    if option.choice == options.recommended {
+                        Text("Recommandé")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.training)
+                    }
+                }
+                Spacer(minLength: Theme.Spacing.s)
+                if option.day.estimatedMinutes > 0 {
+                    Text("\(option.day.estimatedMinutes) min")
+                        .font(.subheadline)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                Image(systemName: isChosen ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(isChosen ? Theme.training : Color.secondary.opacity(0.5))
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .padding(.vertical, 10)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isChosen ? .isSelected : [])
+    }
+}
+
+extension TrainingChoice {
+    var symbol: String {
+        switch self {
+        case .strength: "dumbbell.fill"
+        case .conditioning: "heart.fill"
+        case .light: "figure.walk"
+        case .rest: "bed.double.fill"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .strength: Theme.training
+        case .conditioning: Theme.progress
+        case .light: Theme.nutrition
+        case .rest: Color.secondary
+        }
+    }
+}
+
+extension TrainingOption {
+    var title: String {
+        switch day.kind {
+        case .workout(let workout): workout.title
+        case .activeRest(let title, _): title
+        case .rest: "Repos"
         }
     }
 }
@@ -719,11 +863,4 @@ extension Workout {
         if conditioning >= 2 { parts.append("marche") }
         return parts.joined(separator: " · ")
     }
-}
-
-/// Un jour à venir : séance ou marche, déjà calculée par le coach.
-struct UpcomingDay: Identifiable {
-    let date: Date
-    let training: TrainingDay
-    var id: Date { date }
 }

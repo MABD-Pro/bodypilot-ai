@@ -57,6 +57,7 @@ extension QuickAdjustment {
         switch self {
         case .shortOnTime: "timer"
         case .tired: "battery.25percent"
+        case .sore: "figure.cooldown"
         case .missedWorkout: "arrow.uturn.backward"
         case .eatingOut: "fork.knife"
         case .notHungry: "leaf"
@@ -68,7 +69,7 @@ extension QuickAdjustment {
     var tint: Color {
         switch self {
         case .shortOnTime, .traveling: Theme.training
-        case .tired: Theme.fat
+        case .tired, .sore: Theme.fat
         case .missedWorkout, .kneePain: Theme.protein
         case .eatingOut, .notHungry: Theme.nutrition
         }
@@ -79,6 +80,7 @@ extension QuickAdjustment {
         switch self {
         case .shortOnTime: "peu de temps"
         case .tired: "fatigue"
+        case .sore: "courbatures"
         case .missedWorkout: "séance ratée"
         case .eatingOut: "restaurant"
         case .notHungry: "pas faim"
