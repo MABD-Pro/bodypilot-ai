@@ -1,0 +1,69 @@
+import BodyPilotCore
+import SwiftData
+import SwiftUI
+
+/// Pesée en deux touches : la valeur part de la dernière mesure.
+struct WeightEntrySheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
+    @State private var kg: Double
+
+    init(initialKg: Double) {
+        _kg = State(initialValue: (initialKg * 10).rounded() / 10)
+    }
+
+    var body: some View {
+        VStack(spacing: Theme.Spacing.xl) {
+            VStack(spacing: Theme.Spacing.xs) {
+                Text("Pesée du jour")
+                    .font(.display(24))
+                Text("Le matin, à jeun, après être passé aux toilettes.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: Theme.Spacing.xl) {
+                step(-0.1, symbol: "minus")
+                VStack(spacing: 0) {
+                    Text(kg.frenchOneDecimal)
+                        .font(.display(60))
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: kg))
+                    Text("kg")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(minWidth: 150)
+                step(0.1, symbol: "plus")
+            }
+
+            Button {
+                context.insert(WeightRecord(date: .now, kg: kg))
+                dismiss()
+            } label: {
+                Text("Enregistrer")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Theme.progress)
+        }
+        .padding(Theme.Spacing.xxl)
+        .presentationDetents([.height(340)])
+        .sensoryFeedback(.increase, trigger: kg)
+    }
+
+    private func step(_ delta: Double, symbol: String) -> some View {
+        Button {
+            withAnimation(.snappy) { kg = ((kg + delta) * 10).rounded() / 10 }
+        } label: {
+            Image(systemName: symbol)
+                .font(.title2.weight(.bold))
+                .frame(width: 56, height: 56)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .circle)
+        .buttonRepeatBehavior(.enabled)
+    }
+}

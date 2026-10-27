@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Compile l'app pour un simulateur iPhone, la lance avec des données de démo
+# et capture les écrans clés dans screenshots/ (publiés comme artefact de CI).
+set -euo pipefail
+
+BUNDLE_ID=com.mabdpro.bodypilot
+OUT=screenshots
+mkdir -p "$OUT"
+
+# iPhone du runtime iOS le plus récent (modèle Pro de préférence).
+UDID=$(xcrun simctl list devices available -j | python3 -c '
+import json, sys
+devices = json.load(sys.stdin)["devices"]
+runtimes = sorted((r for r in devices if "iOS" in r), key=lambda r: [int(x) for x in r.rsplit("iOS-", 1)[-1].split("-") if x.isdigit()])
+phones = [d for d in devices[runtimes[-1]] if d["name"].startswith("iPhone")]
+pro = [d for d in phones if "Pro" in d["name"] and "Max" not in d["name"]]
+print((pro or phones)[0]["udid"])
+')
+echo "Simulateur : $UDID"
+
+xcodebuild build \
+  -project BodyPilot.xcodeproj \
+  -scheme BodyPilot \
+  -destination "id=$UDID" \
+  -derivedDataPath build \
+  CODE_SIGNING_ALLOWED=NO > build.log 2>&1 || {
+    grep -E "error:" build.log | sort -u | head -n 80
+    tail -n 40 build.log
+    exit 1
+  }
+
+APP=$(find build/Build/Products -name 'BodyPilot.app' -maxdepth 2 | head -n 1)
+
+xcrun simctl boot "$UDID" || true
+xcrun simctl bootstatus "$UDID" -b
+xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
+xcrun simctl install "$UDID" "$APP"
+
+shoot() {
+  local name=$1
+  shift
+  xcrun simctl terminate "$UDID" "$BUNDLE_ID" 2>/dev/null || true
+  xcrun simctl launch "$UDID" "$BUNDLE_ID" -AppleLanguages "(fr)" -AppleLocale fr_FR "$@"
+  sleep 7
+  xcrun simctl io "$UDID" screenshot "$OUT/$name.png"
+}
+
+shoot 0-chargement -demoData YES -demoHoldSplash YES
+shoot 1-aujourdhui -demoData YES
+shoot 2-aujourdhui-repas -demoData YES -demoScrollTo nutrition
+shoot 3-aujourdhui-seance -demoData YES -demoScrollTo training
+shoot 4-aujourdhui-progression -demoData YES -demoScrollTo progress
+shoot 5-ajustement-20min-fatigue -demoData YES -demoAdjustments shortOnTime,tired -demoScrollTo training
+shoot 6-accueil -demoOnboarding YES
+xcrun simctl ui "$UDID" appearance dark
+shoot 7-aujourdhui-sombre -demoData YES

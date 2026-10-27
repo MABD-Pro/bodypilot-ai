@@ -21,6 +21,8 @@ jobs:
   app:
     name: App iOS (XcodeGen + build simulateur)
     runs-on: macos-15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: maxim-lobanov/setup-xcode@v1
@@ -29,9 +31,24 @@ jobs:
       - run: xcodebuild -version
       - run: brew install xcodegen
       - run: xcodegen generate
-      - run: >
-          xcodebuild build
-          -project BodyPilot.xcodeproj
-          -scheme BodyPilot
-          -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO
+      - name: Build simulateur et captures d'écran
+        run: scripts/ci-screenshots.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: captures
+          path: screenshots/
+          if-no-files-found: ignore
+      # Copie des captures sur une branche dédiée, lisible sans télécharger d'artefact
+      # (aperçus de design dans les PR et pour les agents sans accès aux artefacts).
+      - name: Publier les captures sur la branche ci/captures
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        working-directory: screenshots
+        run: |
+          for f in *.png; do sips -s format jpeg -s formatOptions 80 "$f" --out "${f%.png}.jpg" > /dev/null; done
+          rm -f *.png
+          echo "Captures de ${{ github.event.pull_request.head.sha }} (PR #${{ github.event.pull_request.number }})" > README.md
+          git init -q -b ci/captures
+          git add .
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "Captures PR #${{ github.event.pull_request.number }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:ci/captures

@@ -69,8 +69,8 @@ public struct DailyCoach: Sendable {
                 return "Séance express de \(training.estimatedMinutes) min : l'essentiel, rien de plus."
             }
             return "\(workout.title) en \(training.estimatedMinutes) min et \(kcal.frenchInteger) kcal au menu."
-        case .activeRest(let title, let minutes):
-            return "Jour de récupération : \(title.lowercased()) de \(minutes) min et des repas qui nourrissent."
+        case .activeRest(_, let minutes):
+            return "Jour de récupération : \(minutes) min de marche et des repas qui nourrissent."
         }
     }
 
