@@ -53,4 +53,6 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 - « Je suis crevé, j'ai 15 min et resto ce soir » → fatigue + 15 minutes + restaurant.
 - Passe par l'AIRouter au niveau déterministe : mots-clés français, sans accents ni casse, gratuit et hors ligne. Un temps précis (5 à 120 min) remplace les 20 minutes par défaut.
-- Phrase non comprise : le coach le dit et propose les ajustements en une touche. Un modèle embarqué (Foundation Models) pourra prendre le relais plus tard.
+- Si les mots-clés ne reconnaissent rien, le modèle Apple embarqué (Foundation Models) prend le relais, s'il est disponible sur l'iPhone : gratuit, hors ligne, jamais de cloud. Phrases de plus de 280 caractères ignorées.
+- Sa réponse est structurée (oui/non par ajustement, minutes, repas) puis contrôlée comme les mots-clés : temps entre 5 et 120 min, repas seulement si restaurant.
+- Phrase toujours non comprise : le coach le dit et propose les ajustements en une touche.

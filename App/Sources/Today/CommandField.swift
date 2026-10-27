@@ -7,9 +7,10 @@ struct CommandField: View {
 
     @State private var text = ""
     @State private var feedback: Feedback?
+    @State private var isThinking = false
     @FocusState private var isFocused: Bool
 
-    private let interpreter = CommandInterpreter()
+    private let interpreter = OnDeviceCommandModel.interpreter()
 
     private enum Feedback: Equatable {
         case understood(String)
@@ -23,11 +24,12 @@ struct CommandField: View {
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Theme.nutrition)
                     .symbolEffect(.bounce, value: feedback)
+                    .symbolEffect(.pulse, isActive: isThinking)
                 TextField("Dis-le en une phrase…", text: $text)
                     .focused($isFocused)
                     .submitLabel(.send)
                     .onSubmit(submit)
-                if !text.isEmpty {
+                if !text.isEmpty && !isThinking {
                     Button(action: submit) {
                         Image(systemName: "arrow.up")
                             .font(.subheadline.weight(.bold))
@@ -73,8 +75,17 @@ struct CommandField: View {
 
     private func submit() {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        let result = interpreter.interpret(trimmed)
+        guard !trimmed.isEmpty, !isThinking else { return }
+        isThinking = true
+        Task {
+            // Mots-clés instantanés ; le modèle embarqué ne prend le relais que si besoin.
+            let result = await interpreter.understand(trimmed)
+            isThinking = false
+            show(result)
+        }
+    }
+
+    private func show(_ result: InterpretedCommand?) {
         withAnimation(Theme.springy) {
             if let result, result.isUnderstood {
                 apply(result)
