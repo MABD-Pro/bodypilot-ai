@@ -29,7 +29,10 @@ let package = Package(
 
         .testTarget(name: "BodyPilotCoreTests", dependencies: ["BodyPilotCore"]),
         .testTarget(name: "AIRouterTests", dependencies: ["AIRouter"]),
-        .testTarget(name: "CoachTests", dependencies: ["Coach"]),
+        .testTarget(name: "NutritionTests", dependencies: ["Nutrition"]),
+        .testTarget(name: "TrainingTests", dependencies: ["Training"]),
+        .testTarget(name: "ProgressInsightsTests", dependencies: ["ProgressInsights"]),
+        .testTarget(name: "CoachTests", dependencies: ["Coach", "Nutrition", "Training", "ProgressInsights"]),
     ],
     swiftLanguageModes: [.v6]
 )
