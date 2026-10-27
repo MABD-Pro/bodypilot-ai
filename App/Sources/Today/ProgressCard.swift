@@ -4,7 +4,7 @@ import Coach
 import ProgressInsights
 import SwiftUI
 
-/// Lien avec l'app Santé pour les pesées.
+/// Lien avec l'app Santé : pesées lues, repas mangés envoyés.
 enum HealthLink {
     case unavailable
     case off
@@ -207,9 +207,9 @@ struct ProgressCard: View {
                 HStack(spacing: Theme.Spacing.m) {
                     IconBadge(symbol: "heart.fill", tint: Theme.protein, size: 36)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Importer mes pesées depuis Santé")
+                        Text("Relier à Santé")
                             .font(.subheadline.weight(.semibold))
-                        Text("Ta balance connectée remplit le suivi pour toi.")
+                        Text("Ta balance remplit le suivi, et tes repas mangés partent dans Santé.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -225,9 +225,9 @@ struct ProgressCard: View {
             .buttonStyle(.plain)
         case .on:
             Menu {
-                Button("Ne plus importer depuis Santé", systemImage: "heart.slash", role: .destructive, action: disconnectHealth)
+                Button("Ne plus relier à Santé", systemImage: "heart.slash", role: .destructive, action: disconnectHealth)
             } label: {
-                Label("Pesées importées depuis Santé", systemImage: "heart.fill")
+                Label("Relié à Santé : pesées et repas", systemImage: "heart.fill")
                     .font(.footnote.weight(.medium))
                     .foregroundStyle(.secondary)
             }
