@@ -179,11 +179,8 @@ struct TrainingCard: View {
     /// Jour de repos : la marche part sur la montre, ou une séance en plus si l'envie est là.
     @ViewBuilder
     private var restActions: some View {
-        // Côte à côte si la place suffit, sinon l'un sous l'autre (grands textes, petits écrans).
-        let buttons = ViewThatFits(in: .horizontal) {
-            HStack(spacing: Theme.Spacing.s) { restButtons }
-            VStack(spacing: Theme.Spacing.s) { restButtons }
-        }
+        // L'un sous l'autre, pleine largeur : les libellés restent entiers sur tous les écrans.
+        let buttons = VStack(spacing: Theme.Spacing.s) { restButtons }
         if let plan = training.watchPlan {
             buttons.workoutPreview(plan, isPresented: $isPreviewingWatch)
         } else {
