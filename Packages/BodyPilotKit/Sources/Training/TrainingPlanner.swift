@@ -225,7 +225,7 @@ public struct TrainingPlanner: TrainingPlanning {
         if constraints.lowEnergy { reasons.append("tu es fatigué") }
         if constraints.kneePain { reasons.append("ton genou est sensible") }
         if reasons.isEmpty { reasons.append("le temps manque") }
-        return "Test de force reporté (\(reasons.joined(separator: ", "))) : il reviendra au prochain jour de force, avec 40 min devant toi."
+        return "Test de force reporté (\(reasons.joined(separator: ", "))) : il reviendra un prochain jour de force, quand tu seras en forme et disponible au moins 45 min."
     }
 
     /// Jour de récupération musculaire : cardio varié puis marche inclinée ou escalier.
