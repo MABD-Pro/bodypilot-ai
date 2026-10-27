@@ -87,14 +87,17 @@ enum DemoData {
 
         var adjustments = LaunchOptions.demoAdjustments
         var minutes: Int?
+        var eatingOutSlot: MealSlot?
         if let command = LaunchOptions.demoCommand, let interpreted = CommandInterpreter().interpret(command) {
             adjustments.formUnion(interpreted.adjustments)
             minutes = interpreted.availableMinutes
+            eatingOutSlot = interpreted.eatingOutSlot
         }
         if !adjustments.isEmpty {
             let log = DayLogRecord(day: calendar.startOfDay(for: now))
             log.adjustments = adjustments
             log.availableMinutes = minutes
+            log.eatingOutSlot = eatingOutSlot
             context.insert(log)
         }
     }

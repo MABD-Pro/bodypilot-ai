@@ -63,6 +63,11 @@ private let monday = day(2026, 10, 26)
     #expect(late.meals.meals.first { $0.isEatingOut }?.slot == .dinner)
 }
 
+@Test func announcedRestaurantMealWinsOverTimeOfDay() {
+    let plan = coach.plan(for: makeProfile(), weights: [], adjustments: [.eatingOut], eatingOutSlot: .dinner, on: monday)
+    #expect(plan.meals.meals.first { $0.isEatingOut }?.slot == .dinner)
+}
+
 @Test func preciseMinutesOverrideDefault() {
     let plan = coach.plan(for: makeProfile(), weights: [], adjustments: [.shortOnTime], availableMinutes: 15, on: monday)
     #expect(plan.training.estimatedMinutes <= 15)

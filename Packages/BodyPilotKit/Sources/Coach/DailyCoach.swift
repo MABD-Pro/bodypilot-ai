@@ -40,6 +40,7 @@ public struct DailyCoach: Sendable {
         weights: [WeightEntry],
         adjustments: Set<QuickAdjustment> = [],
         availableMinutes: Int? = nil,
+        eatingOutSlot: MealSlot? = nil,
         yesterdayAdjustments: Set<QuickAdjustment> = [],
         on date: Date
     ) -> TodayPlan {
@@ -50,7 +51,7 @@ public struct DailyCoach: Sendable {
             for: targets,
             profile: profile,
             on: date,
-            constraints: MealConstraints(today: adjustments, at: date, calendar: calendar)
+            constraints: MealConstraints(today: adjustments, at: date, calendar: calendar, eatingOutSlot: eatingOutSlot)
         )
         let constraints = DayConstraints(today: adjustments, yesterday: yesterdayAdjustments, availableMinutes: availableMinutes)
         let trainingDay = training.trainingDay(for: profile, on: date, constraints: constraints)

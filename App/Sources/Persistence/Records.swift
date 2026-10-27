@@ -76,6 +76,13 @@ final class DayLogRecord {
     var adjustmentsRaw: [String] = []
     /// Temps précis annoncé en phrase libre (« j'ai 15 min »).
     var availableMinutes: Int?
+    /// Repas pris au restaurant, s'il a été précisé (« ce soir »).
+    var eatingOutSlotRaw: String?
+
+    var eatingOutSlot: MealSlot? {
+        get { eatingOutSlotRaw.flatMap(MealSlot.init(rawValue:)) }
+        set { eatingOutSlotRaw = newValue?.rawValue }
+    }
 
     init(day: Date) {
         self.day = day

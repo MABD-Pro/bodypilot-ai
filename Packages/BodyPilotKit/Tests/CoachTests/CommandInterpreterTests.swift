@@ -1,3 +1,4 @@
+import BodyPilotCore
 import Testing
 @testable import Coach
 
@@ -28,6 +29,7 @@ func understandsCommonPhrases(text: String, expected: QuickAdjustment) {
     let result = interpreter.interpret("Je suis fatigué, j'ai 15 min et ce soir c'est resto")
     #expect(result?.adjustments == [.tired, .shortOnTime, .eatingOut])
     #expect(result?.availableMinutes == 15)
+    #expect(result?.eatingOutSlot == .dinner)
     #expect(result?.tier == .deterministic)
 }
 
@@ -35,6 +37,12 @@ func understandsCommonPhrases(text: String, expected: QuickAdjustment) {
     #expect(parse("Quelle belle journée").isEmpty)
     #expect(parse("Je suis en train de cuisiner") == [])
     #expect(interpreter.interpret("Bonjour")?.isUnderstood == false)
+}
+
+@Test func restaurantMealFollowsTheWords() {
+    #expect(interpreter.interpret("resto ce midi")?.eatingOutSlot == .lunch)
+    #expect(interpreter.interpret("dîner au restaurant")?.eatingOutSlot == .dinner)
+    #expect(interpreter.interpret("je mange au resto")?.eatingOutSlot == nil)
 }
 
 @Test func absurdDurationsAreNotTakenLiterally() {

@@ -1,4 +1,5 @@
 import AIRouter
+import BodyPilotCore
 import Foundation
 
 /// Ce que le coach a compris d'une phrase libre.
@@ -6,14 +7,17 @@ public struct InterpretedCommand: Sendable, Equatable {
     public var adjustments: Set<QuickAdjustment>
     /// Temps annoncé (« j'ai 15 min »), s'il y en a un.
     public var availableMinutes: Int?
+    /// Repas précisé pour le restaurant (« ce soir », « ce midi »).
+    public var eatingOutSlot: MealSlot?
     /// Niveau de traitement utilisé, pour mesurer le coût.
     public var tier: AITier
 
     public var isUnderstood: Bool { !adjustments.isEmpty }
 
-    public init(adjustments: Set<QuickAdjustment>, availableMinutes: Int? = nil, tier: AITier) {
+    public init(adjustments: Set<QuickAdjustment>, availableMinutes: Int? = nil, eatingOutSlot: MealSlot? = nil, tier: AITier) {
         self.adjustments = adjustments
         self.availableMinutes = availableMinutes
+        self.eatingOutSlot = eatingOutSlot
         self.tier = tier
     }
 }
@@ -74,7 +78,15 @@ enum KeywordParser {
         }
         let minutes = firstMinutes(in: normalized)
         if minutes != nil { found.insert(.shortOnTime) }
-        return InterpretedCommand(adjustments: found, availableMinutes: minutes, tier: .deterministic)
+        var slot: MealSlot?
+        if found.contains(.eatingOut) {
+            if matches(#"\bsoir\b|\bdiner\b|\bdine\b"#, in: normalized) {
+                slot = .dinner
+            } else if matches(#"\bmidi\b|\bdejeuner\b|\bdejeune\b"#, in: normalized) {
+                slot = .lunch
+            }
+        }
+        return InterpretedCommand(adjustments: found, availableMinutes: minutes, eatingOutSlot: slot, tier: .deterministic)
     }
 
     static func normalize(_ text: String) -> String {

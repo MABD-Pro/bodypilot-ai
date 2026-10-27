@@ -24,6 +24,7 @@ struct TodayView: View {
             weights: weights.map(\.entry),
             adjustments: todayAdjustments,
             availableMinutes: todayLog?.availableMinutes,
+            eatingOutSlot: todayLog?.eatingOutSlot,
             yesterdayAdjustments: adjustments(on: calendar.date(byAdding: .day, value: -1, to: now) ?? now),
             on: now
         )
@@ -119,6 +120,7 @@ struct TodayView: View {
             if current.contains(adjustment) {
                 current.remove(adjustment)
                 if adjustment == .shortOnTime { log.availableMinutes = nil }
+                if adjustment == .eatingOut { log.eatingOutSlot = nil }
             } else {
                 current.insert(adjustment)
             }
@@ -133,6 +135,9 @@ struct TodayView: View {
             log.adjustments = log.adjustments.union(command.adjustments)
             if let minutes = command.availableMinutes {
                 log.availableMinutes = minutes
+            }
+            if let slot = command.eatingOutSlot {
+                log.eatingOutSlot = slot
             }
         }
     }
