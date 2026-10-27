@@ -35,7 +35,8 @@ extension DayConstraints {
         availableMinutes: Int? = nil,
         exerciseSwaps: [String: Int] = [:],
         lastWorkoutTitle: String? = nil,
-        lastStrengthDay: Date? = nil
+        lastStrengthDay: Date? = nil,
+        calibratedLifts: Set<String>? = nil
     ) {
         self.init(
             availableMinutes: today.contains(.shortOnTime) ? (availableMinutes ?? QuickAdjustment.shortOnTimeMinutes) : nil,
@@ -45,7 +46,8 @@ extension DayConstraints {
             traveling: today.contains(.traveling),
             exerciseSwaps: exerciseSwaps,
             lastWorkoutTitle: lastWorkoutTitle,
-            lastStrengthDay: lastStrengthDay
+            lastStrengthDay: lastStrengthDay,
+            calibratedLifts: calibratedLifts
         )
     }
 }

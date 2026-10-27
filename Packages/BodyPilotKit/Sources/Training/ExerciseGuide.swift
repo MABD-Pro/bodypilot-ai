@@ -105,6 +105,11 @@ public struct ExerciseGuide: Sendable, Equatable {
             muscles: "Grand dorsal, biceps, gainage",
             cues: ["Prise un peu plus large que les épaules, bras tendus.", "Abaisse les épaules puis tire les coudes vers les côtes.", "Menton au-dessus de la barre, sans balancer.", "Redescends jusqu'en bas, en contrôle. Trop dur : élastique ou machine assistée."]
         ),
+        "Tirage vertical prise serrée": ExerciseGuide(
+            muscles: "Grand dorsal, biceps, bas des trapèzes",
+            cues: ["Poignée en V ou prise serrée, cuisses calées sous les boudins.", "Abaisse d'abord les épaules, buste légèrement incliné en arrière.", "Tire les coudes le long du corps jusqu'au haut de la poitrine.", "Remonte en contrôlant, bras presque tendus."],
+            start: (0.5, 0.35)
+        ),
         "Tirage horizontal à la poulie": ExerciseGuide(
             muscles: "Dos (milieu), grand dorsal, biceps",
             cues: ["Assis, buste droit, genoux légèrement fléchis.", "Tire la poignée vers le nombril, coudes près du corps.", "Serre les omoplates, sans pencher le buste en arrière.", "Reviens bras tendus, épaules vers l'avant."],

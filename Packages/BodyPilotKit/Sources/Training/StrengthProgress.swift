@@ -83,8 +83,17 @@ public enum StrengthProgress {
     /// Surcharge progressive (ACSM, 2009) : quand la série dépasse d'au moins une répétition
     /// ce qui était prévu, la charge monte de 2 à 10 % ; sinon on garde la charge et on vise
     /// les répétitions prévues. Au poids du corps, on vise une répétition de plus.
+    /// Après un test, la charge de travail se déduit du 1RM estimé ; sans série notée,
+    /// de celui du mouvement de référence.
     public static func target(for exercise: String, plannedReps: Int, history: [LiftEntry]) -> LiftTarget? {
-        guard let last = history.filter({ $0.exercise == exercise }).max(by: { $0.date < $1.date }) else { return nil }
+        guard let last = history.filter({ $0.exercise == exercise }).max(by: { $0.date < $1.date }) else {
+            return StrengthCalibration.derivedLoad(for: exercise, plannedReps: plannedReps, history: history)
+                .map { LiftTarget(kg: $0, reps: plannedReps, isIncrease: false) }
+        }
+        if last.isTest, let kg = last.kg, kg > 0 {
+            let load = StrengthCalibration.workingLoad(oneRepMax: estimatedOneRepMax(kg: kg, reps: last.reps), reps: plannedReps)
+            return LiftTarget(kg: load, reps: plannedReps, isIncrease: false)
+        }
         guard let kg = last.kg, kg > 0 else {
             let beat = last.reps >= plannedReps
             return LiftTarget(kg: nil, reps: beat ? last.reps + 1 : plannedReps, isIncrease: beat)

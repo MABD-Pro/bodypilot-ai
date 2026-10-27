@@ -36,7 +36,7 @@ public struct TrainingPlanner: TrainingPlanning {
 
     /// Titre d'une séance de force du catalogue (et non d'une séance cardio et marche).
     public static func isStrengthSession(_ title: String) -> Bool {
-        (WorkoutCatalog.sessions(for: .gym) + WorkoutCatalog.sessions(for: .bodyweight)).contains { $0.title == title }
+        title.hasPrefix("Test de force") || (WorkoutCatalog.sessions(for: .gym) + WorkoutCatalog.sessions(for: .bodyweight)).contains { $0.title == title }
     }
 
     /// Force possible ce jour-là : jamais faite, ou faite il y a au moins 48 h.
@@ -65,6 +65,12 @@ public struct TrainingPlanner: TrainingPlanning {
 
         let budget = min(constraints.availableMinutes ?? profile.sessionMinutes, profile.sessionMinutes)
         let composed: Workout
+        if isStrengthDay(date, lastStrengthDay: constraints.lastStrengthDay),
+           let test = strengthTest(for: profile, budget: budget, constraints: constraints) {
+            // Le test se fait tel quel : pas de remplacement, ni de séance resserrée.
+            notes.append("Test de force : monte par paliers jusqu'à une série de 5 lourde et propre, puis note-la. Toutes tes charges de travail en découlent.")
+            return TrainingDay(kind: .workout(test), estimatedMinutes: test.estimatedMinutes, notes: notes)
+        }
         if isStrengthDay(date, lastStrengthDay: constraints.lastStrengthDay) {
             let strength = nextWorkout(after: constraints.lastWorkoutTitle, for: profile, on: date)
             composed = budget >= Self.threeAxisMinutes ? withConditioning(strength, budget: budget, equipment: profile.equipment, on: date) : strength
@@ -101,6 +107,16 @@ public struct TrainingPlanner: TrainingPlanning {
             notes.append("Séance resserrée à \(adapted.estimatedMinutes) min : l'essentiel est gardé.")
         }
         return TrainingDay(kind: .workout(adapted), estimatedMinutes: adapted.estimatedMinutes, notes: notes)
+    }
+
+    /// Mouvements de référence pas encore testés (salle seulement). Pas de test avec une douleur
+    /// au genou, de la fatigue, ou trop peu de temps pour un mouvement : la séance habituelle suit.
+    func strengthTest(for profile: UserProfile, budget: Int, constraints: DayConstraints) -> Workout? {
+        guard profile.equipment == .gym, let calibrated = constraints.calibratedLifts,
+              !constraints.kneePain, !constraints.lowEnergy,
+              let test = StrengthCalibration.testWorkout(calibrated: calibrated, budget: budget),
+              test.estimatedMinutes <= budget else { return nil }
+        return test
     }
 
     /// Jour de récupération musculaire : cardio varié puis marche inclinée ou escalier.

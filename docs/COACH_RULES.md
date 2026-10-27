@@ -64,9 +64,13 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Fiche exercice (`Training/ExerciseGuide`) : muscles travaillés et 4 consignes de technique pour chaque exercice de force du catalogue et ses variantes, dans la feuille de saisie. Pour les haltères, la charge notée est celle d'un haltère.
 - Charge d'essai (salle, avant toute série notée) : fraction prudente du poids du corps selon l'exercice et le sexe, arrondie vers le bas au pas de charge. Affichée « Essai : … » ; la première série notée la remplace.
 
-## Les prochains jours (carte Bouger)
+## Calibrage des charges (`Training/StrengthCalibration`)
 
-- Les six jours suivants, en supposant chaque séance proposée faite : la force revient tous les deux jours, cardio et marche entre deux. Titre, durée, exercices dépliables.
+- À la salle, six mouvements de référence : squat, développé couché, rowing barre, soulevé de terre, développé militaire, tirage vertical à la poulie (pas de tractions). Tant que l'un d'eux n'a aucune charge notée, le jour de force devient un test.
+- Deux séances de test, à 48 h d'écart : « Test de force 1/2 » (squat, développé couché, rowing) puis « 2/2 » (soulevé de terre, militaire, tirage vertical). Squat et soulevé de terre lourds ne se testent pas le même jour : les derniers mouvements seraient sous-estimés.
+- Protocole par mouvement : 10 × 50 %, 5 × 70 %, 3 × 85 % du premier essai, puis séries de 5 en ajoutant ~10 % (jambes, 5 kg minimum) ou ~5 % (haut du corps, 2,5 kg minimum) tant que les 5 répétitions restent propres, 2 min 30 de repos. Le premier essai part de la charge d'essai prudente. L'utilisateur note sa série de 5 la plus lourde.
+- Pas de test en cas de fatigue, de douleur au genou, en déplacement ou au poids du corps : la séance habituelle suit. Avec peu de temps, le test garde les mouvements qui tiennent dans la durée (au moins un). Le test ne se remplace pas et ne se resserre pas.
+- Après le test : charge de travail = 1RM estimé (Epley) ramené aux répétitions prévues plus 2 en réserve, arrondi vers le bas. Les variantes (haltères, machines, hip thrust, roumain…) se déduisent du mouvement de référence par un ratio prudent, jusqu'à leur première série notée.
 
 ## Progression (`ProgressInsights/WeightTrendAnalyzer`)
 
@@ -100,7 +104,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 - La carte Bouger montre la semaine en cours : minutes bougées par jour, puis chaque activité (séances cochées dans l'app et entraînements de Santé, Apple Watch comprise), avec durée et kcal.
 - Une séance cochée sans renforcement enregistré dans Santé le même jour s'affiche à part ; avec un enregistrement de la Watch, elle n'apparaît qu'une fois.
-- Apple Watch : la séance du jour s'envoie d'une touche. « Planifier ma semaine sur la Watch » place les séances jusqu'à dimanche, calculées comme « Les prochains jours ».
+- Apple Watch : la séance du jour s'envoie d'une touche. « Planifier ma semaine sur la Watch » place les séances jusqu'à dimanche, en supposant chaque séance proposée faite.
 
 ## Repas envoyés vers Santé (`Nutrition/HealthMealExport`)
 

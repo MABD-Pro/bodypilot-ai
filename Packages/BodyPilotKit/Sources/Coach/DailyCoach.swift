@@ -49,6 +49,7 @@ public struct DailyCoach: Sendable {
         describedMeals: [MealSlot: DescribedMeal] = [:],
         lastWorkoutTitle: String? = nil,
         lastStrengthDay: Date? = nil,
+        calibratedLifts: Set<String>? = nil,
         on date: Date
     ) -> TodayPlan {
         let trend = progress.trend(of: weights, for: profile, on: date)
@@ -66,7 +67,8 @@ public struct DailyCoach: Sendable {
             availableMinutes: availableMinutes,
             exerciseSwaps: exerciseSwaps,
             lastWorkoutTitle: lastWorkoutTitle,
-            lastStrengthDay: lastStrengthDay
+            lastStrengthDay: lastStrengthDay,
+            calibratedLifts: calibratedLifts
         )
         let trainingDay = training.trainingDay(for: profile, on: date, constraints: constraints)
 
@@ -109,6 +111,9 @@ public struct DailyCoach: Sendable {
         case .workout(let workout):
             if adjustments.contains(.shortOnTime) {
                 return "Séance express de \(training.estimatedMinutes) min : l'essentiel, rien de plus."
+            }
+            if workout.isStrengthTest {
+                return "\(workout.title) : on mesure tes charges de travail, \(training.estimatedMinutes) min."
             }
             if !workout.hasStrength {
                 return "Muscles en récupération : \(workout.title.lowercased()), \(training.estimatedMinutes) min."

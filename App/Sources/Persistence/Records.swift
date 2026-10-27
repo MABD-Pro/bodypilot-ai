@@ -198,13 +198,16 @@ final class LiftRecord {
     /// `nil` au poids du corps.
     var kg: Double?
     var reps: Int = 0
+    /// Série de test du calibrage.
+    var isTest: Bool = false
 
     init(_ entry: LiftEntry) {
         day = entry.date
         exercise = entry.exercise
         kg = entry.kg
         reps = entry.reps
+        isTest = entry.isTest
     }
 
-    var entry: LiftEntry { LiftEntry(exercise: exercise, date: day, kg: kg, reps: reps) }
+    var entry: LiftEntry { LiftEntry(exercise: exercise, date: day, kg: kg, reps: reps, isTest: isTest) }
 }

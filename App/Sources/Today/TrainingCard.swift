@@ -24,8 +24,6 @@ struct TrainingCard: View {
     /// Poids et sexe, pour proposer une charge d'essai avant la première série notée.
     var bodyweightKg: Double?
     var sex: BiologicalSex = .male
-    /// Séances et marches des prochains jours.
-    var upcoming: [UpcomingDay] = []
 
     @State private var isPreviewingWatch = false
     @State private var logging: LiftToLog?
@@ -42,11 +40,6 @@ struct TrainingCard: View {
                 workoutContent(workout)
             case .activeRest(let title, let minutes):
                 restContent(title: title, minutes: minutes)
-            }
-
-            if !upcoming.isEmpty {
-                UpcomingSection(days: upcoming)
-                    .id("upcoming")
             }
 
             if let week {
@@ -120,11 +113,11 @@ struct TrainingCard: View {
             VStack(spacing: 0) {
                 ExerciseRow(index: 0, name: "Échauffement", detail: "\(workout.warmupMinutes) min", isWarmup: true)
                 ForEach(Array(workout.exercises.enumerated()), id: \.offset) { index, exercise in
-                    let toLog = liftToLog(exercise)
+                    let toLog = liftToLog(exercise, isTest: workout.isStrengthTest)
                     ExerciseRow(
                         index: index + 1,
                         name: exercise.name,
-                        detail: exercise.prescription,
+                        detail: workout.isStrengthTest ? "Test · 5 rép." : exercise.prescription,
                         isWarmup: false,
                         isSwapped: exercise.isSwapped,
                         caption: toLog.map(caption),
@@ -140,10 +133,14 @@ struct TrainingCard: View {
 
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Label(workout.intensityCue, systemImage: "gauge.with.dots.needle.33percent")
-                if workout.hasStrength {
+                if workout.isStrengthTest {
+                    Label("Touche un exercice pour voir ses paliers et noter ta série de 5 la plus lourde.", systemImage: "chart.line.uptrend.xyaxis")
+                } else if workout.hasStrength {
                     Label("Touche un exercice pour sa technique et pour noter ta meilleure série : le coach suit tes records et fait monter les charges.", systemImage: "trophy")
                 }
-                Label("Machine prise ou matériel absent ? Touche \(Image(systemName: "arrow.triangle.2.circlepath")) pour changer d'exercice.", systemImage: "hand.tap")
+                if !workout.isStrengthTest {
+                    Label("Machine prise ou matériel absent ? Touche \(Image(systemName: "arrow.triangle.2.circlepath")) pour changer d'exercice.", systemImage: "hand.tap")
+                }
             }
             .font(.footnote)
             .foregroundStyle(.secondary)
@@ -184,11 +181,12 @@ struct TrainingCard: View {
     }
 
     /// Exercice de force aux répétitions : la meilleure série se note, pour suivre records et charges.
-    private func liftToLog(_ exercise: WorkoutExercise) -> LiftToLog? {
+    private func liftToLog(_ exercise: WorkoutExercise, isTest: Bool) -> LiftToLog? {
         guard !exercise.isConditioning, case .reps(let planned) = exercise.volume else { return nil }
         let today = lifts.first { $0.exercise == exercise.name && calendar.isDateInToday($0.date) }
         let earlier = lifts.filter { !calendar.isDateInToday($0.date) }
         let guide = ExerciseGuide.guide(for: exercise.name)
+        let startingKg = usesLoads ? bodyweightKg.flatMap { guide?.startingLoad(bodyweightKg: $0, sex: sex) } : nil
         return LiftToLog(
             exercise: exercise.name,
             plannedReps: planned,
@@ -197,11 +195,22 @@ struct TrainingCard: View {
             isRecord: today.map { StrengthProgress.isRecord($0, previous: earlier) } ?? false,
             usesLoads: usesLoads,
             guide: guide,
-            startingKg: usesLoads ? bodyweightKg.flatMap { guide?.startingLoad(bodyweightKg: $0, sex: sex) } : nil
+            startingKg: startingKg,
+            isTest: isTest,
+            ramp: isTest ? startingKg.map { StrengthCalibration.ramp(for: exercise.name, firstAttemptKg: $0) } ?? [] : []
         )
     }
 
     private func caption(_ item: LiftToLog) -> ExerciseRow.Caption {
+        if item.isTest {
+            if let today = item.today {
+                return .init(text: "Test noté : \(StrengthProgress.label(today))", symbol: "checkmark", tint: Theme.progress)
+            }
+            if let first = item.ramp.last {
+                return .init(text: "Paliers, puis 5 rép. dès \(first.kg.frenchCompact) kg", symbol: "chart.line.uptrend.xyaxis", tint: Theme.training)
+            }
+            return .init(text: "Note ta série de 5 la plus lourde", symbol: "square.and.pencil", tint: .secondary)
+        }
         if let today = item.today {
             return item.isRecord
                 ? .init(text: "Record ! \(StrengthProgress.label(today))", symbol: "trophy.fill", tint: Theme.carbs)
@@ -488,6 +497,9 @@ struct LiftToLog: Identifiable {
     let guide: ExerciseGuide?
     /// Charge d'essai prudente, tant qu'aucune série n'est notée.
     let startingKg: Double?
+    /// Test du calibrage : paliers d'échauffement puis premier essai.
+    var isTest = false
+    var ramp: [RampStep] = []
     var id: String { exercise }
 }
 
@@ -528,7 +540,9 @@ private struct LiftEntrySheet: View {
                 Text(item.exercise)
                     .font(.display(24))
                     .multilineTextAlignment(.center)
-                Text("Ta meilleure série du jour. Prévu : \(item.plannedReps) répétitions.")
+                Text(item.isTest
+                    ? "Note ta série de 5 la plus lourde faite proprement : elle fixe tes charges de travail."
+                    : "Ta meilleure série du jour. Prévu : \(item.plannedReps) répétitions.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -543,12 +557,16 @@ private struct LiftEntrySheet: View {
                     .buttonStyle(.plain)
                     .padding(.top, Theme.Spacing.xs)
                 }
-                if item.today == nil, item.target == nil, item.startingKg != nil {
+                if !item.isTest, item.today == nil, item.target == nil, item.startingKg != nil {
                     Text("Charge d'essai prudente : si tu pouvais faire plus de 3 répétitions de plus, monte la prochaine fois.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
+            }
+
+            if !item.ramp.isEmpty {
+                ramp
             }
 
             if showsTechnique, let guide = item.guide {
@@ -571,7 +589,7 @@ private struct LiftEntrySheet: View {
             }
 
             Button {
-                save(LiftEntry(exercise: item.exercise, date: Calendar.current.startOfDay(for: .now), kg: withLoad && kg > 0 ? kg : nil, reps: reps))
+                save(LiftEntry(exercise: item.exercise, date: Calendar.current.startOfDay(for: .now), kg: withLoad && kg > 0 ? kg : nil, reps: reps, isTest: item.isTest))
                 dismiss()
             } label: {
                 Text("Enregistrer")
@@ -584,6 +602,35 @@ private struct LiftEntrySheet: View {
 
         }
         .padding(Theme.Spacing.xxl)
+    }
+
+    /// Montée en charge du test : échauffements, premier essai, puis essais plus lourds.
+    private var ramp: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            Label("Paliers", systemImage: "chart.line.uptrend.xyaxis")
+                .font(.headline)
+                .foregroundStyle(Theme.training)
+            ForEach(Array(item.ramp.enumerated()), id: \.offset) { index, step in
+                let isAttempt = index == item.ramp.count - 1
+                HStack(spacing: Theme.Spacing.s) {
+                    Text(isAttempt ? "Essai" : "Palier \(index + 1)")
+                        .font(.subheadline.weight(isAttempt ? .semibold : .regular))
+                    Spacer()
+                    Text(StrengthProgress.label(kg: step.kg, reps: step.reps))
+                        .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
+                }
+            }
+            if let attempt = item.ramp.last {
+                Text("Si les 5 sont faciles, ajoute \(StrengthCalibration.attemptIncrement(for: item.exercise, from: attempt.kg).frenchCompact) kg et recommence, 2 min 30 de repos entre deux essais. Arrête quand la 5e répétition devient difficile ou que la technique se dégrade.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(Theme.Spacing.l)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.training.opacity(0.08), in: .rect(cornerRadius: Theme.Radius.inner))
     }
 
     /// Repères de technique, en attendant les démonstrations animées.
@@ -679,103 +726,4 @@ struct UpcomingDay: Identifiable {
     let date: Date
     let training: TrainingDay
     var id: Date { date }
-}
-
-/// « Les prochains jours » : ce qui attend, jour par jour ; une touche déplie les exercices.
-private struct UpcomingSection: View {
-    let days: [UpcomingDay]
-
-    @State private var expanded: Set<Date> = []
-    private let calendar = Calendar.current
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            Text("Les prochains jours")
-                .font(.headline)
-            VStack(spacing: 0) {
-                ForEach(days) { day in
-                    row(day)
-                    if day.id != days.last?.id { Divider() }
-                }
-            }
-        }
-    }
-
-    private func row(_ day: UpcomingDay) -> some View {
-        let isOpen = expanded.contains(day.date)
-        let workout: Workout? = if case .workout(let workout) = day.training.kind { workout } else { nil }
-        return VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            Button {
-                guard workout != nil else { return }
-                withAnimation(Theme.springy) {
-                    if isOpen { expanded.remove(day.date) } else { expanded.insert(day.date) }
-                }
-            } label: {
-                HStack(spacing: Theme.Spacing.m) {
-                    Text(shortWeekday(day.date))
-                        .font(.subheadline.weight(.semibold))
-                        .frame(width: 44, alignment: .leading)
-                        .accessibilityLabel(calendar.weekdayNames(locale: Theme.locale)[calendar.component(.weekday, from: day.date) - 1])
-                    IconBadge(symbol: symbol(for: workout), tint: workout?.hasStrength == true ? Theme.training : Theme.progress, size: 26)
-                    Text(title(day))
-                        .font(.subheadline)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: Theme.Spacing.s)
-                    Text("\(day.training.estimatedMinutes) min")
-                        .font(.footnote.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                        .fixedSize()
-                    Image(systemName: "chevron.down")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(isOpen ? 180 : 0))
-                        .opacity(workout == nil ? 0 : 1)
-                }
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-
-            if isOpen, let workout {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(Array(workout.exercises.enumerated()), id: \.offset) { _, exercise in
-                        HStack {
-                            Text(exercise.name)
-                                .font(.footnote)
-                            Spacer(minLength: Theme.Spacing.s)
-                            Text(exercise.prescription)
-                                .font(.footnote.weight(.semibold))
-                                .monospacedDigit()
-                                .foregroundStyle(.secondary)
-                                .fixedSize()
-                        }
-                    }
-                }
-                .padding(.leading, 44 + Theme.Spacing.m)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .padding(.vertical, 8)
-    }
-
-    /// Force en bleu, cardio et marche en vert : l'alternance se lit d'un coup d'œil.
-    private func symbol(for workout: Workout?) -> String {
-        guard let workout else { return "figure.walk" }
-        return workout.hasStrength ? "dumbbell.fill" : "heart.fill"
-    }
-
-    /// « Mer. » : laisse la place au titre de la séance.
-    private func shortWeekday(_ date: Date) -> String {
-        var calendar = calendar
-        calendar.locale = Theme.locale
-        return calendar.shortStandaloneWeekdaySymbols[calendar.component(.weekday, from: date) - 1].capitalizingFirstLetter
-    }
-
-    private func title(_ day: UpcomingDay) -> String {
-        switch day.training.kind {
-        case .workout(let workout): workout.title
-        case .activeRest(let title, _): title
-        }
-    }
 }

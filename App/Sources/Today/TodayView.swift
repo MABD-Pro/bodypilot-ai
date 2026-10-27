@@ -34,6 +34,7 @@ struct TodayView: View {
         let doneLogs = dayLogs.filter(\.workoutDone)
         let completed = doneLogs.map { (day: $0.day, title: $0.doneWorkoutTitle) }
         let lastStrength = DayLogEditor.lastStrength(before: now, completed: completed, samples: healthActivities, calendar: calendar)
+        let lifts = liftRecords.map(\.entry)
         let plan = CoachFactory.coach.plan(
             for: profileRecord.profile,
             weights: weights.map(\.entry),
@@ -46,6 +47,7 @@ struct TodayView: View {
             describedMeals: todayLog?.describedMeals ?? [:],
             lastWorkoutTitle: lastStrength.title,
             lastStrengthDay: lastStrength.day,
+            calibratedLifts: DayLogEditor.calibratedLifts(lifts, before: now, calendar: calendar),
             on: now
         )
         // Les jours suivants supposent la séance du jour faite.
@@ -66,8 +68,6 @@ struct TodayView: View {
             plannedPerWeek: TrainingPlanner.weeklyStrengthTarget,
             on: now
         )
-
-        let lifts = liftRecords.map(\.entry)
 
         let checkIn = profileRecord.isCheckInDue(at: now)
             ? CoachFactory.coach.weeklyCheckIn(for: profileRecord.profile, weights: weights.map(\.entry), waists: waists.map(\.entry), on: now)
@@ -96,8 +96,7 @@ struct TodayView: View {
                             usesLoads: profileRecord.profile.equipment == .gym,
                             logLift: logLift,
                             bodyweightKg: weights.last?.kg ?? profileRecord.startWeightKg,
-                            sex: profileRecord.profile.sex,
-                            upcoming: forecast(from: calendar.date(byAdding: .day, value: 1, to: now) ?? now, days: 6, last: afterToday)
+                            sex: profileRecord.profile.sex
                         )
                             .id("training")
                         ProgressCard(
@@ -350,6 +349,7 @@ struct TodayView: View {
             if let existing = liftRecords.first(where: { $0.exercise == entry.exercise && calendar.isDate($0.day, inSameDayAs: entry.date) }) {
                 existing.kg = entry.kg
                 existing.reps = entry.reps
+                existing.isTest = entry.isTest
             } else {
                 context.insert(LiftRecord(entry))
             }
