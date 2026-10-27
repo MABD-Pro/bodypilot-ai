@@ -64,6 +64,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Objectif suivant : si la dernière série a dépassé les répétitions prévues, charge + ~5 % (pas de 2,5 kg, 1 kg sous 30 kg) ; sinon même charge pour les répétitions prévues. Au poids du corps : une répétition de plus que la dernière fois, une fois les répétitions prévues atteintes.
 - Chaque variante (remplacement, genou) a ses propres records : le nom affiché sert de clé.
 - Fiche exercice (`Training/ExerciseGuide`) : muscles travaillés et 4 consignes de technique pour chaque exercice de force du catalogue et ses variantes, dans la feuille de saisie. Pour les haltères, la charge notée est celle d'un haltère.
+- Démonstration (`Training/ExerciseDemonstration`) : « Voir une démonstration » ouvre une vidéo YouTube choisie et vérifiée à la main pour chaque fiche, en français quand une bonne existe. Sans vidéo choisie, le lien ouvre une recherche YouTube « <exercice> technique ». Aucune vidéo n'est stockée dans l'app.
 - Charge d'essai (salle, avant toute série notée) : fraction prudente du poids du corps selon l'exercice et le sexe, arrondie vers le bas au pas de charge. Affichée « Essai : … » ; la première série notée la remplace.
 
 ## Calibrage des charges (`Training/StrengthCalibration`)
