@@ -16,6 +16,8 @@ enum LaunchOptions {
         let raw = defaults.string(forKey: "demoAdjustments") ?? ""
         return Set(raw.split(separator: ",").compactMap { QuickAdjustment(rawValue: String($0)) })
     }
+    /// `-demoHoldSplash YES` : garde l'écran de chargement affiché.
+    static var demoHoldSplash: Bool { defaults.bool(forKey: "demoHoldSplash") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }
@@ -66,7 +68,8 @@ enum DemoData {
             targetWeightKg: 80,
             activity: .moderate,
             goal: .loseFat,
-            trainingDaysPerWeek: 3,
+            // Six séances : les captures montrent une séance quel que soit le jour (sauf le dimanche).
+            trainingDaysPerWeek: 6,
             sessionMinutes: 45,
             equipment: .bodyweight
         )

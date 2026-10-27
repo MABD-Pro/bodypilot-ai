@@ -45,11 +45,7 @@ shoot() {
   xcrun simctl io "$UDID" screenshot "$OUT/$name.png"
 }
 
-# Écran de chargement : capture juste après le lancement.
-xcrun simctl launch "$UDID" "$BUNDLE_ID" -AppleLanguages "(fr)" -demoData YES
-sleep 1.2
-xcrun simctl io "$UDID" screenshot "$OUT/0-chargement.png"
-
+shoot 0-chargement -demoData YES -demoHoldSplash YES
 shoot 1-aujourdhui -demoData YES
 shoot 2-aujourdhui-repas -demoData YES -demoScrollTo nutrition
 shoot 3-aujourdhui-seance -demoData YES -demoScrollTo training

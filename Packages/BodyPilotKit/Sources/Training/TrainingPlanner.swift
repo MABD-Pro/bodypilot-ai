@@ -89,7 +89,7 @@ public struct TrainingPlanner: TrainingPlanning {
 
     private func restDay(for profile: UserProfile, constraints: DayConstraints) -> TrainingDay {
         let minutes = profile.goal == .loseFat && !constraints.lowEnergy ? 30 : 20
-        let title = constraints.lowEnergy ? "Repos : marche tranquille" : "Repos actif : marche"
+        let title = constraints.lowEnergy ? "Marche tranquille" : "Marche active"
         let available = constraints.availableMinutes.map { min($0, minutes) } ?? minutes
         return TrainingDay(kind: .activeRest(title: title, minutes: available), estimatedMinutes: available)
     }

@@ -25,7 +25,7 @@ private func workout(_ day: TrainingDay) -> Workout? {
 
 @Test func restDayProposesActiveRecovery() {
     let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints())
-    #expect(result.kind == .activeRest(title: "Repos actif : marche", minutes: 30))
+    #expect(result.kind == .activeRest(title: "Marche active", minutes: 30))
 }
 
 @Test func twentyMinutesKeepsEssentialExercises() throws {

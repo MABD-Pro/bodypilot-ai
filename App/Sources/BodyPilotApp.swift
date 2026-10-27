@@ -44,6 +44,7 @@ struct RootView: View {
         }
         .animation(Theme.springy, value: profiles.isEmpty)
         .task {
+            guard !LaunchOptions.demoHoldSplash else { return }
             try? await Task.sleep(for: .milliseconds(1100))
             withAnimation(.easeInOut(duration: 0.45)) { showsSplash = false }
         }

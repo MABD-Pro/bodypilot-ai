@@ -64,6 +64,15 @@ struct ProgressCard: View {
         }
     }
 
+    /// Un repère par semaine, sans le coller au bord droit où il serait tronqué.
+    private var weeklyTicks: [Date] {
+        guard let first = trend.points.first?.date, let last = trend.points.last?.date else { return [] }
+        return stride(from: 0, through: 35, by: 7).compactMap { offset -> Date? in
+            let tick = first.addingTimeInterval(Double(offset) * 86_400)
+            return last.timeIntervalSince(tick) > 3 * 86_400 ? tick : nil
+        }
+    }
+
     private var chart: some View {
         let values = trend.points.flatMap { [$0.measuredKg, $0.trendKg] }
         let low = (values.min() ?? 0) - 0.5
@@ -89,7 +98,7 @@ struct ProgressCard: View {
         }
         .chartYScale(domain: low...high)
         .chartXAxis {
-            AxisMarks(values: .stride(by: .day, count: 7)) { _ in
+            AxisMarks(values: weeklyTicks) { _ in
                 AxisValueLabel(format: .dateTime.day().month(.abbreviated).locale(Theme.locale))
             }
         }
