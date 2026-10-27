@@ -2,7 +2,7 @@ import BodyPilotCore
 import Testing
 @testable import Training
 
-private func lift(_ exercise: String = "Squat à la barre", _ kg: Double?, _ reps: Int, on dayOfMonth: Int) -> LiftEntry {
+private func lift(_ kg: Double?, _ reps: Int, on dayOfMonth: Int, _ exercise: String = "Squat à la barre") -> LiftEntry {
     LiftEntry(exercise: exercise, date: day(2026, 10, dayOfMonth), kg: kg, reps: reps)
 }
 
@@ -14,7 +14,7 @@ private func lift(_ exercise: String = "Squat à la barre", _ kg: Double?, _ rep
 }
 
 @Test func recordIsTheBestEstimatedSet() {
-    let history = [lift(100, 3, on: 5), lift(90, 8, on: 12), lift(80, 5, on: 19), lift("Développé couché", 70, 6, on: 19)]
+    let history = [lift(100, 3, on: 5), lift(90, 8, on: 12), lift(80, 5, on: 19), lift(70, 6, on: 19, "Développé couché")]
     let record = StrengthProgress.record(for: "Squat à la barre", in: history)
     // 90 × 8 ≈ 114 kg estimés, mieux que 100 × 3 = 110.
     #expect(record?.entry == history[1])
@@ -22,7 +22,7 @@ private func lift(_ exercise: String = "Squat à la barre", _ kg: Double?, _ rep
 }
 
 @Test func weightedSetsOutrankBodyweight() {
-    let history = [lift("Squats bulgares", nil, 20, on: 5), lift("Squats bulgares", 8, 10, on: 12)]
+    let history = [lift(nil, 20, on: 5, "Squats bulgares"), lift(8, 10, on: 12, "Squats bulgares")]
     #expect(StrengthProgress.record(for: "Squats bulgares", in: history)?.entry.kg == 8)
 }
 
@@ -31,7 +31,7 @@ private func lift(_ exercise: String = "Squat à la barre", _ kg: Double?, _ rep
     #expect(StrengthProgress.isRecord(lift(85, 6, on: 19), previous: history))
     #expect(!StrengthProgress.isRecord(lift(82.5, 6, on: 19), previous: history))
     // Première série notée : rien à battre.
-    #expect(!StrengthProgress.isRecord(lift("Rowing barre", 60, 8, on: 19), previous: history))
+    #expect(!StrengthProgress.isRecord(lift(60, 8, on: 19, "Rowing barre"), previous: history))
     // Les séries du même jour ou d'après ne comptent pas.
     #expect(StrengthProgress.isRecord(lift(85, 6, on: 19), previous: history + [lift(90, 6, on: 19)]))
 }
@@ -55,9 +55,9 @@ private func lift(_ exercise: String = "Squat à la barre", _ kg: Double?, _ rep
 }
 
 @Test func bodyweightAimsForOneMoreRep() {
-    let beat = StrengthProgress.target(for: "Pompes", plannedReps: 12, history: [lift("Pompes", nil, 14, on: 19)])
+    let beat = StrengthProgress.target(for: "Pompes", plannedReps: 12, history: [lift(nil, 14, on: 19, "Pompes")])
     #expect(beat == LiftTarget(kg: nil, reps: 15, isIncrease: true))
-    let short = StrengthProgress.target(for: "Pompes", plannedReps: 12, history: [lift("Pompes", nil, 9, on: 19)])
+    let short = StrengthProgress.target(for: "Pompes", plannedReps: 12, history: [lift(nil, 9, on: 19, "Pompes")])
     #expect(short == LiftTarget(kg: nil, reps: 12, isIncrease: false))
 }
 
