@@ -42,6 +42,7 @@ enum DayLogEditor {
         let today = log(on: now, in: context, calendar: calendar)
         let start = calendar.startOfDay(for: now)
         let done = (try? context.fetch(FetchDescriptor<DayLogRecord>(predicate: #Predicate { $0.workoutDone && $0.day < start }))) ?? []
+        let lifts = (try? context.fetch(FetchDescriptor<LiftRecord>(predicate: #Predicate { $0.day < start }))) ?? []
         let last = lastStrength(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar)
         return CoachFactory.coach.plan(
             for: profile.profile,
@@ -55,8 +56,16 @@ enum DayLogEditor {
             describedMeals: today?.describedMeals ?? [:],
             lastWorkoutTitle: last.title,
             lastStrengthDay: last.day,
+            calibratedLifts: calibratedLifts(lifts.map(\.entry), before: now, calendar: calendar),
             on: now
         )
+    }
+
+    /// Exercices dont une charge est notée avant ce jour. Les séries du jour n'en font pas partie :
+    /// un test en cours reste affiché jusqu'au bout.
+    nonisolated static func calibratedLifts(_ lifts: [LiftEntry], before date: Date, calendar: Calendar = .current) -> Set<String> {
+        let start = calendar.startOfDay(for: date)
+        return Set(lifts.filter { $0.date < start && ($0.kg ?? 0) > 0 }.map(\.exercise))
     }
 
     /// Dernière séance de force avant ce jour : cochée dans l'app (son titre fixe la suivante, A puis B)

@@ -23,7 +23,7 @@ enum WorkoutCatalog {
         exercises: [
             WorkoutExercise(name: "Squat à la barre", sets: 4, volume: .reps(6), restSeconds: 150, priority: 1, loadsKnee: true, kneeFriendlyAlternative: "Hip thrust", alternatives: ["Squat goblet lourd", "Presse à cuisses"]),
             WorkoutExercise(name: "Développé couché", sets: 4, volume: .reps(6), restSeconds: 150, priority: 1, alternatives: ["Développé couché haltères", "Développé à la machine"]),
-            WorkoutExercise(name: "Tirage vertical lourd", sets: 4, volume: .reps(8), restSeconds: 120, priority: 2, alternatives: ["Tractions", "Tirage horizontal à la poulie"]),
+            WorkoutExercise(name: "Tirage vertical lourd", sets: 4, volume: .reps(8), restSeconds: 120, priority: 2, alternatives: ["Tirage vertical prise serrée", "Tirage horizontal à la poulie", "Tractions"]),
             WorkoutExercise(name: "Soulevé de terre roumain", sets: 3, volume: .reps(8), restSeconds: 120, priority: 2, alternatives: ["Soulevé de terre roumain haltères", "Hip thrust"]),
         ],
         intensityCue: heavyCue

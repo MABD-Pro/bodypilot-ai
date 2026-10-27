@@ -17,6 +17,8 @@ Objectif unique de l'app : la recomposition corporelle, c'est-à-dire perdre du 
 | Marche inclinée ou escalier en fin de séance et les jours de cardio. | La dépense d'une marche augmente fortement avec la pente, sans les impacts de la course : c'est une dépense supplémentaire qui coûte peu en récupération. | Équations métaboliques de l'ACSM, *ACSM's Guidelines for Exercise Testing and Prescription* |
 | Plusieurs heures de mouvement par semaine (une séance chaque jour, force ou cardio et marche). | 150 à 300 minutes d'activité modérée par semaine, plus du renforcement musculaire au moins 2 jours par semaine. | OMS, 2020 (Bull et al., *Br J Sports Med*) |
 | Charge en hausse d'environ 5 % (arrondie à 2,5 kg, ou 1 kg sous 30 kg) dès que la meilleure série dépasse les répétitions prévues ; sinon même charge. | Surcharge progressive : augmenter la charge de 2 à 10 % quand on fait une ou deux répétitions de plus que prévu. | ACSM, 2009, *Med Sci Sports Exerc* |
+| Calibrage : montée par paliers (50, 70, 85 %) puis essais de 5 répétitions, +5 à 10 % par essai, 2 à 3 min de repos ; deux séances de test. | Protocole de test de force maximale : échauffement progressif, augmentations de 5 à 10 % (haut du corps) ou 10 à 20 % (bas du corps), 2 à 4 min de repos, résultat en 3 à 5 essais. Un test sur plusieurs répétitions est plus sûr qu'un 1RM pour un débutant. | Haff & Triplett (dir.), 2016, *Essentials of Strength Training and Conditioning*, NSCA, 4e éd. |
+| Charges de travail = 1RM estimé ramené aux répétitions prévues, 2 répétitions en réserve. | Garder 1 à 3 répétitions en réserve donne des gains de force et de muscle proches de l'échec, avec moins de fatigue. | Refalo et al., 2023, *Sports Med* ; Helms et al., 2016, *Strength Cond J* |
 | Record = meilleur 1RM estimé (formule d'Epley, plafonnée à 12 répétitions). | Les équations de prédiction du 1RM sont fiables sous une dizaine de répétitions et perdent en précision au-delà. | LeSuer et al., 1997, *J Strength Cond Res* |
 
 ## Limites connues
@@ -24,5 +26,6 @@ Objectif unique de l'app : la recomposition corporelle, c'est-à-dire perdre du 
 - Ces recommandations viennent surtout d'études sur des adultes en bonne santé, sur 6 à 12 semaines. Elles ne remplacent pas un avis médical en cas de douleur ou de pathologie.
 - Pour la marche inclinée, il n'existe pas de protocole précis validé (pente, durée) pour la recomposition. La pente de 10 à 12 % est un choix courant et prudent, pas un résultat d'étude.
 - Les charges d'essai (fractions du poids du corps) sont des repères prudents de débutant, pas des normes validées : la première série notée, à 1 à 2 répétitions de la limite, sert de vraie calibration.
+- Les ratios qui déduisent une variante (haltères, machine, hip thrust…) du mouvement de référence sont des repères prudents, pas des résultats d'étude : la première série notée sur la variante les remplace.
 - Le record compare des 1RM estimés, pas des 1RM testés : c'est un indicateur de progression, pas une charge à tenter.
 - Le volume réel dépend des séances faites : une semaine à 2 séances de force descend sous les 10 séries par muscle.

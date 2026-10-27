@@ -59,6 +59,8 @@ public struct Workout: Sendable, Equatable {
     public var exercises: [WorkoutExercise]
     /// Consigne d'intensité (« garde 2 répétitions en réserve »).
     public var intensityCue: String
+    /// Séance de test des charges : chaque exercice monte par paliers jusqu'à une série de 5.
+    public var isStrengthTest = false
 
     public init(title: String, warmupMinutes: Int, cooldownMinutes: Int, exercises: [WorkoutExercise], intensityCue: String) {
         self.title = title
@@ -107,6 +109,9 @@ public struct DayConstraints: Sendable, Equatable {
     public var lastWorkoutTitle: String?
     /// Jour de la dernière séance de force faite : 48 h de récupération avant la suivante.
     public var lastStrengthDay: Date?
+    /// Exercices dont une charge est déjà notée. Les mouvements de référence absents sont
+    /// d'abord testés ; `nil` : pas de calibrage.
+    public var calibratedLifts: Set<String>?
 
     public init(
         availableMinutes: Int? = nil,
@@ -116,7 +121,8 @@ public struct DayConstraints: Sendable, Equatable {
         traveling: Bool = false,
         exerciseSwaps: [String: Int] = [:],
         lastWorkoutTitle: String? = nil,
-        lastStrengthDay: Date? = nil
+        lastStrengthDay: Date? = nil,
+        calibratedLifts: Set<String>? = nil
     ) {
         self.availableMinutes = availableMinutes
         self.lowEnergy = lowEnergy
@@ -126,6 +132,7 @@ public struct DayConstraints: Sendable, Equatable {
         self.exerciseSwaps = exerciseSwaps
         self.lastWorkoutTitle = lastWorkoutTitle
         self.lastStrengthDay = lastStrengthDay
+        self.calibratedLifts = calibratedLifts
     }
 }
 
@@ -179,11 +186,14 @@ public struct LiftEntry: Sendable, Equatable {
     /// Charge en kg ; `nil` au poids du corps.
     public var kg: Double?
     public var reps: Int
+    /// Série de test (calibrage) : une série de 5 au maximum, plus lourde que les charges de travail.
+    public var isTest: Bool
 
-    public init(exercise: String, date: Date, kg: Double?, reps: Int) {
+    public init(exercise: String, date: Date, kg: Double?, reps: Int, isTest: Bool = false) {
         self.exercise = exercise
         self.date = date
         self.kg = kg
         self.reps = reps
+        self.isTest = isTest
     }
 }

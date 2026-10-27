@@ -42,6 +42,8 @@ enum LaunchOptions {
     static var demoActivities: Bool { defaults.bool(forKey: "demoActivities") }
     /// `-demoLifts YES` : profil en salle et séries notées les semaines passées, record du jour sur le premier exercice.
     static var demoLifts: Bool { defaults.bool(forKey: "demoLifts") }
+    /// `-demoCalibration YES` : profil en salle sans charge notée, la séance du jour est le premier test de force.
+    static var demoCalibration: Bool { defaults.bool(forKey: "demoCalibration") }
     /// `-demoRecovery YES` : force faite hier, la séance du jour est cardio et marche.
     static var demoRecovery: Bool { defaults.bool(forKey: "demoRecovery") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
@@ -104,6 +106,12 @@ enum DemoData {
     /// Deux séances passées par exercice ; la dernière dépasse les répétitions prévues, d'où une charge en hausse.
     @MainActor
     private static func seedLifts(for profile: UserProfile, context: ModelContext, now: Date, calendar: Calendar) {
+        // Calibrage fait il y a deux semaines : une série de 5 sur chaque mouvement de référence.
+        let tests: [Double] = [70, 52.5, 50, 100, 40, 45]
+        for (exercise, kg) in zip(StrengthCalibration.referenceLifts, tests) {
+            guard let date = calendar.date(byAdding: .day, value: -14, to: now) else { continue }
+            context.insert(LiftRecord(LiftEntry(exercise: exercise, date: calendar.startOfDay(for: date), kg: kg, reps: StrengthCalibration.testReps, isTest: true)))
+        }
         guard case .workout(let workout) = CoachFactory.coach.plan(for: profile, weights: [], on: now).training.kind else { return }
         let loads: [Double] = [80, 60, 50, 70]
         let strength = workout.exercises.filter { $0.priority < 4 }
@@ -134,7 +142,7 @@ enum DemoData {
             goal: .recomposition,
             trainingDaysPerWeek: 3,
             sessionMinutes: 45,
-            equipment: LaunchOptions.demoLifts ? .gym : .bodyweight
+            equipment: LaunchOptions.demoLifts || LaunchOptions.demoCalibration ? .gym : .bodyweight
         )
         context.insert(ProfileRecord(profile))
 
