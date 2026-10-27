@@ -706,9 +706,15 @@ private struct LiftEntrySheet: View {
                     .padding(.top, Theme.Spacing.xs)
                 }
                 Link(destination: ExerciseDemonstration.url(for: item.exercise)) {
-                    Label("Voir une démonstration", systemImage: "play.rectangle.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.training)
+                    if ExerciseDemonstration.hasChosenVideo(for: item.exercise) {
+                        Label("Voir une démonstration", systemImage: "play.rectangle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.training)
+                    } else {
+                        Label("Chercher une démonstration", systemImage: "magnifyingglass")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.training)
+                    }
                 }
                 if !item.isTest, item.today == nil, item.target == nil, item.startingKg != nil {
                     Text("Charge d'essai prudente : si tu pouvais faire plus de 3 répétitions de plus, monte la prochaine fois.")
