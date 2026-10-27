@@ -2,12 +2,22 @@ import BodyPilotCore
 import Charts
 import SwiftUI
 
+/// Lien avec l'app Santé pour les pesées.
+enum HealthLink {
+    case unavailable
+    case off
+    case on
+}
+
 /// « Est-ce que je progresse vers mon objectif ? »
 struct ProgressCard: View {
     let trend: WeightTrend
     let message: String
     let profile: UserProfile
+    let health: HealthLink
     let addWeight: () -> Void
+    let connectHealth: () -> Void
+    let disconnectHealth: () -> Void
 
     var body: some View {
         CoachCard(eyebrow: "Progresser", symbol: "chart.line.downtrend.xyaxis", tint: Theme.progress) {
@@ -39,6 +49,8 @@ struct ProgressCard: View {
                     .frame(height: 150)
             }
 
+            healthRow
+
             HStack {
                 if let target = profile.targetWeightKg {
                     Label {
@@ -60,6 +72,44 @@ struct ProgressCard: View {
                 }
                 .buttonStyle(.glassProminent)
                 .tint(Theme.progress)
+            }
+        }
+    }
+
+    /// Proposer Santé tant qu'il n'est pas branché ; ensuite, un simple rappel discret.
+    @ViewBuilder
+    private var healthRow: some View {
+        switch health {
+        case .unavailable:
+            EmptyView()
+        case .off:
+            Button(action: connectHealth) {
+                HStack(spacing: Theme.Spacing.m) {
+                    IconBadge(symbol: "heart.fill", tint: Theme.protein, size: 36)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Importer mes pesées depuis Santé")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Ta balance connectée remplit le suivi pour toi.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(Theme.Spacing.m)
+                .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+        case .on:
+            Menu {
+                Button("Ne plus importer depuis Santé", systemImage: "heart.slash", role: .destructive, action: disconnectHealth)
+            } label: {
+                Label("Pesées importées depuis Santé", systemImage: "heart.fill")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(.secondary)
             }
         }
     }

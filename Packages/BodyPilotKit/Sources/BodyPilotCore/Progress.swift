@@ -58,3 +58,17 @@ public struct WeightTrend: Sendable, Equatable {
 public protocol ProgressAnalyzing: Sendable {
     func trend(of entries: [WeightEntry], for profile: UserProfile, on date: Date) -> WeightTrend
 }
+
+/// Pesée lue dans une source externe (Santé, balance connectée).
+public struct WeightSample: Sendable, Equatable, Codable {
+    /// Identifiant stable côté source, pour ne jamais importer deux fois la même mesure.
+    public var id: String
+    public var date: Date
+    public var kg: Double
+
+    public init(id: String, date: Date, kg: Double) {
+        self.id = id
+        self.date = date
+        self.kg = kg
+    }
+}

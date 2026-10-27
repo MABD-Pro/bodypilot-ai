@@ -30,7 +30,8 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 
-# Info.plist généré par XcodeGen (voir project.yml)
+# Info.plist et entitlements générés par XcodeGen (voir project.yml)
 App/Info.plist
+App/BodyPilot.entitlements
 screenshots/
 build.log
