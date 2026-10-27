@@ -35,6 +35,13 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Vitesse : régression linéaire sur 21 jours, au moins 3 pesées sur 7 jours.
 - Perte de gras : en bonne voie entre −0,1 % et −1 % du poids par semaine ; au-delà de −1 %, le coach suggère +150 kcal. Le coach suggère, l'utilisateur décide.
 
+## Pesées importées de Santé (`ProgressInsights/WeightImportPlanner`)
+
+- Lecture seule du poids (HealthKit, `bodyMass`), 90 jours en arrière à la connexion, puis à chaque retour dans l'app. Aucune donnée ne quitte l'iPhone.
+- Une pesée par jour : la première de la journée (le plus souvent le matin à jeun).
+- Un jour déjà renseigné n'est jamais écrasé : la saisie manuelle garde la main.
+- Valeurs hors 25–350 kg écartées ; une mesure déjà importée (même identifiant Santé) ne revient pas.
+
 ## Phrase libre (`Coach/CommandInterpreter`)
 
 - « Je suis crevé, j'ai 15 min et resto ce soir » → fatigue + 15 minutes + restaurant.

@@ -1,5 +1,6 @@
 import BodyPilotCore
 import Coach
+import ProgressInsights
 import SwiftData
 import SwiftUI
 
@@ -8,6 +9,8 @@ struct TodayView: View {
     let profileRecord: ProfileRecord
 
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("healthWeightSync") private var healthSync = false
     @Query(sort: \WeightRecord.date) private var weights: [WeightRecord]
     @Query private var dayLogs: [DayLogRecord]
     @State private var isAddingWeight = false
@@ -40,9 +43,15 @@ struct TodayView: View {
                             .id("nutrition")
                         TrainingCard(training: plan.training)
                             .id("training")
-                        ProgressCard(trend: plan.trend, message: plan.progressMessage, profile: profileRecord.profile) {
-                            isAddingWeight = true
-                        }
+                        ProgressCard(
+                            trend: plan.trend,
+                            message: plan.progressMessage,
+                            profile: profileRecord.profile,
+                            health: healthLink,
+                            addWeight: { isAddingWeight = true },
+                            connectHealth: { Task { await connectHealth() } },
+                            disconnectHealth: { healthSync = false }
+                        )
                         .id("progress")
                     }
                     .padding(.horizontal, Theme.Spacing.l)
@@ -65,11 +74,47 @@ struct TodayView: View {
                 }
             }
             .sensoryFeedback(.selection, trigger: todayAdjustments)
+            .task(id: scenePhase) {
+                // À chaque retour dans l'app : les pesées de la balance arrivent toutes seules.
+                if scenePhase == .active, healthSync { await importHealthWeights() }
+            }
             .sheet(isPresented: $isAddingWeight) {
                 WeightEntrySheet(initialKg: weights.last?.kg ?? profileRecord.startWeightKg)
             }
             .sheet(isPresented: $isEditingProfile) {
                 OnboardingView(editing: profileRecord)
+            }
+        }
+    }
+
+    private var healthLink: HealthLink {
+        if LaunchOptions.demoHealth { return .on }
+        guard HealthWeight.isAvailable else { return .unavailable }
+        return healthSync ? .on : .off
+    }
+
+    private func connectHealth() async {
+        do {
+            try await HealthWeight.requestAccess()
+        } catch {
+            return
+        }
+        healthSync = true
+        await importHealthWeights()
+    }
+
+    private func importHealthWeights() async {
+        guard !LaunchOptions.demoData else { return }
+        let since = calendar.date(byAdding: .day, value: -HealthWeight.lookbackDays, to: .now) ?? .now
+        guard let samples = try? await HealthWeight.samples(since: since) else { return }
+        let toImport = WeightImportPlanner(calendar: calendar).samplesToImport(
+            samples,
+            recordedDays: Set(weights.map { calendar.startOfDay(for: $0.date) }),
+            knownIDs: Set(weights.compactMap(\.externalID))
+        )
+        withAnimation(Theme.springy) {
+            for sample in toImport {
+                context.insert(WeightRecord(sample))
             }
         }
     }

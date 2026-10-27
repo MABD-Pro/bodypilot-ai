@@ -20,6 +20,8 @@ enum LaunchOptions {
     static var demoHoldSplash: Bool { defaults.bool(forKey: "demoHoldSplash") }
     /// `-demoCommand "…"` : phrase libre appliquée au lancement.
     static var demoCommand: String? { defaults.string(forKey: "demoCommand") }
+    /// `-demoHealth YES` : affiche le suivi Santé comme connecté, sans interroger HealthKit.
+    static var demoHealth: Bool { defaults.bool(forKey: "demoHealth") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }

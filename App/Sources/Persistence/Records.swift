@@ -56,14 +56,29 @@ final class ProfileRecord {
     }
 }
 
+enum WeightSource: String {
+    case manual
+    case health
+}
+
 @Model
 final class WeightRecord {
     var date: Date = Date.now
     var kg: Double = 0
+    var sourceRaw: String = WeightSource.manual.rawValue
+    /// Identifiant de la mesure dans Santé, pour ne pas l'importer deux fois.
+    var externalID: String?
 
     init(date: Date, kg: Double) {
         self.date = date
         self.kg = kg
+    }
+
+    init(_ sample: WeightSample) {
+        date = sample.date
+        kg = (sample.kg * 10).rounded() / 10
+        sourceRaw = WeightSource.health.rawValue
+        externalID = sample.id
     }
 
     var entry: WeightEntry { WeightEntry(date: date, kg: kg) }

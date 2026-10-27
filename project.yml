@@ -32,6 +32,12 @@ targets:
           UIColorName: LaunchBackground
           UIImageName: LaunchLogo
           UIImageRespectsSafeAreaInsets: false
+        NSHealthShareUsageDescription: BodyPilot lit ton poids dans Santé pour suivre ta tendance sans saisie. Rien ne quitte ton iPhone.
+    entitlements:
+      path: App/BodyPilot.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
     dependencies:
       - package: BodyPilotKit
         product: BodyPilotCore
