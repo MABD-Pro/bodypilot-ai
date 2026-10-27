@@ -40,22 +40,74 @@ public struct MealPlanner: NutritionPlanning {
             notes.append("Restaurant : la collation est supprimée pour laisser de la marge. Pas de calcul au restaurant, juste les repères.")
         }
 
-        let day = dayIndex(of: date)
+        // Repas déjà pris : ce qui a été mangé compte, le reste de la journée s'ajuste.
+        let baseKcal = shares.mapValues { dayKcal * $0 }
+        let eatenKcal = constraints.eaten.reduce(0) { $0 + (baseKcal[$1.key] ?? 0) * $1.value.factor }
+        let remainingBase = baseKcal.filter { constraints.eaten[$0.key] == nil }.values.reduce(0, +)
+        var remainingScale = 1.0
+        if !constraints.eaten.isEmpty, remainingBase > 0 {
+            let wanted = (dayKcal - eatenKcal) / remainingBase
+            // Écart négligeable (repas pris comme prévu) : on ne touche à rien.
+            if abs(wanted - 1) > 0.02 {
+                remainingScale = min(max(wanted, Self.remainingScaleRange.lowerBound), Self.remainingScaleRange.upperBound)
+                if let note = Self.intakeNote(wanted: wanted, applied: remainingScale) { notes.append(note) }
+            }
+        }
+
+        return plannedMeals(day: dayIndex(of: date), baseKcal: baseKcal, scale: remainingScale, targets: targets, constraints: constraints, notes: notes)
+    }
+
+    private func plannedMeals(
+        day: Int,
+        baseKcal: [MealSlot: Double],
+        scale remainingScale: Double,
+        targets: NutritionTargets,
+        constraints: MealConstraints,
+        notes: [String]
+    ) -> DayMealPlan {
+        let dayKcal = baseKcal.values.reduce(0, +)
         let meals = MealSlot.allCases.compactMap { slot -> PlannedMeal? in
-            let kcal = dayKcal * (shares[slot] ?? 0)
-            guard kcal > 0 else { return nil }
+            let base = baseKcal[slot] ?? 0
+            guard base > 0 else { return nil }
+            let intake = constraints.eaten[slot]
+            let kcal = intake == nil ? base * remainingScale : base
+            var meal: PlannedMeal
             if slot == constraints.eatingOut {
-                return restaurantMeal(slot: slot, kcal: kcal, proteinG: targets.macros.proteinG * (shares[slot] ?? 0))
+                meal = restaurantMeal(slot: slot, kcal: kcal, proteinG: targets.macros.proteinG * base / max(dayKcal, 1))
+            } else {
+                let options = MealTemplates.all.filter { $0.slot == slot }
+                var template = options[day % options.count]
+                if constraints.lowAppetite, slot == .snack {
+                    // Collation dense et facile à avaler.
+                    template = MealTemplates.snacks[1]
+                }
+                meal = portioned(template, targetKcal: kcal)
             }
-            let options = MealTemplates.all.filter { $0.slot == slot }
-            var template = options[day % options.count]
-            if constraints.lowAppetite, slot == .snack {
-                // Collation dense et facile à avaler.
-                template = MealTemplates.snacks[1]
+            if let intake {
+                meal.macros = meal.macros.scaled(by: intake.factor)
+                meal.intake = intake
             }
-            return portioned(template, targetKcal: kcal)
+            return meal
         }
         return DayMealPlan(meals: meals, notes: notes)
+    }
+
+    /// Les repas restants bougent dans des limites raisonnables : on ne saute pas un repas
+    /// pour compenser un excès, et on ne double pas le dîner après un déjeuner sauté.
+    static let remainingScaleRange = 0.6...1.4
+
+    static func intakeNote(wanted: Double, applied: Double) -> String? {
+        if wanted < 0.95 {
+            return applied > wanted
+                ? "Repas copieux : la suite est allégée sans être sautée. Une journée au-dessus ne change pas ta tendance."
+                : "Repas copieux : les repas suivants sont un peu plus légers pour garder l'équilibre de la journée."
+        }
+        if wanted > 1.05 {
+            return applied < wanted
+                ? "Repas léger ou sauté : un peu plus aux repas suivants, sans tout rattraper. Les protéines d'abord."
+                : "Repas léger : les repas suivants sont un peu plus copieux pour couvrir tes besoins."
+        }
+        return nil
     }
 
     /// Repères simples pour commander, plutôt que des grammes impossibles à vérifier.
