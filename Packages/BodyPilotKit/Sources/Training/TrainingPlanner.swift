@@ -65,7 +65,9 @@ public struct TrainingPlanner: TrainingPlanning {
             }
         }
 
-        var adapted = workout
+        // Les remplacements choisis passent avant les règles de sécurité : une variante qui
+        // charge le genou est elle aussi remplacée si le genou est douloureux.
+        var adapted = swapExercises(workout, swaps: constraints.exerciseSwaps)
         if constraints.traveling {
             notes.append("Déplacement : séance au poids du corps, faisable dans une chambre d'hôtel.")
         }
@@ -116,6 +118,21 @@ public struct TrainingPlanner: TrainingPlanning {
         return TrainingDay(kind: .activeRest(title: title, minutes: available), estimatedMinutes: available, notes: notes)
     }
 
+    /// Remplace chaque exercice demandé par sa variante : la n-ième demande donne la n-ième variante,
+    /// puis on revient à l'exercice d'origine. Séries, volume et repos sont conservés.
+    func swapExercises(_ workout: Workout, swaps: [String: Int]) -> Workout {
+        var result = workout
+        result.exercises = workout.exercises.map { exercise in
+            guard let count = swaps[exercise.key], !exercise.alternatives.isEmpty else { return exercise }
+            let position = count % (exercise.alternatives.count + 1)
+            guard position > 0 else { return exercise }
+            var swapped = exercise
+            swapped.name = exercise.alternatives[position - 1]
+            return swapped
+        }
+        return result
+    }
+
     /// Genou douloureux : variantes sans flexion chargée ni impact ; sans variante, l'exercice est retiré.
     func protectKnee(_ workout: Workout) -> Workout {
         var result = workout
@@ -126,6 +143,8 @@ public struct TrainingPlanner: TrainingPlanning {
             safer.name = alternative
             safer.loadsKnee = false
             safer.isHighImpact = false
+            // La variante de sécurité ne se remplace pas : elle seule épargne le genou.
+            safer.alternatives = []
             return safer
         }
         return result
@@ -140,6 +159,7 @@ public struct TrainingPlanner: TrainingPlanning {
             if exercise.isHighImpact, let alternative = exercise.lowImpactAlternative {
                 lighter.name = alternative
                 lighter.isHighImpact = false
+                lighter.alternatives = []
             }
             return lighter
         }

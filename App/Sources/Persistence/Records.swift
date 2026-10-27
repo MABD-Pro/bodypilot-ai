@@ -104,6 +104,12 @@ final class DayLogRecord {
     var availableMinutes: Int?
     /// Repas pris au restaurant, s'il a été précisé (« ce soir »).
     var eatingOutSlotRaw: String?
+    /// Une entrée par remplacement demandé, par clé d'exercice (le coach passe à la variante suivante).
+    var exerciseSwapsRaw: [String] = []
+
+    var exerciseSwaps: [String: Int] {
+        exerciseSwapsRaw.reduce(into: [:]) { $0[$1, default: 0] += 1 }
+    }
 
     var eatingOutSlot: MealSlot? {
         get { eatingOutSlotRaw.flatMap(MealSlot.init(rawValue:)) }

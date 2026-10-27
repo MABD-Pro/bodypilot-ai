@@ -6,6 +6,8 @@ import WorkoutKit
 /// « Quel entraînement dois-je effectuer ? »
 struct TrainingCard: View {
     let training: TrainingDay
+    /// Remplace l'exercice (par sa clé) par la variante suivante.
+    var swap: (String) -> Void = { _ in }
 
     @State private var isPreviewingWatch = false
 
@@ -41,13 +43,23 @@ struct TrainingCard: View {
             VStack(spacing: 0) {
                 ExerciseRow(index: 0, name: "Échauffement", detail: "\(workout.warmupMinutes) min", isWarmup: true)
                 ForEach(Array(workout.exercises.enumerated()), id: \.offset) { index, exercise in
-                    ExerciseRow(index: index + 1, name: exercise.name, detail: exercise.prescription, isWarmup: false)
+                    ExerciseRow(
+                        index: index + 1,
+                        name: exercise.name,
+                        detail: exercise.prescription,
+                        isWarmup: false,
+                        isSwapped: exercise.isSwapped,
+                        swap: exercise.alternatives.isEmpty ? nil : { swap(exercise.key) }
+                    )
                 }
             }
 
-            Label(workout.intensityCue, systemImage: "gauge.with.dots.needle.33percent")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                Label(workout.intensityCue, systemImage: "gauge.with.dots.needle.33percent")
+                Label("Machine prise ou matériel absent ? Touche \(Image(systemName: "arrow.triangle.2.circlepath")) pour changer d'exercice.", systemImage: "hand.tap")
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
 
             if let plan = workout.guided.watchPlan {
                 // La séance déjà adaptée (temps, fatigue, genou) part sur la montre, guidée série par série.
@@ -105,6 +117,8 @@ private struct ExerciseRow: View {
     let name: String
     let detail: String
     let isWarmup: Bool
+    var isSwapped = false
+    var swap: (() -> Void)?
 
     var body: some View {
         HStack(spacing: Theme.Spacing.m) {
@@ -125,17 +139,32 @@ private struct ExerciseRow: View {
 
             Text(name)
                 .font(.subheadline.weight(.medium))
+                .contentTransition(.opacity)
             Spacer()
             Text(detail)
                 .font(.subheadline.weight(.semibold))
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
+            if let swap {
+                Button(action: swap) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(isSwapped ? Theme.training : .secondary)
+                        .frame(width: 32, height: 32)
+                        .contentShape(.circle)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Remplacer \(name)")
+            }
         }
         .padding(.vertical, 7)
     }
 }
 
 extension WorkoutExercise {
+    /// Remplacé à la demande, et non par une règle de sécurité (celles-ci vident les variantes).
+    var isSwapped: Bool { name != key && !alternatives.isEmpty }
+
     var prescription: String {
         switch volume {
         case .reps(let reps): "\(sets) × \(reps)"

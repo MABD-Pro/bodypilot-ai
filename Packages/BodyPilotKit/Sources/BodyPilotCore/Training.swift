@@ -6,6 +6,9 @@ public enum ExerciseVolume: Sendable, Equatable {
 }
 
 public struct WorkoutExercise: Sendable, Equatable {
+    /// Nom de l'exercice au catalogue : il ne change pas quand l'exercice est adapté ou remplacé,
+    /// ce qui permet de retrouver un remplacement choisi par l'utilisateur.
+    public var key: String
     public var name: String
     public var sets: Int
     public var volume: ExerciseVolume
@@ -19,6 +22,9 @@ public struct WorkoutExercise: Sendable, Equatable {
     public var loadsKnee: Bool
     /// Variante qui épargne le genou.
     public var kneeFriendlyAlternative: String?
+    /// Variantes équivalentes (même mouvement, même matériel), proposées quand l'utilisateur
+    /// veut remplacer l'exercice : poste occupé, matériel absent, mouvement qu'il n'aime pas.
+    public var alternatives: [String]
 
     public init(
         name: String,
@@ -29,8 +35,10 @@ public struct WorkoutExercise: Sendable, Equatable {
         isHighImpact: Bool = false,
         lowImpactAlternative: String? = nil,
         loadsKnee: Bool = false,
-        kneeFriendlyAlternative: String? = nil
+        kneeFriendlyAlternative: String? = nil,
+        alternatives: [String] = []
     ) {
+        self.key = name
         self.name = name
         self.sets = sets
         self.volume = volume
@@ -40,6 +48,7 @@ public struct WorkoutExercise: Sendable, Equatable {
         self.lowImpactAlternative = lowImpactAlternative
         self.loadsKnee = loadsKnee
         self.kneeFriendlyAlternative = kneeFriendlyAlternative
+        self.alternatives = alternatives
     }
 }
 
@@ -90,6 +99,9 @@ public struct DayConstraints: Sendable, Equatable {
     public var kneePain: Bool
     /// En déplacement : pas de matériel, peu de temps.
     public var traveling: Bool
+    /// Remplacements demandés : clé de l'exercice → nombre de demandes. Chaque demande passe
+    /// à la variante suivante, puis revient à l'exercice d'origine.
+    public var exerciseSwaps: [String: Int]
 
     public init(
         availableMinutes: Int? = nil,
@@ -97,7 +109,8 @@ public struct DayConstraints: Sendable, Equatable {
         missedToday: Bool = false,
         missedYesterday: Bool = false,
         kneePain: Bool = false,
-        traveling: Bool = false
+        traveling: Bool = false,
+        exerciseSwaps: [String: Int] = [:]
     ) {
         self.availableMinutes = availableMinutes
         self.lowEnergy = lowEnergy
@@ -105,6 +118,7 @@ public struct DayConstraints: Sendable, Equatable {
         self.missedYesterday = missedYesterday
         self.kneePain = kneePain
         self.traveling = traveling
+        self.exerciseSwaps = exerciseSwaps
     }
 }
 

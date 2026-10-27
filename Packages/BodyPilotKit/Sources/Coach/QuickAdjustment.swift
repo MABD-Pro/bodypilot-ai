@@ -30,14 +30,20 @@ public enum QuickAdjustment: String, CaseIterable, Sendable, Codable {
 
 extension DayConstraints {
     /// - Parameter availableMinutes: temps précis annoncé (« j'ai 15 minutes »), prioritaire sur les 20 minutes par défaut.
-    public init(today: Set<QuickAdjustment>, yesterday: Set<QuickAdjustment> = [], availableMinutes: Int? = nil) {
+    public init(
+        today: Set<QuickAdjustment>,
+        yesterday: Set<QuickAdjustment> = [],
+        availableMinutes: Int? = nil,
+        exerciseSwaps: [String: Int] = [:]
+    ) {
         self.init(
             availableMinutes: today.contains(.shortOnTime) ? (availableMinutes ?? QuickAdjustment.shortOnTimeMinutes) : nil,
             lowEnergy: today.contains(.tired),
             missedToday: today.contains(.missedWorkout),
             missedYesterday: yesterday.contains(.missedWorkout),
             kneePain: today.contains(.kneePain),
-            traveling: today.contains(.traveling)
+            traveling: today.contains(.traveling),
+            exerciseSwaps: exerciseSwaps
         )
     }
 }

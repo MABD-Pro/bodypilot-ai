@@ -24,6 +24,8 @@ enum LaunchOptions {
     static var demoHealth: Bool { defaults.bool(forKey: "demoHealth") }
     /// `-demoCheckIn YES` : pesées en perte rapide, pour afficher le bilan de la semaine.
     static var demoCheckIn: Bool { defaults.bool(forKey: "demoCheckIn") }
+    /// `-demoSwap YES` : remplace le premier exercice de la séance du jour par sa variante.
+    static var demoSwap: Bool { defaults.bool(forKey: "demoSwap") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }
@@ -102,11 +104,18 @@ enum DemoData {
             minutes = interpreted.availableMinutes
             eatingOutSlot = interpreted.eatingOutSlot
         }
-        if !adjustments.isEmpty {
+        var swaps: [String] = []
+        if LaunchOptions.demoSwap,
+           case .workout(let workout) = CoachFactory.coach.plan(for: profile, weights: [], adjustments: adjustments, on: now).training.kind,
+           let first = workout.exercises.first {
+            swaps = [first.key]
+        }
+        if !adjustments.isEmpty || !swaps.isEmpty {
             let log = DayLogRecord(day: calendar.startOfDay(for: now))
             log.adjustments = adjustments
             log.availableMinutes = minutes
             log.eatingOutSlot = eatingOutSlot
+            log.exerciseSwapsRaw = swaps
             context.insert(log)
         }
     }
