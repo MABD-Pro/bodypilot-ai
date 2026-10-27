@@ -1,3 +1,4 @@
+import Foundation
 import BodyPilotCore
 import Testing
 @testable import Training
