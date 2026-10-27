@@ -101,3 +101,17 @@ private let planner = MealPlanner(calculator: EnergyCalculator(calendar: utc))
     #expect(after.meals.map(\.macros) == normal.meals.map(\.macros))
     #expect(after.notes.isEmpty)
 }
+
+@Test func mealEatenAsPlannedCountsTheAdjustedPortion() throws {
+    let targets = NutritionTargets(macros: Macros(kcal: 2200, proteinG: 160, carbsG: 220, fatG: 70), maintenanceKcal: 2600, rationale: "")
+    let date = day(2026, 10, 27)
+    let proposed = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints(eaten: [.breakfast: .asPlanned, .lunch: .hearty]))
+    let eaten = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints(eaten: [.breakfast: .asPlanned, .lunch: .hearty, .dinner: .asPlanned]))
+
+    // Le dîner allégé qu'on vient de proposer est celui qui a été mangé, pas la portion d'origine.
+    let dinnerProposed = try #require(proposed.meals.first { $0.slot == .dinner })
+    let dinnerEaten = try #require(eaten.meals.first { $0.slot == .dinner })
+    #expect(dinnerEaten.intake == .asPlanned)
+    #expect(dinnerEaten.macros == dinnerProposed.macros)
+    #expect(abs(eaten.totals.kcal - 2200) / 2200 < 0.1)
+}

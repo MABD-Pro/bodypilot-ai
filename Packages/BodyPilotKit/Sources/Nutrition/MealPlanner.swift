@@ -41,25 +41,36 @@ public struct MealPlanner: NutritionPlanning {
         }
 
         // Repas déjà pris : ce qui a été mangé compte, le reste de la journée s'ajuste.
+        // Les repas sont repris dans l'ordre de la journée : chacun compte sur la portion
+        // affichée au moment où il a été mangé, déjà ajustée par les repas pris avant lui.
         let baseKcal = shares.mapValues { dayKcal * $0 }
-        let eatenKcal = constraints.eaten.reduce(0) { $0 + (baseKcal[$1.key] ?? 0) * $1.value.factor }
-        let remainingBase = baseKcal.filter { constraints.eaten[$0.key] == nil }.values.reduce(0, +)
+        var shownKcal = baseKcal
+        var eatenKcal = 0.0
+        var counted: Set<MealSlot> = []
         var remainingScale = 1.0
-        if !constraints.eaten.isEmpty, remainingBase > 0 {
-            let wanted = (dayKcal - eatenKcal) / remainingBase
+        var wanted = 1.0
+        for slot in MealSlot.allCases {
+            guard let intake = constraints.eaten[slot], let base = baseKcal[slot] else { continue }
+            shownKcal[slot] = base * remainingScale
+            eatenKcal += base * remainingScale * intake.factor
+            counted.insert(slot)
+            let remainingBase = baseKcal.filter { !counted.contains($0.key) }.values.reduce(0, +)
+            guard remainingBase > 0 else { remainingScale = 1; break }
+            wanted = (dayKcal - eatenKcal) / remainingBase
             // Écart négligeable (repas pris comme prévu) : on ne touche à rien.
-            if abs(wanted - 1) > 0.02 {
-                remainingScale = min(max(wanted, Self.remainingScaleRange.lowerBound), Self.remainingScaleRange.upperBound)
-                if let note = Self.intakeNote(wanted: wanted, applied: remainingScale) { notes.append(note) }
-            }
+            remainingScale = abs(wanted - 1) > 0.02
+                ? min(max(wanted, Self.remainingScaleRange.lowerBound), Self.remainingScaleRange.upperBound)
+                : 1
         }
+        if remainingScale != 1, let note = Self.intakeNote(wanted: wanted, applied: remainingScale) { notes.append(note) }
 
-        return plannedMeals(day: dayIndex(of: date), baseKcal: baseKcal, scale: remainingScale, targets: targets, constraints: constraints, notes: notes)
+        return plannedMeals(day: dayIndex(of: date), baseKcal: baseKcal, shownKcal: shownKcal, scale: remainingScale, targets: targets, constraints: constraints, notes: notes)
     }
 
     private func plannedMeals(
         day: Int,
         baseKcal: [MealSlot: Double],
+        shownKcal: [MealSlot: Double],
         scale remainingScale: Double,
         targets: NutritionTargets,
         constraints: MealConstraints,
@@ -70,7 +81,7 @@ public struct MealPlanner: NutritionPlanning {
             let base = baseKcal[slot] ?? 0
             guard base > 0 else { return nil }
             let intake = constraints.eaten[slot]
-            let kcal = intake == nil ? base * remainingScale : base
+            let kcal = intake == nil ? base * remainingScale : shownKcal[slot] ?? base
             var meal: PlannedMeal
             if slot == constraints.eatingOut {
                 meal = restaurantMeal(slot: slot, kcal: kcal, proteinG: targets.macros.proteinG * base / max(dayKcal, 1))
