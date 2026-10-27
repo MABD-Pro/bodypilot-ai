@@ -36,8 +36,10 @@ private func workout(_ day: TrainingDay) -> Workout? {
 }
 
 @Test func noTestWhenTiredInPainAtHomeOrWithoutCalibration() throws {
-    let tired = try #require(workout(planner.trainingDay(for: makeProfile(equipment: .gym), on: monday, constraints: DayConstraints(lowEnergy: true, calibratedLifts: []))))
+    let tiredDay = planner.trainingDay(for: makeProfile(equipment: .gym), on: monday, constraints: DayConstraints(lowEnergy: true, calibratedLifts: []))
+    let tired = try #require(workout(tiredDay))
     #expect(!tired.isStrengthTest)
+    #expect(tiredDay.notes.first?.hasPrefix("Test de force reporté (tu es fatigué)") == true)
     let knee = try #require(workout(planner.trainingDay(for: makeProfile(equipment: .gym), on: monday, constraints: DayConstraints(kneePain: true, calibratedLifts: []))))
     #expect(!knee.isStrengthTest)
     let home = try #require(workout(planner.trainingDay(for: makeProfile(equipment: .bodyweight), on: monday, constraints: DayConstraints(calibratedLifts: []))))

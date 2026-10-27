@@ -159,7 +159,11 @@ public struct TrainingPlanner: TrainingPlanning {
             }
             let strength = nextWorkout(after: constraints.lastWorkoutTitle, for: profile, on: date)
             let composed = budget >= Self.threeAxisMinutes ? withConditioning(strength, budget: budget, equipment: profile.equipment, on: date) : strength
-            return adapt(composed, budget: budget, constraints: constraints)
+            var day = adapt(composed, budget: budget, constraints: constraints)
+            if let postponed = postponedTest(for: profile, constraints: constraints) {
+                day.notes.insert(postponed, at: 0)
+            }
+            return day
         case .conditioning:
             return adapt(conditioningWorkout(budget: budget, equipment: profile.equipment, on: date), budget: budget, constraints: constraints)
         case .light:
@@ -211,6 +215,17 @@ public struct TrainingPlanner: TrainingPlanning {
               let test = StrengthCalibration.testWorkout(calibrated: calibrated, budget: budget),
               test.estimatedMinutes <= budget else { return nil }
         return test
+    }
+
+    /// Calibrage en attente mais pas proposé aujourd'hui : on dit pourquoi, et quand il reviendra.
+    func postponedTest(for profile: UserProfile, constraints: DayConstraints) -> String? {
+        guard profile.equipment == .gym, let calibrated = constraints.calibratedLifts,
+              !StrengthCalibration.pending(calibrated: calibrated).isEmpty else { return nil }
+        var reasons: [String] = []
+        if constraints.lowEnergy { reasons.append("tu es fatigué") }
+        if constraints.kneePain { reasons.append("ton genou est sensible") }
+        if reasons.isEmpty { reasons.append("le temps manque") }
+        return "Test de force reporté (\(reasons.joined(separator: ", "))) : il reviendra un prochain jour de force, quand tu seras en forme et disponible au moins 45 min."
     }
 
     /// Jour de récupération musculaire : cardio varié puis marche inclinée ou escalier.
