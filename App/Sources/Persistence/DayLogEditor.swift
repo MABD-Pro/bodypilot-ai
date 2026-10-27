@@ -81,6 +81,7 @@ enum DayLogEditor {
             exerciseSwaps: today?.exerciseSwaps ?? [:],
             weekTrainingDays: week?.weekdaysRaw,
             mealIntakes: today?.mealIntakes ?? [:],
+            describedMeals: today?.describedMeals ?? [:],
             on: now
         )
     }

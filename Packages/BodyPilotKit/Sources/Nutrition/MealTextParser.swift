@@ -1,0 +1,208 @@
+import BodyPilotCore
+import Foundation
+
+/// Ce que le coach a compris d'un repas décrit en texte.
+public struct MealParse: Sendable, Equatable {
+    public var text: String
+    public var foods: [DescribedFood]
+    /// Morceaux de phrase sans aliment reconnu : à préciser, ou à confier au modèle embarqué.
+    public var unrecognized: [String]
+
+    public init(text: String, foods: [DescribedFood], unrecognized: [String] = []) {
+        self.text = text
+        self.foods = foods
+        self.unrecognized = unrecognized
+    }
+
+    public var meal: DescribedMeal { DescribedMeal(text: text, foods: foods) }
+    /// Questions de précision à poser : les portions devinées et les mots inconnus.
+    public var needsClarification: Bool { !unrecognized.isEmpty || foods.contains(where: \.needsPortion) }
+}
+
+/// Lecture déterministe d'un repas décrit en français (« une grande assiette de pâtes carbo et un coca »).
+///
+/// Gratuit, hors ligne, instantané : catalogue d'aliments courants, quantités en grammes, en unités
+/// (« 2 œufs ») ou en contenants (« un bol »), tailles (« petite », « grande »). Sans quantité,
+/// la portion habituelle est proposée et marquée à confirmer.
+public enum MealTextParser {
+    /// Plus petit, normal, plus grand : les trois réponses possibles à « quelle quantité ? ».
+    public static let portionChoices: [(label: String, factor: Double)] = [("Petite", 0.7), ("Normale", 1), ("Grande", 1.4)]
+
+    static let sizeFactors: [String: Double] = [
+        "petit": 0.7, "petite": 0.7, "grand": 1.4, "grande": 1.4, "gro": 1.4, "grosse": 1.4, "demi": 0.5, "moitie": 0.5,
+    ]
+    static let numberWords: [String: Double] = [
+        "un": 1, "une": 1, "deu": 2, "troi": 3, "quatre": 4, "cinq": 5, "six": 6, "sept": 7, "huit": 8, "dix": 10, "quelque": 3,
+    ]
+    /// Mots sans information, retirés avant de chercher un aliment inconnu.
+    static let fillers: Set<String> = [
+        "j", "ai", "mange", "pri", "bu", "avec", "de", "du", "d", "la", "le", "l", "les", "des", "au", "aux", "a", "en",
+        "un", "une", "peu", "et", "puis", "ce", "midi", "soir", "matin", "c", "etait", "plu", "moin", "tres", "bien", "sur",
+    ]
+
+    private static let lexicon: [(alias: String, entry: LexiconEntry)] = FoodLexicon.entries
+        .flatMap { entry in entry.aliases.map { (normalize($0), entry) } }
+        .sorted { $0.alias.count > $1.alias.count }
+
+    public static func parse(_ text: String) -> MealParse {
+        var foods: [DescribedFood] = []
+        var unrecognized: [String] = []
+        for segment in segments(of: text) {
+            let found = parseSegment(segment.normalized)
+            if found.isEmpty {
+                let meaningful = segment.normalized.split(separator: " ").filter { !fillers.contains(String($0)) && Double($0) == nil }
+                if !meaningful.isEmpty { unrecognized.append(segment.original.trimmingCharacters(in: .whitespaces)) }
+            }
+            foods += found
+        }
+        return MealParse(text: text, foods: foods, unrecognized: unrecognized)
+    }
+
+    /// Découpe sur la ponctuation et les liaisons (« et », « avec », « puis », « + »).
+    static func segments(of text: String) -> [(original: String, normalized: String)] {
+        let separators = CharacterSet(charactersIn: ",;+\n/")
+        return text.components(separatedBy: separators).flatMap { piece -> [(original: String, normalized: String)] in
+            let words = piece.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+            var parts: [[String]] = [[]]
+            for word in words {
+                if ["et", "avec", "puis", "plus"].contains(normalize(word)) {
+                    parts.append([])
+                } else {
+                    parts[parts.count - 1].append(word)
+                }
+            }
+            return parts.filter { !$0.isEmpty }.map { (original: $0.joined(separator: " "), normalized: normalize($0.joined(separator: " "))) }
+        }.filter { !$0.normalized.isEmpty }
+    }
+
+    /// Minuscules, sans accents ni pluriel : « Œufs brouillés » → « oeuf brouille ».
+    static func normalize(_ text: String) -> String {
+        let folded = text.lowercased()
+            .replacingOccurrences(of: "œ", with: "oe")
+            .folding(options: [.diacriticInsensitive], locale: Locale(identifier: "fr_FR"))
+        let cleaned = String(folded.map { $0.isLetter || $0.isNumber || $0 == "." ? $0 : " " })
+        return cleaned.split(separator: " ").map { word -> String in
+            var word = String(word)
+            if word.count > 3, let last = word.last, last == "s" || last == "x", Double(word) == nil { word.removeLast() }
+            return word
+        }.joined(separator: " ")
+    }
+
+    /// Aliments d'un morceau de phrase, du plus long nom au plus court, sans chevauchement.
+    static func parseSegment(_ segment: String) -> [DescribedFood] {
+        let padded = " \(segment) "
+        var taken: [Range<String.Index>] = []
+        var matches: [(range: Range<String.Index>, entry: LexiconEntry)] = []
+        for (alias, entry) in lexicon {
+            var searchStart = padded.startIndex
+            while let range = padded.range(of: " \(alias) ", range: searchStart..<padded.endIndex) {
+                if !taken.contains(where: { $0.overlaps(range) }) {
+                    taken.append(range)
+                    matches.append((range, entry))
+                }
+                searchStart = padded.index(before: range.upperBound)
+            }
+        }
+        matches.sort { $0.range.lowerBound < $1.range.lowerBound }
+
+        var previousEnd = padded.startIndex
+        return matches.enumerated().map { index, match in
+            // La quantité se lit juste avant l'aliment (« deux œufs ») ; les grammes partout (« riz 200 g »).
+            let before = String(padded[previousEnd..<match.range.lowerBound])
+            let after = index == matches.count - 1 ? String(padded[match.range.upperBound...]) : ""
+            previousEnd = match.range.upperBound
+            return food(match.entry, before: before, after: after)
+        }
+    }
+
+    static func food(_ entry: LexiconEntry, before: String, after: String) -> DescribedFood {
+        let words = before.split(separator: " ").map(String.init)
+        if let grams = explicitGrams(in: before + " " + after) {
+            return described(entry, grams: grams, label: "\(Int(grams.rounded())) g")
+        }
+        let count = words.compactMap { Double($0.replacingOccurrences(of: ",", with: ".")) ?? numberWords[$0] }.last
+        let size = words.compactMap { sizeFactors[$0] }.last
+        let unit = words.last { FoodLexicon.units[$0] != nil || entry.unitOverrides[$0] != nil }
+
+        var grams: Double
+        var label: String
+        let quantity = count ?? 1
+        if let unit {
+            let unitGrams = entry.unitOverrides[unit] ?? FoodLexicon.units[unit].flatMap { $0 > 0 ? $0 : nil }
+                ?? entry.food.unit?.grams ?? entry.portionGrams
+            grams = unitGrams * quantity
+            let name = unitNames[unit] ?? (singular: unit, plural: unit + "s", masculine: false)
+            label = "\(format(quantity)) \(adjective(size, masculine: name.masculine, plural: quantity > 1))\(quantity > 1 ? name.plural : name.singular)"
+        } else if let count, let foodUnit = entry.food.unit {
+            grams = foodUnit.grams * count
+            let masculine = masculineFoodUnits.contains(foodUnit.singular)
+            label = "\(format(count)) \(adjective(size, masculine: masculine, plural: count > 1))\(count > 1 ? foodUnit.plural : foodUnit.singular)"
+        } else {
+            grams = entry.portionGrams * quantity
+            label = quantity > 1 ? "\(format(quantity)) portions" : entry.portionLabel
+            if size != nil { label = "\(adjective(size, masculine: false, plural: false))portion".capitalizedFirst }
+        }
+        grams *= size ?? 1
+        // Ni quantité, ni contenant, ni taille : la portion habituelle est une supposition.
+        let isVague = unit == nil && size == nil && count == nil
+        return described(entry, grams: grams, label: label, needsPortion: isVague)
+    }
+
+    static let unitNames: [String: (singular: String, plural: String, masculine: Bool)] = [
+        "assiette": ("assiette", "assiettes", false), "bol": ("bol", "bols", true), "verre": ("verre", "verres", true),
+        "tasse": ("tasse", "tasses", false), "part": ("part", "parts", false), "tranche": ("tranche", "tranches", false),
+        "cuillere": ("cuillère", "cuillères", false), "poignee": ("poignée", "poignées", false), "canette": ("canette", "canettes", false),
+        "bouteille": ("bouteille", "bouteilles", false), "morceau": ("morceau", "morceaux", true), "carre": ("carré", "carrés", true),
+        "barquette": ("barquette", "barquettes", false), "pot": ("pot", "pots", true), "boite": ("boîte", "boîtes", false),
+        "dose": ("dose", "doses", false), "portion": ("portion", "portions", false), "piece": ("pièce", "pièces", false),
+        "baguette": ("baguette", "baguettes", false), "pinte": ("pinte", "pintes", false),
+    ]
+    static let masculineFoodUnits: Set<String> = [
+        "œuf", "burger", "kebab", "sandwich", "croissant", "croque", "yaourt", "fruit", "café", "sucre", "pain au chocolat",
+    ]
+
+    /// « petite », « grands », « demi- » : accordé au contenant.
+    private static func adjective(_ factor: Double?, masculine: Bool, plural: Bool) -> String {
+        let base: String
+        switch factor {
+        case 0.7: base = masculine ? "petit" : "petite"
+        case 1.4: base = masculine ? "grand" : "grande"
+        case 0.5: return "demi-"
+        default: return ""
+        }
+        return base + (plural ? "s " : " ")
+    }
+
+    private static func described(_ entry: LexiconEntry, grams: Double, label: String, needsPortion: Bool = false) -> DescribedFood {
+        DescribedFood(name: entry.food.name, grams: grams, quantityLabel: label, macros: entry.food.per100g.scaled(by: grams / 100), needsPortion: needsPortion)
+    }
+
+    /// « 200 g », « 33 cl », « 1,5 l » : en grammes (1 ml ≈ 1 g).
+    static func explicitGrams(in text: String) -> Double? {
+        let words = text.split(separator: " ").map(String.init)
+        for (index, word) in words.enumerated() {
+            // « 200g » collé ou « 200 g » séparé.
+            let digits = word.prefix { $0.isNumber || $0 == "." }
+            let suffix = String(word.dropFirst(digits.count))
+            guard let value = Double(digits), value > 0 else { continue }
+            let unit = suffix.isEmpty ? (index + 1 < words.count ? words[index + 1] : "") : suffix
+            switch unit {
+            case "g", "gr", "gramme": return value
+            case "kg", "kilo": return value * 1000
+            case "ml": return value
+            case "cl": return value * 10
+            case "l", "litre": return value * 1000
+            default: continue
+            }
+        }
+        return nil
+    }
+
+    private static func format(_ count: Double) -> String {
+        count == count.rounded() ? "\(Int(count))" : count.frenchOneDecimal
+    }
+}
+
+private extension String {
+    var capitalizedFirst: String { prefix(1).uppercased() + dropFirst() }
+}

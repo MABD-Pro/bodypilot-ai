@@ -6,6 +6,8 @@ struct NutritionCard: View {
     let targets: NutritionTargets
     let meals: DayMealPlan
     var logIntake: (MealSlot, MealIntake?) -> Void = { _, _ in }
+    /// Ouvre la saisie en texte de ce qui a vraiment été mangé.
+    var describe: (MealSlot) -> Void = { _ in }
 
     @State private var expanded: MealSlot?
     @State private var showsRationale = false
@@ -39,10 +41,15 @@ struct NutritionCard: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
+            Text(eatenSummary)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .contentTransition(.numericText(value: eaten.kcal))
+
             HStack(spacing: Theme.Spacing.l) {
-                MacroGauge(label: "Protéines", grams: targets.macros.proteinG, share: share(targets.macros.proteinG * 4), tint: Theme.protein)
-                MacroGauge(label: "Glucides", grams: targets.macros.carbsG, share: share(targets.macros.carbsG * 4), tint: Theme.carbs)
-                MacroGauge(label: "Lipides", grams: targets.macros.fatG, share: share(targets.macros.fatG * 9), tint: Theme.fat)
+                MacroGauge(label: "Protéines", eaten: eaten.proteinG, target: targets.macros.proteinG, tint: Theme.protein)
+                MacroGauge(label: "Glucides", eaten: eaten.carbsG, target: targets.macros.carbsG, tint: Theme.carbs)
+                MacroGauge(label: "Lipides", eaten: eaten.fatG, target: targets.macros.fatG, tint: Theme.fat)
             }
 
             ForEach(meals.notes, id: \.self) { note in
@@ -59,16 +66,25 @@ struct NutritionCard: View {
                                 expanded = expanded == meal.slot ? nil : meal.slot
                             }
                         },
-                        log: { logIntake(meal.slot, $0) }
+                        log: { logIntake(meal.slot, $0) },
+                        describe: { describe(meal.slot) }
                     )
                 }
             }
         }
     }
 
-    /// Part des calories, pour dimensionner les jauges.
-    private func share(_ kcal: Double) -> Double {
-        targets.macros.kcal > 0 ? kcal / targets.macros.kcal : 0
+    private var eaten: Macros { meals.eatenTotals }
+
+    /// « Objectif du jour », puis ce qui reste une fois des repas pris.
+    private var eatenSummary: String {
+        guard eaten.kcal > 0 else { return "Objectif du jour · rien de mangé pour l'instant" }
+        let over = eaten.kcal - targets.macros.kcal
+        // Le reste annoncé est celui des repas encore prévus, pour coller aux chiffres affichés.
+        let planned = meals.meals.filter { !$0.isEaten }.reduce(0) { $0 + $1.macros.kcal }
+        return over > 0
+            ? "\(eaten.kcal.frenchInteger) kcal mangées · \(over.frenchInteger) au-dessus"
+            : "\(eaten.kcal.frenchInteger) kcal mangées · reste \(planned.frenchInteger) prévues"
     }
 }
 
@@ -78,6 +94,7 @@ private struct MealRow: View {
     let toggle: () -> Void
     /// Repas pris : une touche pour « comme prévu », le détail dans la vue dépliée.
     let log: (MealIntake?) -> Void
+    let describe: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
@@ -93,7 +110,7 @@ private struct MealRow: View {
                             .multilineTextAlignment(.leading)
                     }
                     Spacer(minLength: Theme.Spacing.s)
-                    Text("\(meal.isEatingOut || meal.intake != nil ? "≈ " : "")\(meal.macros.kcal.frenchInteger) kcal")
+                    Text("\(meal.isEatingOut || meal.isEaten ? "≈ " : "")\(meal.macros.kcal.frenchInteger) kcal")
                         .font(.footnote.weight(.semibold))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
@@ -106,10 +123,23 @@ private struct MealRow: View {
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .opacity(meal.intake == nil ? 1 : 0.7)
+            .opacity(meal.isEaten ? 0.7 : 1)
 
             HStack(spacing: Theme.Spacing.s) {
-                if let intake = meal.intake {
+                if meal.described != nil {
+                    Label("Ce que j'ai mangé", systemImage: "checkmark.circle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.progress)
+                    Spacer()
+                    Button("Modifier", action: describe)
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(meal.slot.tint)
+                    Button("Annuler") { log(nil) }
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                } else if let intake = meal.intake {
                     Label(intake.label, systemImage: "checkmark.circle.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Theme.progress)
@@ -122,25 +152,34 @@ private struct MealRow: View {
                     Button {
                         log(.asPlanned)
                     } label: {
-                        Label("Mangé comme prévu", systemImage: "checkmark.circle")
+                        Label("Comme prévu", systemImage: "checkmark.circle")
                             .font(.caption.weight(.semibold))
+                            .lineLimit(1)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(meal.slot.tint)
                     Spacer()
+                    Button(action: describe) {
+                        Label("Décrire", systemImage: "square.and.pencil")
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(meal.slot.tint)
                     Menu {
                         ForEach([MealIntake.skipped, .light, .hearty, .veryHearty], id: \.self) { intake in
                             Button(intake.label) { log(intake) }
                         }
                     } label: {
-                        Text("Autrement…")
-                            .font(.caption.weight(.semibold))
+                        Image(systemName: "ellipsis.circle")
+                            .font(.callout.weight(.semibold))
                             .foregroundStyle(.secondary)
+                            .accessibilityLabel("Autrement")
                     }
                 }
             }
             .padding(.leading, 50)
-            .sensoryFeedback(.success, trigger: meal.intake) { _, new in new != nil }
+            .sensoryFeedback(.success, trigger: meal.isEaten) { _, new in new }
 
             if isExpanded {
                 VStack(alignment: .leading, spacing: 6) {
@@ -154,7 +193,7 @@ private struct MealRow: View {
                         }
                         .font(.subheadline)
                     }
-                    Text("\(meal.isEatingOut ? "Vise ≈ " : "")\(Int(meal.macros.proteinG.rounded())) g de protéines")
+                    Text("\(meal.isEatingOut ? "Vise ≈ " : meal.described != nil ? "≈ " : "")\(Int(meal.macros.proteinG.rounded())) g de protéines")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Theme.protein)
                         .padding(.top, 2)

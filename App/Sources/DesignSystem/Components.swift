@@ -43,19 +43,24 @@ struct IconBadge: View {
     }
 }
 
-/// Barre de macronutriment : quantité visée et part de l'apport.
+/// Jauge de macronutriment : mangé sur objectif du jour, la barre se remplit au fil des repas.
 struct MacroGauge: View {
     let label: String
-    let grams: Double
-    let share: Double
+    let eaten: Double
+    let target: Double
     let tint: Color
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            Text("\(Int(grams.rounded())) g")
-                .font(.display(17, weight: .semibold))
-                .monospacedDigit()
-                .contentTransition(.numericText(value: grams))
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text("\(Int(eaten.rounded()))")
+                    .font(.display(17, weight: .semibold))
+                    .contentTransition(.numericText(value: eaten))
+                Text("/ \(Int(target.rounded())) g")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .monospacedDigit()
             Capsule()
                 .fill(tint.opacity(0.18))
                 .frame(height: 6)
@@ -63,7 +68,7 @@ struct MacroGauge: View {
                     GeometryReader { proxy in
                         Capsule()
                             .fill(tint.gradient)
-                            .frame(width: max(6, proxy.size.width * min(share, 1)))
+                            .frame(width: eaten > 0 ? max(6, proxy.size.width * min(eaten / max(target, 1), 1)) : 0)
                     }
                 }
             Text(label)
@@ -71,6 +76,8 @@ struct MacroGauge: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label) : \(Int(eaten.rounded())) grammes sur \(Int(target.rounded()))")
     }
 }
 

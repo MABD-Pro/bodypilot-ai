@@ -84,6 +84,54 @@ public struct MealItem: Sendable, Equatable {
     }
 }
 
+/// Aliment décrit par l'utilisateur (« une grande assiette de pâtes carbo »), avec son estimation.
+public struct DescribedFood: Sendable, Equatable, Codable {
+    public var name: String
+    public var grams: Double
+    /// Quantité lisible (« 1 grande assiette », « 2 œufs », « 200 g »).
+    public var quantityLabel: String
+    public var macros: Macros
+    /// Quantité devinée faute de précision : le coach demande de la confirmer.
+    public var needsPortion: Bool
+    /// Estimé par le modèle de langage plutôt que tiré du catalogue.
+    public var isEstimate: Bool
+
+    public init(name: String, grams: Double, quantityLabel: String, macros: Macros, needsPortion: Bool = false, isEstimate: Bool = false) {
+        self.name = name
+        self.grams = grams
+        self.quantityLabel = quantityLabel
+        self.macros = macros
+        self.needsPortion = needsPortion
+        self.isEstimate = isEstimate
+    }
+
+    /// Portion confirmée : plus petite (×0,7), normale (×1) ou plus grande (×1,4).
+    public func resized(by factor: Double, label: String) -> DescribedFood {
+        DescribedFood(name: name, grams: grams * factor, quantityLabel: label, macros: macros.scaled(by: factor), needsPortion: false, isEstimate: isEstimate)
+    }
+}
+
+/// Ce qui a vraiment été mangé à un repas, décrit en texte.
+public struct DescribedMeal: Sendable, Equatable, Codable {
+    /// Phrase de l'utilisateur, gardée pour la modifier plus tard.
+    public var text: String
+    public var foods: [DescribedFood]
+
+    public init(text: String, foods: [DescribedFood]) {
+        self.text = text
+        self.foods = foods
+    }
+
+    public var macros: Macros { foods.reduce(.zero) { $0 + $1.macros } }
+
+    /// Titre court pour la carte : les aliments, dans l'ordre (« Pâtes carbonara et coca »).
+    public var title: String {
+        guard let first = foods.first?.name else { return text }
+        let names = [first] + foods.dropFirst().map { $0.name.lowercased() }
+        return names.count == 1 ? first : names.dropLast().joined(separator: ", ") + " et " + names[names.count - 1]
+    }
+}
+
 public struct PlannedMeal: Sendable, Equatable {
     public var slot: MealSlot
     public var title: String
@@ -93,15 +141,21 @@ public struct PlannedMeal: Sendable, Equatable {
     public var isEatingOut: Bool
     /// Déjà mangé : les macros sont alors celles estimées, pas celles prévues.
     public var intake: MealIntake?
+    /// Décrit par l'utilisateur : les aliments et les macros sont ceux qu'il a vraiment mangés.
+    public var described: DescribedMeal?
 
-    public init(slot: MealSlot, title: String, items: [MealItem], macros: Macros, isEatingOut: Bool = false, intake: MealIntake? = nil) {
+    public init(slot: MealSlot, title: String, items: [MealItem], macros: Macros, isEatingOut: Bool = false, intake: MealIntake? = nil, described: DescribedMeal? = nil) {
         self.slot = slot
         self.title = title
         self.items = items
         self.macros = macros
         self.isEatingOut = isEatingOut
         self.intake = intake
+        self.described = described
     }
+
+    /// Déjà mangé, d'une touche ou décrit.
+    public var isEaten: Bool { intake != nil || described != nil }
 }
 
 public struct DayMealPlan: Sendable, Equatable {
@@ -115,6 +169,8 @@ public struct DayMealPlan: Sendable, Equatable {
     }
 
     public var totals: Macros { meals.reduce(.zero) { $0 + $1.macros } }
+    /// Ce qui a déjà été mangé aujourd'hui.
+    public var eatenTotals: Macros { meals.filter(\.isEaten).reduce(.zero) { $0 + $1.macros } }
 }
 
 /// Contraintes alimentaires du jour déclarées par l'utilisateur.
@@ -124,11 +180,14 @@ public struct MealConstraints: Sendable, Equatable {
     public var lowAppetite: Bool
     /// Repas déjà pris et ce qui a été mangé : les repas restants s'ajustent.
     public var eaten: [MealSlot: MealIntake]
+    /// Repas décrits en texte : ils priment sur la saisie d'une touche.
+    public var described: [MealSlot: DescribedMeal]
 
-    public init(eatingOut: MealSlot? = nil, lowAppetite: Bool = false, eaten: [MealSlot: MealIntake] = [:]) {
+    public init(eatingOut: MealSlot? = nil, lowAppetite: Bool = false, eaten: [MealSlot: MealIntake] = [:], described: [MealSlot: DescribedMeal] = [:]) {
         self.eatingOut = eatingOut
         self.lowAppetite = lowAppetite
         self.eaten = eaten
+        self.described = described
     }
 }
 

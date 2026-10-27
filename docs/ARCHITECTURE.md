@@ -9,7 +9,7 @@ App (SwiftUI, cible iOS)                ← UI, HealthKit, SwiftData, StoreKit, 
  └── Packages/BodyPilotKit (Swift Package, Swift 6)
       ├── BodyPilotCore     types partagés, protocoles        (aucune dépendance)
       ├── AIRouter          routage des traitements IA         → BodyPilotCore
-      ├── Nutrition         programme alimentaire, repas       → BodyPilotCore
+      ├── Nutrition         programme alimentaire, repas       → BodyPilotCore, AIRouter
       ├── Training          programme sportif, séances         → BodyPilotCore
       ├── ProgressInsights  poids, mensurations, records       → BodyPilotCore
       └── Coach             orchestration, ajustements du jour → BodyPilotCore, AIRouter

@@ -25,6 +25,15 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Les repas restants se recalculent pour viser le total du jour, dans une limite de ×0,6 à ×1,4 : on ne saute pas un repas pour compenser un excès, on ne double pas le dîner après un déjeuner sauté.
 - Le coach le dit en une phrase, sans culpabiliser : une journée ne fait pas la tendance.
 
+## Repas décrit en texte (`Nutrition/MealTextParser`, `Nutrition/MealDescriber`)
+
+- « Décrire » sur un repas : l'utilisateur écrit ce qu'il a mangé, comme il le dirait (« une grande assiette de pâtes carbo et un coca »).
+- Lecture locale d'abord : un catalogue d'environ 75 aliments et plats courants, les quantités en grammes ou en millilitres (« 200 g », « 33 cl »), en unités (« 2 œufs »), en contenants (« un bol », « une assiette », « une tranche ») et en tailles (« petite », « grande », « demi »).
+- Sans quantité, la portion habituelle est proposée et le coach demande « Quelle quantité ? » : petite (×0,7), normale ou grande (×1,4). La question ne bloque pas l'enregistrement.
+- Aliment inconnu du catalogue : le modèle Apple embarqué l'estime (jamais le cloud), dans des bornes réalistes (portion de 1 g à 1,5 kg, densité sous 900 kcal/100 g, calories recalculées depuis les macros si elles se contredisent). Sans modèle disponible, le coach demande de préciser les aliments.
+- Le repas décrit remplace le repas prévu et la saisie d'une touche. Les repas suivants s'ajustent comme pour un repas pris (×0,6 à ×1,4).
+- La carte Manger affiche, pour chaque macro, ce qui a été mangé sur l'objectif du jour, ainsi que les calories restantes.
+
 ## Séance du jour (`Training/TrainingPlanner`)
 
 - L'utilisateur coche ses jours de séance habituels (par défaut lundi, mercredi, vendredi). Chaque semaine, il peut ajouter ou retirer un jour d'une touche ; ce choix ne vaut que pour la semaine en cours. Une semaine sans séance est possible. Deux full body alternés, poids du corps ou salle.

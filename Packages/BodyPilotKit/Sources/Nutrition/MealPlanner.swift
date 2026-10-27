@@ -49,10 +49,25 @@ public struct MealPlanner: NutritionPlanning {
         var counted: Set<MealSlot> = []
         var remainingScale = 1.0
         var wanted = 1.0
-        for slot in MealSlot.allCases {
-            guard let intake = constraints.eaten[slot], let base = baseKcal[slot] else { continue }
-            shownKcal[slot] = base * remainingScale
-            eatenKcal += base * remainingScale * intake.factor
+        for (position, slot) in MealSlot.allCases.enumerated() {
+            guard constraints.described[slot] != nil || constraints.eaten[slot] != nil else { continue }
+            // Un repas plus tôt dans la journée, non noté, a sans doute été mangé comme prévu :
+            // on le fige à sa portion affichée, seuls les repas suivants compensent.
+            for earlier in MealSlot.allCases.prefix(position) where !counted.contains(earlier) {
+                let shown = (baseKcal[earlier] ?? 0) * remainingScale
+                shownKcal[earlier] = shown
+                eatenKcal += shown
+                counted.insert(earlier)
+            }
+            if let described = constraints.described[slot] {
+                // Repas décrit : on compte ce qui a vraiment été mangé, quel que soit le plan.
+                eatenKcal += described.macros.kcal
+            } else if let intake = constraints.eaten[slot], let base = baseKcal[slot] {
+                shownKcal[slot] = base * remainingScale
+                eatenKcal += base * remainingScale * intake.factor
+            } else {
+                continue
+            }
             counted.insert(slot)
             let remainingBase = baseKcal.filter { !counted.contains($0.key) }.values.reduce(0, +)
             guard remainingBase > 0 else { remainingScale = 1; break }
@@ -64,13 +79,14 @@ public struct MealPlanner: NutritionPlanning {
         }
         if remainingScale != 1, let note = Self.intakeNote(wanted: wanted, applied: remainingScale) { notes.append(note) }
 
-        return plannedMeals(day: dayIndex(of: date), baseKcal: baseKcal, shownKcal: shownKcal, scale: remainingScale, targets: targets, constraints: constraints, notes: notes)
+        return plannedMeals(day: dayIndex(of: date), baseKcal: baseKcal, shownKcal: shownKcal, fixed: counted, scale: remainingScale, targets: targets, constraints: constraints, notes: notes)
     }
 
     private func plannedMeals(
         day: Int,
         baseKcal: [MealSlot: Double],
         shownKcal: [MealSlot: Double],
+        fixed: Set<MealSlot>,
         scale remainingScale: Double,
         targets: NutritionTargets,
         constraints: MealConstraints,
@@ -78,10 +94,19 @@ public struct MealPlanner: NutritionPlanning {
     ) -> DayMealPlan {
         let dayKcal = baseKcal.values.reduce(0, +)
         let meals = MealSlot.allCases.compactMap { slot -> PlannedMeal? in
+            if let described = constraints.described[slot] {
+                return PlannedMeal(
+                    slot: slot,
+                    title: described.title,
+                    items: described.foods.map { MealItem(name: $0.name, grams: $0.grams, quantityLabel: $0.quantityLabel) },
+                    macros: described.macros,
+                    described: described
+                )
+            }
             let base = baseKcal[slot] ?? 0
             guard base > 0 else { return nil }
             let intake = constraints.eaten[slot]
-            let kcal = intake == nil ? base * remainingScale : shownKcal[slot] ?? base
+            let kcal = fixed.contains(slot) ? shownKcal[slot] ?? base : base * remainingScale
             var meal: PlannedMeal
             if slot == constraints.eatingOut {
                 meal = restaurantMeal(slot: slot, kcal: kcal, proteinG: targets.macros.proteinG * base / max(dayKcal, 1))
