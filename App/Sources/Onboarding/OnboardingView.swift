@@ -2,14 +2,14 @@ import BodyPilotCore
 import SwiftData
 import SwiftUI
 
-/// Accueil en trois écrans, une minute au plus. Sert aussi à modifier le profil.
+/// Accueil en deux écrans, une minute au plus. Sert aussi à modifier le profil.
 struct OnboardingView: View {
     private let editing: ProfileRecord?
 
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var draft: ProfileDraft
-    @State private var step: Step = .goal
+    @State private var step: Step = .body
 
     init(editing: ProfileRecord? = nil) {
         self.editing = editing
@@ -17,11 +17,10 @@ struct OnboardingView: View {
     }
 
     enum Step: Int, CaseIterable {
-        case goal, body, rhythm
+        case body, rhythm
 
         var title: String {
             switch self {
-            case .goal: "Quel est ton objectif ?"
             case .body: "Parle-moi de toi"
             case .rhythm: "Ton rythme"
             }
@@ -29,8 +28,7 @@ struct OnboardingView: View {
 
         var subtitle: String {
             switch self {
-            case .goal: "Je construis ton plan autour de ça. Tu pourras changer d'avis."
-            case .body: "Pour calculer tes besoins. Tout reste sur ton iPhone."
+            case .body: "Objectif : perdre du gras et gagner du muscle. Tout reste sur ton iPhone."
             case .rhythm: "Je cale les séances sur ta semaine, pas l'inverse."
             }
         }
@@ -53,14 +51,16 @@ struct OnboardingView: View {
             ScrollView {
                 Group {
                     switch step {
-                    case .goal: GoalStep(draft: $draft)
                     case .body: BodyStep(draft: $draft)
                     case .rhythm: RhythmStep(draft: $draft)
                     }
                 }
                 .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
             }
+            // Chaque étape repart du haut, sans reprendre le défilement de la précédente.
+            .id(step)
             .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
 
             Button(action: next) {
                 Text(step == .rhythm ? (editing == nil ? "Voir mon plan du jour" : "Enregistrer") : "Continuer")
@@ -86,14 +86,14 @@ struct OnboardingView: View {
                     dismiss()
                 }
             } label: {
-                Image(systemName: step == .goal ? "xmark" : "chevron.left")
+                Image(systemName: step == .body ? "xmark" : "chevron.left")
                     .font(.body.weight(.semibold))
                     .frame(width: 40, height: 40)
             }
             .buttonStyle(.plain)
             .glassEffect(.regular.interactive(), in: .circle)
-            .opacity(step == .goal && editing == nil ? 0 : 1)
-            .disabled(step == .goal && editing == nil)
+            .opacity(step == .body && editing == nil ? 0 : 1)
+            .disabled(step == .body && editing == nil)
 
             HStack(spacing: 6) {
                 ForEach(Step.allCases, id: \.self) { item in
@@ -122,7 +122,8 @@ struct OnboardingView: View {
 
 /// Saisie en cours, convertie en `UserProfile` à la fin.
 struct ProfileDraft {
-    var goal: Goal = .loseFat
+    /// Un seul objectif : la recomposition. Le poids visé règle le déficit.
+    var goal: Goal = .recomposition
     var sex: BiologicalSex = .male
     var age: Double = 35
     var heightCm: Double = 175
@@ -138,7 +139,6 @@ struct ProfileDraft {
 
     init(_ profile: UserProfile, now: Date = .now, calendar: Calendar = .current) {
         id = profile.id
-        goal = profile.goal
         sex = profile.sex
         age = Double(profile.age(on: now, calendar: calendar))
         heightCm = profile.heightCm
@@ -157,7 +157,7 @@ struct ProfileDraft {
             birthDate: calendar.date(byAdding: .year, value: -Int(age), to: now) ?? now,
             heightCm: heightCm,
             startWeightKg: weightKg,
-            targetWeightKg: goal == .maintain ? nil : targetWeightKg,
+            targetWeightKg: targetWeightKg,
             activity: activity,
             goal: goal,
             trainingDaysPerWeek: trainingWeekdays.count,

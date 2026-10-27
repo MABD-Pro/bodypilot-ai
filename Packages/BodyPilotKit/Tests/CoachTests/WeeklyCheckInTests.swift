@@ -57,3 +57,28 @@ private func weights(days: Int = 28, start: Double, perDay: Double) -> [WeightEn
 @Test func notEnoughDataMeansNoCheckIn() {
     #expect(coach.weeklyCheckIn(for: makeProfile(), weights: weights(days: 4, start: 90, perDay: -0.3), on: today) == nil)
 }
+
+private func recompositionProfile() -> UserProfile {
+    var profile = makeProfile()
+    profile.goal = .recomposition
+    return profile
+}
+
+@Test func recompositionStallWithShrinkingWaistNeedsNoChange() {
+    let waists = [
+        WaistEntry(date: utc.date(byAdding: .day, value: -21, to: today)!, cm: 96),
+        WaistEntry(date: today, cm: 94),
+    ]
+    let flat = weights(start: 88, perDay: 0)
+    #expect(coach.weeklyCheckIn(for: recompositionProfile(), weights: flat, waists: waists, on: today) == nil)
+
+    let plan = coach.plan(for: recompositionProfile(), weights: flat, waists: waists, on: today)
+    #expect(plan.waistChangeCm == -2)
+    #expect(plan.progressMessage.contains("recomposition"))
+}
+
+@Test func recompositionStallWithoutWaistAsksToMeasure() throws {
+    let suggestion = try #require(coach.weeklyCheckIn(for: recompositionProfile(), weights: weights(start: 88, perDay: 0), on: today))
+    #expect(suggestion.deltaKcal == -150)
+    #expect(suggestion.message.contains("tour de taille"))
+}

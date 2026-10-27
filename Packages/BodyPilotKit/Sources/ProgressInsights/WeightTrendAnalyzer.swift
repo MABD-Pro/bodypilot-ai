@@ -57,7 +57,7 @@ public struct WeightTrendAnalyzer: ProgressAnalyzing {
     func classify(weeklyChange: Double, weightKg: Double, goal: Goal) -> ProgressStatus {
         let ratio = weeklyChange / weightKg
         switch goal {
-        case .loseFat:
+        case .loseFat, .recomposition:
             if ratio < -0.01 { return .tooFast }
             if ratio <= -0.001 { return .onTrack }
             if ratio < 0.002 { return .stalled }
@@ -70,6 +70,17 @@ public struct WeightTrendAnalyzer: ProgressAnalyzing {
         case .maintain:
             return abs(ratio) <= 0.003 ? .onTrack : .wrongDirection
         }
+    }
+
+    /// Variation du tour de taille sur les 4 dernières semaines (cm), si deux mesures sont
+    /// espacées d'au moins 10 jours. Négatif = la taille baisse.
+    public func waistChange(of entries: [WaistEntry], on date: Date) -> Double? {
+        let start = calendar.date(byAdding: .day, value: -28, to: date) ?? date
+        let recent = entries.filter { $0.date >= start && $0.date <= date }.sorted { $0.date < $1.date }
+        guard let first = recent.first, let last = recent.last,
+              last.date.timeIntervalSince(first.date) >= 10 * 86_400
+        else { return nil }
+        return last.cm - first.cm
     }
 
     /// Pente de la régression linéaire, en kg par semaine.

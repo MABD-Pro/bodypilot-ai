@@ -16,7 +16,7 @@ final class ProfileRecord {
     var startWeightKg: Double = 75
     var targetWeightKg: Double?
     var activityRaw: String = ActivityLevel.light.rawValue
-    var goalRaw: String = Goal.loseFat.rawValue
+    var goalRaw: String = Goal.recomposition.rawValue
     var trainingDaysPerWeek: Int = 3
     /// Jours de séance habituels (1 = dimanche … 7 = samedi). Vide : répartition par défaut.
     var trainingWeekdaysRaw: [Int] = []
@@ -61,7 +61,8 @@ final class ProfileRecord {
             startWeightKg: startWeightKg,
             targetWeightKg: targetWeightKg,
             activity: ActivityLevel(rawValue: activityRaw) ?? .light,
-            goal: Goal(rawValue: goalRaw) ?? .loseFat,
+            // Un seul objectif dans l'app : les anciens profils passent aussi en recomposition.
+            goal: .recomposition,
             trainingDaysPerWeek: trainingDaysPerWeek,
             trainingWeekdays: trainingWeekdaysRaw.isEmpty ? nil : trainingWeekdaysRaw,
             sessionMinutes: sessionMinutes,
@@ -97,6 +98,20 @@ final class WeightRecord {
     }
 
     var entry: WeightEntry { WeightEntry(date: date, kg: kg) }
+}
+
+/// Tour de taille, saisi à la main une fois par semaine.
+@Model
+final class WaistRecord {
+    var date: Date = Date.now
+    var cm: Double = 0
+
+    init(date: Date, cm: Double) {
+        self.date = date
+        self.cm = cm
+    }
+
+    var entry: WaistEntry { WaistEntry(date: date, cm: cm) }
 }
 
 /// Jours de séance d'une semaine donnée, quand ils diffèrent des jours habituels.

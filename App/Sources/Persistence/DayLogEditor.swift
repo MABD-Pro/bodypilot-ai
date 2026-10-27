@@ -66,12 +66,14 @@ enum DayLogEditor {
         let profiles = (try? context.fetch(FetchDescriptor<ProfileRecord>(sortBy: [SortDescriptor(\.createdAt)]))) ?? []
         guard let profile = profiles.first else { return nil }
         let weights = (try? context.fetch(FetchDescriptor<WeightRecord>(sortBy: [SortDescriptor(\.date)]))) ?? []
+        let waists = (try? context.fetch(FetchDescriptor<WaistRecord>(sortBy: [SortDescriptor(\.date)]))) ?? []
         let today = log(on: now, in: context, calendar: calendar)
         let yesterday = calendar.date(byAdding: .day, value: -1, to: now).flatMap { log(on: $0, in: context, calendar: calendar) }
         let week = weekPlan(containing: now, in: context, calendar: calendar)
         return CoachFactory.coach.plan(
             for: profile.profile,
             weights: weights.map(\.entry),
+            waists: waists.map(\.entry),
             adjustments: today?.adjustments ?? [],
             availableMinutes: today?.availableMinutes,
             eatingOutSlot: today?.eatingOutSlot,
