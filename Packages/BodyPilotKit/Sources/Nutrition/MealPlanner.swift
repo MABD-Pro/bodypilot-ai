@@ -50,9 +50,15 @@ public struct MealPlanner: NutritionPlanning {
         var remainingScale = 1.0
         var wanted = 1.0
         for slot in MealSlot.allCases {
-            guard let intake = constraints.eaten[slot], let base = baseKcal[slot] else { continue }
-            shownKcal[slot] = base * remainingScale
-            eatenKcal += base * remainingScale * intake.factor
+            if let described = constraints.described[slot] {
+                // Repas décrit : on compte ce qui a vraiment été mangé, quel que soit le plan.
+                eatenKcal += described.macros.kcal
+            } else if let intake = constraints.eaten[slot], let base = baseKcal[slot] {
+                shownKcal[slot] = base * remainingScale
+                eatenKcal += base * remainingScale * intake.factor
+            } else {
+                continue
+            }
             counted.insert(slot)
             let remainingBase = baseKcal.filter { !counted.contains($0.key) }.values.reduce(0, +)
             guard remainingBase > 0 else { remainingScale = 1; break }
@@ -78,6 +84,15 @@ public struct MealPlanner: NutritionPlanning {
     ) -> DayMealPlan {
         let dayKcal = baseKcal.values.reduce(0, +)
         let meals = MealSlot.allCases.compactMap { slot -> PlannedMeal? in
+            if let described = constraints.described[slot] {
+                return PlannedMeal(
+                    slot: slot,
+                    title: described.title,
+                    items: described.foods.map { MealItem(name: $0.name, grams: $0.grams, quantityLabel: $0.quantityLabel) },
+                    macros: described.macros,
+                    described: described
+                )
+            }
             let base = baseKcal[slot] ?? 0
             guard base > 0 else { return nil }
             let intake = constraints.eaten[slot]

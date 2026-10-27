@@ -48,6 +48,7 @@ public struct DailyCoach: Sendable {
         exerciseSwaps: [String: Int] = [:],
         weekTrainingDays: [Int]? = nil,
         mealIntakes: [MealSlot: MealIntake] = [:],
+        describedMeals: [MealSlot: DescribedMeal] = [:],
         on date: Date
     ) -> TodayPlan {
         // Les jours de séance de cette semaine, s'ils diffèrent des jours habituels.
@@ -63,7 +64,7 @@ public struct DailyCoach: Sendable {
             for: targets,
             profile: profile,
             on: date,
-            constraints: MealConstraints(today: adjustments, at: date, calendar: calendar, eatingOutSlot: eatingOutSlot, eaten: mealIntakes)
+            constraints: MealConstraints(today: adjustments, at: date, calendar: calendar, eatingOutSlot: eatingOutSlot, eaten: mealIntakes, described: describedMeals)
         )
         let constraints = DayConstraints(
             today: adjustments,

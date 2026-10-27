@@ -22,14 +22,14 @@ let package = Package(
     targets: [
         .target(name: "BodyPilotCore"),
         .target(name: "AIRouter", dependencies: ["BodyPilotCore"]),
-        .target(name: "Nutrition", dependencies: ["BodyPilotCore"]),
+        .target(name: "Nutrition", dependencies: ["BodyPilotCore", "AIRouter"]),
         .target(name: "Training", dependencies: ["BodyPilotCore"]),
         .target(name: "ProgressInsights", dependencies: ["BodyPilotCore"]),
         .target(name: "Coach", dependencies: ["BodyPilotCore", "AIRouter"]),
 
         .testTarget(name: "BodyPilotCoreTests", dependencies: ["BodyPilotCore"]),
         .testTarget(name: "AIRouterTests", dependencies: ["AIRouter"]),
-        .testTarget(name: "NutritionTests", dependencies: ["Nutrition"]),
+        .testTarget(name: "NutritionTests", dependencies: ["Nutrition", "AIRouter"]),
         .testTarget(name: "TrainingTests", dependencies: ["Training"]),
         .testTarget(name: "ProgressInsightsTests", dependencies: ["ProgressInsights"]),
         .testTarget(name: "CoachTests", dependencies: ["Coach", "Nutrition", "Training", "ProgressInsights"]),
