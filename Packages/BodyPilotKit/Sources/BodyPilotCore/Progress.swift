@@ -10,6 +10,17 @@ public struct WeightEntry: Sendable, Equatable, Codable {
     }
 }
 
+/// Tour de taille, mesuré au niveau du nombril. En recomposition, il bouge quand le poids stagne.
+public struct WaistEntry: Sendable, Equatable, Codable {
+    public var date: Date
+    public var cm: Double
+
+    public init(date: Date, cm: Double) {
+        self.date = date
+        self.cm = cm
+    }
+}
+
 public struct TrendPoint: Sendable, Equatable {
     public var date: Date
     public var measuredKg: Double
@@ -57,6 +68,8 @@ public struct WeightTrend: Sendable, Equatable {
 
 public protocol ProgressAnalyzing: Sendable {
     func trend(of entries: [WeightEntry], for profile: UserProfile, on date: Date) -> WeightTrend
+    /// Variation récente du tour de taille (cm), ou `nil` sans assez de mesures.
+    func waistChange(of entries: [WaistEntry], on date: Date) -> Double?
 }
 
 /// Pesée lue dans une source externe (Santé, balance connectée).

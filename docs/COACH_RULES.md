@@ -5,9 +5,9 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 ## Besoins nutritionnels (`Nutrition/EnergyCalculator`)
 
 - Métabolisme de base : Mifflin-St Jeor. Dépense = métabolisme × facteur d'activité (1,2 à 1,725).
-- Perte de gras : déficit de 20 %, plafonné à 600 kcal. **Plancher** : jamais sous le métabolisme de base, ni sous 1 500 kcal (homme) / 1 200 kcal (femme).
-- Prise de muscle : surplus de 10 %, plafonné à 300 kcal.
-- Protéines : 2,0 g/kg (perte), 1,6 (maintien), 1,8 (prise). Au-delà d'un IMC de 30, calculées sur le poids à IMC 27.
+- Objectif unique : la **recomposition** (perdre du gras en gardant ou en gagnant du muscle). L'utilisateur ne choisit pas entre perdre du poids et prendre du muscle.
+- Déficit selon l'écart au poids visé : 20 % à 10 kg ou plus, proportionnel en dessous (5 % au minimum), aucun à moins de 0,5 kg du poids visé. Sans poids visé : 10 %. Plafonné à 600 kcal. **Plancher** : jamais sous le métabolisme de base, ni sous 1 500 kcal (homme) / 1 200 kcal (femme). Jamais de surplus.
+- Protéines : 2,0 g/kg. Au-delà d'un IMC de 30, calculées sur le poids à IMC 27.
 - Lipides : 27 % des calories. Glucides : le reste.
 - Le poids utilisé est la **tendance mesurée** dès qu'elle existe, sinon le poids déclaré.
 
@@ -28,7 +28,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 ## Séance du jour (`Training/TrainingPlanner`)
 
 - L'utilisateur coche ses jours de séance habituels (par défaut lundi, mercredi, vendredi). Chaque semaine, il peut ajouter ou retirer un jour d'une touche ; ce choix ne vaut que pour la semaine en cours. Une semaine sans séance est possible. Deux full body alternés, poids du corps ou salle.
-- Jours sans séance : repos actif (marche 30 min en perte de gras, 20 min sinon).
+- Jours sans séance : repos actif (marche 30 min).
 - « Je n'ai que 20 minutes » : on raccourcit les repos, puis l'échauffement, puis les séries, puis on retire les accessoires. Les exercices essentiels restent. Sous 12 minutes, marche rapide.
 - « Je suis fatigué » : une série de moins (minimum 2), variantes sans impact, effort modéré. Nutrition inchangée.
 - « J'ai mal au genou » : variantes sans flexion chargée ni impact (pont fessier, hip thrust, bird dog…), et conseil de consulter si la douleur est vive, gonfle ou dure. Jour de repos : mobilité douce.
@@ -47,7 +47,8 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 - Poids lissé (moyenne mobile exponentielle, 0,25) pour gommer l'eau et le sel.
 - Vitesse : régression linéaire sur 21 jours, au moins 3 pesées sur 7 jours.
-- Perte de gras : en bonne voie entre −0,1 % et −1 % du poids par semaine ; au-delà de −1 %, le coach suggère +150 kcal. Le coach suggère, l'utilisateur décide.
+- En bonne voie entre −0,1 % et −1 % du poids par semaine ; au-delà de −1 %, le coach suggère +150 kcal. Le coach suggère, l'utilisateur décide.
+- Tour de taille : saisi à la main, au plus une fois par semaine suffit. Variation sur 4 semaines, avec deux mesures espacées d'au moins 10 jours. Une baisse d'au moins 1 cm montre que le gras part, même si le poids ne bouge pas : le coach ne parle pas de stagnation.
 
 ## Régularité (`ProgressInsights/ConsistencyAnalyzer`)
 
@@ -60,8 +61,8 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 - Au plus une fois par semaine, sur la carte Progresser. Le coach propose, l'utilisateur applique ou repousse.
 - Perte trop rapide (plus de 1 % par semaine) : +150 kcal. Prise trop rapide (plus de 0,5 %) : −150 kcal.
-- Stagnation ou mauvaise direction : correction seulement si c'était déjà le cas une semaine plus tôt (pas de réaction à l'eau).
-- Corrections cumulées limitées à ±450 kcal ; jamais sous le plancher de sécurité, jamais de surplus pendant une perte de gras. Sans effet réel, pas de proposition.
+- Stagnation ou mauvaise direction : correction seulement si c'était déjà le cas une semaine plus tôt (pas de réaction à l'eau). Si le tour de taille a baissé d'au moins 1 cm, aucune correction : la recomposition fonctionne. Sans mesure de taille, le coach propose −150 kcal et demande de mesurer la taille.
+- Corrections cumulées limitées à ±450 kcal ; jamais sous le plancher de sécurité, jamais de surplus. Sans effet réel, pas de proposition.
 
 ## Pesées importées de Santé (`ProgressInsights/WeightImportPlanner`)
 

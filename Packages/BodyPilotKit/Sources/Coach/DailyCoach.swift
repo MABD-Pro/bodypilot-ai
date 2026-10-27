@@ -11,6 +11,8 @@ public struct TodayPlan: Sendable, Equatable {
     public var trend: WeightTrend
     /// Réponse à « est-ce que je progresse ? ».
     public var progressMessage: String
+    /// Variation du tour de taille sur 4 semaines (cm), si mesurée.
+    public var waistChangeCm: Double?
     public var adjustments: Set<QuickAdjustment>
 }
 
@@ -38,6 +40,7 @@ public struct DailyCoach: Sendable {
     public func plan(
         for profile: UserProfile,
         weights: [WeightEntry],
+        waists: [WaistEntry] = [],
         adjustments: Set<QuickAdjustment> = [],
         availableMinutes: Int? = nil,
         eatingOutSlot: MealSlot? = nil,
@@ -53,6 +56,7 @@ public struct DailyCoach: Sendable {
             profile.trainingWeekdays = UserProfile.normalized(weekTrainingDays, allowEmpty: true)
         }
         let trend = progress.trend(of: weights, for: profile, on: date)
+        let waistChange = progress.waistChange(of: waists, on: date)
         let weight = trend.currentTrendKg ?? profile.startWeightKg
         let targets = nutrition.targets(for: profile, currentWeightKg: weight, on: date)
         let meals = nutrition.mealPlan(
@@ -75,7 +79,8 @@ public struct DailyCoach: Sendable {
             meals: meals,
             training: trainingDay,
             trend: trend,
-            progressMessage: progressMessage(for: trend, goal: profile.goal),
+            progressMessage: progressMessage(for: trend, goal: profile.goal, waistChange: waistChange),
+            waistChangeCm: waistChange,
             adjustments: adjustments
         )
     }
@@ -114,7 +119,17 @@ public struct DailyCoach: Sendable {
         }
     }
 
-    func progressMessage(for trend: WeightTrend, goal: Goal) -> String {
+    /// En recomposition, le tour de taille qui baisse prouve le progrès même quand le poids stagne.
+    static let meaningfulWaistDropCm = -1.0
+
+    func progressMessage(for trend: WeightTrend, goal: Goal, waistChange: Double? = nil) -> String {
+        if goal == .recomposition, let waistChange, waistChange <= Self.meaningfulWaistDropCm,
+           trend.status == .stalled || trend.status == .onTrack || trend.status == .notEnoughData {
+            let cm = abs(waistChange).frenchOneDecimal
+            return trend.status == .onTrack
+                ? "Oui, sur les deux plans : le poids baisse au bon rythme et ta taille a perdu \(cm) cm en 4 semaines."
+                : "Oui : ta taille a perdu \(cm) cm en 4 semaines alors que ton poids bouge peu. Tu perds du gras et gagnes du muscle, c'est la recomposition."
+        }
         guard let weekly = trend.weeklyChangeKg else {
             return trend.points.isEmpty
                 ? "Pèse-toi demain matin à jeun : la tendance apparaît après une semaine."
@@ -125,9 +140,11 @@ public struct DailyCoach: Sendable {
         case .onTrack:
             return "Oui : \(change), le rythme visé. Continue comme ça."
         case .tooFast:
-            return goal == .loseFat
+            return goal == .loseFat || goal == .recomposition
                 ? "Tu perds vite (\(change)). Au-delà de 1 % par semaine, le muscle trinque : envisage +150 kcal."
                 : "Tu prends vite (\(change)) : une partie risque d'être du gras. Envisage −150 kcal."
+        case .stalled where goal == .recomposition:
+            return "Poids stable (\(change)). En recomposition c'est possible : mesure ton tour de taille chaque semaine pour voir si le gras baisse."
         case .stalled:
             return "Tendance stable (\(change)). Normal par moments ; si ça dure 2 semaines, on ajustera ensemble."
         case .wrongDirection:

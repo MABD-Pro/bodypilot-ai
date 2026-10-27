@@ -58,3 +58,28 @@ private let today = day(2026, 10, 27)
     profile.calorieAdjustmentKcal = -900
     #expect(calculator.targets(for: profile, currentWeightKg: 90, on: today).macros.kcal == 1860)
 }
+
+@Test func recompositionDeficitShrinksNearTarget() {
+    #expect(EnergyCalculator.recompositionDeficitRatio(currentKg: 95, targetKg: 80) == SafetyLimits.deficitRatio)
+    #expect(abs(EnergyCalculator.recompositionDeficitRatio(currentKg: 85, targetKg: 80) - 0.10) < 0.0001)
+    #expect(EnergyCalculator.recompositionDeficitRatio(currentKg: 81, targetKg: 80) == 0.05)
+    #expect(EnergyCalculator.recompositionDeficitRatio(currentKg: 80, targetKg: 80) == 0)
+    #expect(EnergyCalculator.recompositionDeficitRatio(currentKg: 80, targetKg: nil) == 0.10)
+}
+
+@Test func recompositionKeepsHighProteinAndNoSurplus() {
+    var profile = makeProfile(targetWeightKg: 85)
+    profile.goal = .recomposition
+    let targets = calculator.targets(for: profile, currentWeightKg: 90, on: today)
+    // 5 kg d'écart → 10 % de déficit sur 2875 → ≈ 2590.
+    #expect(abs(targets.macros.kcal - 2590) <= 10)
+    #expect(targets.macros.proteinG == 180)
+
+    profile.targetWeightKg = 90
+    let atTarget = calculator.targets(for: profile, currentWeightKg: 90, on: today)
+    #expect(abs(atTarget.macros.kcal - atTarget.maintenanceKcal) <= 10)
+
+    profile.calorieAdjustmentKcal = 450
+    let adjusted = calculator.targets(for: profile, currentWeightKg: 90, on: today)
+    #expect(adjusted.macros.kcal <= adjusted.maintenanceKcal + 10)
+}

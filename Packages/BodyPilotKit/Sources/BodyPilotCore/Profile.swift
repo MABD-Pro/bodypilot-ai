@@ -27,6 +27,9 @@ public enum Goal: String, CaseIterable, Sendable, Codable {
     case loseFat
     case maintain
     case buildMuscle
+    /// Perdre du gras et gagner du muscle en même temps : l'objectif par défaut.
+    /// Le déficit dépend de l'écart au poids visé ; le progrès se lit aussi au tour de taille.
+    case recomposition
 }
 
 public enum Equipment: String, CaseIterable, Sendable, Codable {

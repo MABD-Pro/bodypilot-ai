@@ -14,6 +14,8 @@ struct TodayView: View {
     @Query(sort: \WeightRecord.date) private var weights: [WeightRecord]
     @Query private var dayLogs: [DayLogRecord]
     @Query private var weekPlans: [WeekPlanRecord]
+    @Query(sort: \WaistRecord.date) private var waists: [WaistRecord]
+    @State private var isAddingWaist = false
     @State private var isAddingWeight = false
     @State private var isEditingProfile = false
 
@@ -28,6 +30,7 @@ struct TodayView: View {
         let plan = CoachFactory.coach.plan(
             for: profileRecord.profile,
             weights: weights.map(\.entry),
+            waists: waists.map(\.entry),
             adjustments: todayAdjustments,
             availableMinutes: todayLog?.availableMinutes,
             eatingOutSlot: todayLog?.eatingOutSlot,
@@ -47,7 +50,7 @@ struct TodayView: View {
         }
 
         let checkIn = profileRecord.isCheckInDue(at: now)
-            ? CoachFactory.coach.weeklyCheckIn(for: profileRecord.profile, weights: weights.map(\.entry), on: now)
+            ? CoachFactory.coach.weeklyCheckIn(for: profileRecord.profile, weights: weights.map(\.entry), waists: waists.map(\.entry), on: now)
             : nil
 
         NavigationStack {
@@ -75,7 +78,10 @@ struct TodayView: View {
                             health: healthLink,
                             checkIn: checkIn,
                             consistency: consistency,
+                            waistCm: waists.last?.cm,
+                            waistChange: plan.waistChangeCm,
                             addWeight: { isAddingWeight = true },
+                            addWaist: { isAddingWaist = true },
                             acceptCheckIn: { acceptCheckIn(checkIn) },
                             dismissCheckIn: { withAnimation(Theme.springy) { profileRecord.lastCheckInAt = .now } },
                             connectHealth: { Task { await connectHealth() } },
@@ -110,6 +116,9 @@ struct TodayView: View {
             }
             .sheet(isPresented: $isAddingWeight) {
                 WeightEntrySheet(initialKg: weights.last?.kg ?? profileRecord.startWeightKg)
+            }
+            .sheet(isPresented: $isAddingWaist) {
+                WaistEntrySheet(initialCm: waists.last?.cm ?? 90)
             }
             .sheet(isPresented: $isEditingProfile) {
                 OnboardingView(editing: profileRecord)

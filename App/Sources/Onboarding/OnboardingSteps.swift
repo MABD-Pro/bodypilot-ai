@@ -1,26 +1,6 @@
 import BodyPilotCore
 import SwiftUI
 
-struct GoalStep: View {
-    @Binding var draft: ProfileDraft
-
-    var body: some View {
-        VStack(spacing: Theme.Spacing.m) {
-            ForEach(Goal.allCases, id: \.self) { goal in
-                ChoiceCard(
-                    title: goal.title,
-                    subtitle: goal.subtitle,
-                    symbol: goal.symbol,
-                    tint: goal.tint,
-                    isSelected: draft.goal == goal
-                ) {
-                    withAnimation(Theme.springy) { draft.goal = goal }
-                }
-            }
-        }
-    }
-}
-
 struct BodyStep: View {
     @Binding var draft: ProfileDraft
 
@@ -36,10 +16,11 @@ struct BodyStep: View {
             SliderRow(title: "Âge", value: $draft.age, range: 16...85, step: 1, unit: "ans", decimals: false)
             SliderRow(title: "Taille", value: $draft.heightCm, range: 140...210, step: 1, unit: "cm", decimals: false)
             SliderRow(title: "Poids", value: $draft.weightKg, range: 40...180, step: 0.5, unit: "kg", decimals: true)
-            if draft.goal != .maintain {
-                SliderRow(title: "Poids visé", value: $draft.targetWeightKg, range: 40...180, step: 0.5, unit: "kg", decimals: true)
-                    .transition(.opacity)
-            }
+            SliderRow(title: "Poids visé", value: $draft.targetWeightKg, range: 40...180, step: 0.5, unit: "kg", decimals: true)
+            Text("Je règle le déficit sur l'écart à ce poids : plus marqué au début, nul une fois arrivé. Protéines hautes et force pour garder, voire gagner, du muscle.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
@@ -189,40 +170,6 @@ struct SliderRow: View {
         }
         .padding(Theme.Spacing.l)
         .glassEffect(.regular, in: .rect(cornerRadius: Theme.Radius.inner + 4))
-    }
-}
-
-extension Goal {
-    var title: String {
-        switch self {
-        case .loseFat: "Perdre du poids"
-        case .maintain: "Garder la forme"
-        case .buildMuscle: "Prendre du muscle"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .loseFat: "Perdre du gras sans perdre de muscle, à un rythme tenable."
-        case .maintain: "Rester en forme et stable, sans compter chaque calorie."
-        case .buildMuscle: "Gagner en force et en volume, sans excès de gras."
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .loseFat: "flame.fill"
-        case .maintain: "heart.fill"
-        case .buildMuscle: "dumbbell.fill"
-        }
-    }
-
-    var tint: Color {
-        switch self {
-        case .loseFat: Theme.nutrition
-        case .maintain: Theme.progress
-        case .buildMuscle: Theme.training
-        }
     }
 }
 

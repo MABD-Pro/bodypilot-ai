@@ -19,7 +19,11 @@ struct ProgressCard: View {
     let health: HealthLink
     let checkIn: CalorieSuggestion?
     let consistency: WeeklyConsistency
+    let waistCm: Double?
+    /// Variation sur 4 semaines (cm).
+    let waistChange: Double?
     let addWeight: () -> Void
+    let addWaist: () -> Void
     let acceptCheckIn: () -> Void
     let dismissCheckIn: () -> Void
     let connectHealth: () -> Void
@@ -57,6 +61,8 @@ struct ProgressCard: View {
             }
 
             consistencyRow
+
+            waistRow
 
             if trend.points.count >= 2 {
                 chart
@@ -117,6 +123,46 @@ struct ProgressCard: View {
         }
         .padding(Theme.Spacing.m)
         .background(Theme.progress.opacity(0.10), in: .rect(cornerRadius: Theme.Radius.inner))
+    }
+
+    /// Tour de taille : en recomposition, c'est lui qui montre que le gras part quand le poids stagne.
+    private var waistRow: some View {
+        HStack(spacing: Theme.Spacing.m) {
+            IconBadge(symbol: "ruler", tint: Theme.progress, size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                if let waistCm {
+                    Text("Tour de taille \(waistCm.frenchOneDecimal) cm")
+                        .font(.subheadline.weight(.semibold))
+                    if let waistChange {
+                        Text("\(waistChange > 0 ? "+" : "")\(waistChange.frenchOneDecimal) cm en 4 semaines")
+                            .font(.footnote)
+                            .foregroundStyle(waistChange < 0 ? Theme.progress : .secondary)
+                    } else {
+                        Text("Une mesure par semaine suffit.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text("Mesure ton tour de taille")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Au nombril, le matin. Il montre le gras perdu quand le poids bouge peu.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 0)
+            Button(action: addWaist) {
+                Image(systemName: "plus")
+                    .font(.footnote.weight(.bold))
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+            .glassEffect(.regular.tint(Theme.progress.opacity(0.25)).interactive(), in: .circle)
+            .accessibilityLabel("Ajouter un tour de taille")
+        }
+        .padding(Theme.Spacing.m)
+        .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
     }
 
     /// Régularité de la semaine : une pastille par séance prévue, pleine quand elle est faite.

@@ -22,7 +22,7 @@ extension DailyCoach {
     /// - Stagnation ou mauvaise direction : seulement si c'était déjà le cas une semaine plus tôt,
     ///   pour ne pas réagir à une variation d'eau.
     /// - Jamais au-delà de ±450 kcal cumulés, jamais sous le plancher de sécurité.
-    public func weeklyCheckIn(for profile: UserProfile, weights: [WeightEntry], on date: Date) -> CalorieSuggestion? {
+    public func weeklyCheckIn(for profile: UserProfile, weights: [WeightEntry], waists: [WaistEntry] = [], on date: Date) -> CalorieSuggestion? {
         let trend = progress.trend(of: weights, for: profile, on: date)
         guard let weekly = trend.weeklyChangeKg else { return nil }
         let weekAgo = calendar.date(byAdding: .day, value: -7, to: date) ?? date
@@ -33,7 +33,7 @@ extension DailyCoach {
         let direction: Double
         let reason: String
         switch (profile.goal, trend.status) {
-        case (.loseFat, .tooFast):
+        case (.loseFat, .tooFast), (.recomposition, .tooFast):
             direction = 1
             reason = "Tu perds vite (\(change)) : au-delà de 1 % par semaine, le muscle trinque."
         case (.buildMuscle, .tooFast):
@@ -43,6 +43,14 @@ extension DailyCoach {
             guard persistent else { return nil }
             direction = -1
             reason = "Ta tendance ne baisse plus depuis deux semaines (\(change))."
+        case (.recomposition, .stalled), (.recomposition, .wrongDirection):
+            // Taille en baisse : le gras part, on ne touche à rien.
+            guard persistent else { return nil }
+            if let waist = progress.waistChange(of: waists, on: date), waist <= Self.meaningfulWaistDropCm { return nil }
+            direction = -1
+            reason = waists.isEmpty
+                ? "Ton poids ne baisse plus depuis deux semaines (\(change)). Mesure aussi ton tour de taille : s'il baisse, pas besoin de manger moins."
+                : "Ni ton poids ni ta taille ne baissent depuis deux semaines (\(change))."
         case (.buildMuscle, .stalled), (.buildMuscle, .wrongDirection):
             guard persistent else { return nil }
             direction = 1

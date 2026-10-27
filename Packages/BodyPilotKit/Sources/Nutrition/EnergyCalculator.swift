@@ -35,6 +35,18 @@ public struct EnergyCalculator: Sendable {
         case .maintain:
             kcal = maintenance
             explanation = "Dépense estimée \(maintenance.frenchInteger) kcal : on vise l'équilibre."
+        case .recomposition:
+            let ratio = Self.recompositionDeficitRatio(currentKg: currentWeightKg, targetKg: profile.targetWeightKg)
+            let deficit = min(maintenance * ratio, SafetyLimits.maxDeficitKcal)
+            let floor = max(bmr, SafetyLimits.minimumKcal(for: profile.sex))
+            kcal = max(maintenance - deficit, min(floor, maintenance))
+            if deficit < 1 {
+                explanation = "Dépense estimée \(maintenance.frenchInteger) kcal. Tu es à ton poids visé : on reste à l'équilibre, les protéines et la force font le reste."
+            } else if kcal > maintenance - deficit {
+                explanation = "Dépense estimée \(maintenance.frenchInteger) kcal. Déficit limité pour ne pas descendre sous \(floor.frenchInteger) kcal, le minimum sûr pour toi."
+            } else {
+                explanation = "Dépense estimée \(maintenance.frenchInteger) kcal, moins \(deficit.frenchInteger) kcal : assez pour perdre du gras, pas trop pour garder de quoi construire du muscle. Le déficit se réduit à l'approche de ton poids visé."
+            }
         case .buildMuscle:
             let surplus = min(maintenance * SafetyLimits.surplusRatio, SafetyLimits.maxSurplusKcal)
             kcal = maintenance + surplus
@@ -66,7 +78,8 @@ public struct EnergyCalculator: Sendable {
     /// pas de surplus pendant une perte de gras, pas plus que le surplus maximal sinon.
     private func clampAdjusted(_ kcal: Double, planned: Double, bmr: Double, maintenance: Double, profile: UserProfile) -> Double {
         let floor = min(max(bmr, SafetyLimits.minimumKcal(for: profile.sex)), planned)
-        let ceiling = max(planned, profile.goal == .loseFat ? maintenance : maintenance + SafetyLimits.maxSurplusKcal)
+        let noSurplus = profile.goal == .loseFat || profile.goal == .recomposition
+        let ceiling = max(planned, noSurplus ? maintenance : maintenance + SafetyLimits.maxSurplusKcal)
         return min(max(kcal, floor), ceiling)
     }
 
@@ -75,7 +88,17 @@ public struct EnergyCalculator: Sendable {
         case .loseFat: 2.0
         case .maintain: 1.6
         case .buildMuscle: 1.8
+        case .recomposition: 2.0
         }
+    }
+
+    /// Recomposition : 20 % de déficit à 10 kg ou plus du poids visé, de moins en moins en
+    /// s'en approchant (5 % au minimum), plus rien une fois arrivé. Sans poids visé : 10 %.
+    static func recompositionDeficitRatio(currentKg: Double, targetKg: Double?) -> Double {
+        guard let targetKg else { return 0.10 }
+        let gap = currentKg - targetKg
+        guard gap > 0.5 else { return 0 }
+        return min(max(gap / 10 * SafetyLimits.deficitRatio, 0.05), SafetyLimits.deficitRatio)
     }
 
     /// Au-delà d'un IMC de 30, les protéines se calculent sur le poids correspondant à un IMC de 27,

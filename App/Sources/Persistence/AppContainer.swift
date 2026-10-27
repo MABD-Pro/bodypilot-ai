@@ -36,7 +36,7 @@ enum LaunchOptions {
 }
 
 enum AppContainer {
-    static let schema = Schema([ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self])
+    static let schema = Schema([ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self])
 
     /// Conteneur unique de l'app, partagé avec Siri et Raccourcis pour qu'ils voient les mêmes données.
     @MainActor
@@ -84,7 +84,7 @@ enum DemoData {
             startWeightKg: 88,
             targetWeightKg: 80,
             activity: .moderate,
-            goal: .loseFat,
+            goal: .recomposition,
             // Six séances : les captures montrent une séance quel que soit le jour (sauf le dimanche).
             trainingDaysPerWeek: 6,
             sessionMinutes: 45,
@@ -99,6 +99,12 @@ enum DemoData {
             let perDay = LaunchOptions.demoCheckIn ? 0.17 : 0.09
             let kg = 88.0 - perDay * Double(index) + noise[index % noise.count]
             context.insert(WeightRecord(date: date, kg: (kg * 10).rounded() / 10))
+        }
+
+        // Tour de taille en baisse, une mesure par semaine.
+        for week in 0..<4 {
+            guard let date = calendar.date(byAdding: .day, value: -7 * week, to: now) else { continue }
+            context.insert(WaistRecord(date: date, cm: 95.0 - 0.6 * Double(3 - week)))
         }
 
         // Trois semaines de séances cochées, pour afficher la régularité.

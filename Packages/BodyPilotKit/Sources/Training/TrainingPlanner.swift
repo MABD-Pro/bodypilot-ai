@@ -104,7 +104,7 @@ public struct TrainingPlanner: TrainingPlanning {
                 notes: ["Genou : marche seulement si elle est indolore. Sinon, mobilité du haut du corps et du bassin."]
             )
         }
-        let minutes = profile.goal == .loseFat && !constraints.lowEnergy ? 30 : 20
+        let minutes = (profile.goal == .loseFat || profile.goal == .recomposition) && !constraints.lowEnergy ? 30 : 20
         let title = constraints.lowEnergy ? "Marche tranquille" : "Marche active"
         let available = constraints.availableMinutes.map { min($0, minutes) } ?? minutes
         let notes = constraints.traveling ? ["Déplacement : profite-en pour découvrir les lieux à pied."] : []
