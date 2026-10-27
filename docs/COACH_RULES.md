@@ -29,6 +29,13 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - « Je pars en déplacement » : séance au poids du corps, 30 minutes maximum.
 - « J'ai raté ma séance » : jamais deux séances le même jour. Si le lendemain est un jour de repos, la séance y est proposée ; sinon on reprend au créneau suivant.
 
+## Séance sur l'Apple Watch (`Training/GuidedWorkout`)
+
+- La séance envoyée est celle du jour, déjà adaptée (temps, fatigue, genou, déplacement).
+- Chaque exercice devient un bloc répété autant de fois qu'il y a de séries : effort puis repos minuté.
+- Une série en répétitions reste ouverte (on passe à la suite d'une touche) ; une série chronométrée et le repos ont une durée.
+- Envoi via l'aperçu WorkoutKit : l'utilisateur confirme l'ajout sur sa montre, aucune autorisation supplémentaire.
+
 ## Progression (`ProgressInsights/WeightTrendAnalyzer`)
 
 - Poids lissé (moyenne mobile exponentielle, 0,25) pour gommer l'eau et le sel.
