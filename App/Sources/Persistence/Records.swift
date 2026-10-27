@@ -20,6 +20,10 @@ final class ProfileRecord {
     var trainingDaysPerWeek: Int = 3
     var sessionMinutes: Int = 45
     var equipmentRaw: String = Equipment.bodyweight.rawValue
+    /// Correction issue des bilans hebdomadaires ; jamais écrasée par l'édition du profil.
+    var calorieAdjustmentKcal: Double = 0
+    /// Dernier bilan proposé (accepté ou non) : un seul par semaine.
+    var lastCheckInAt: Date?
 
     init(_ profile: UserProfile) {
         entityID = profile.id.rawValue
@@ -39,6 +43,12 @@ final class ProfileRecord {
         equipmentRaw = profile.equipment.rawValue
     }
 
+    /// Le bilan revient au plus une fois par semaine.
+    func isCheckInDue(at date: Date) -> Bool {
+        guard let lastCheckInAt else { return true }
+        return date.timeIntervalSince(lastCheckInAt) >= 7 * 86_400
+    }
+
     var profile: UserProfile {
         UserProfile(
             id: EntityID(entityID),
@@ -51,7 +61,8 @@ final class ProfileRecord {
             goal: Goal(rawValue: goalRaw) ?? .loseFat,
             trainingDaysPerWeek: trainingDaysPerWeek,
             sessionMinutes: sessionMinutes,
-            equipment: Equipment(rawValue: equipmentRaw) ?? .bodyweight
+            equipment: Equipment(rawValue: equipmentRaw) ?? .bodyweight,
+            calorieAdjustmentKcal: calorieAdjustmentKcal
         )
     }
 }

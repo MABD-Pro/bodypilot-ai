@@ -1,5 +1,6 @@
 import BodyPilotCore
 import Charts
+import Coach
 import SwiftUI
 
 /// Lien avec l'app Santé pour les pesées.
@@ -15,7 +16,10 @@ struct ProgressCard: View {
     let message: String
     let profile: UserProfile
     let health: HealthLink
+    let checkIn: CalorieSuggestion?
     let addWeight: () -> Void
+    let acceptCheckIn: () -> Void
+    let dismissCheckIn: () -> Void
     let connectHealth: () -> Void
     let disconnectHealth: () -> Void
 
@@ -43,6 +47,11 @@ struct ProgressCard: View {
             Text(message)
                 .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if let checkIn {
+                checkInBox(checkIn)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
 
             if trend.points.count >= 2 {
                 chart
@@ -74,6 +83,35 @@ struct ProgressCard: View {
                 .tint(Theme.progress)
             }
         }
+    }
+
+    /// Bilan de la semaine : une proposition claire, deux réponses, aucune obligation.
+    private func checkInBox(_ suggestion: CalorieSuggestion) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            Label("Bilan de la semaine", systemImage: "calendar.badge.checkmark")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.progress)
+            Text(suggestion.message)
+                .font(.subheadline)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: Theme.Spacing.s) {
+                Button(action: acceptCheckIn) {
+                    Text("Appliquer")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(Theme.progress)
+                Button(action: dismissCheckIn) {
+                    Text("Pas maintenant")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glass)
+            }
+        }
+        .padding(Theme.Spacing.m)
+        .background(Theme.progress.opacity(0.10), in: .rect(cornerRadius: Theme.Radius.inner))
     }
 
     /// Proposer Santé tant qu'il n'est pas branché ; ensuite, un simple rappel discret.

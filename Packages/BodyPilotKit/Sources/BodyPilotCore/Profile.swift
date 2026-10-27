@@ -50,6 +50,8 @@ public struct UserProfile: Sendable, Equatable, Codable {
     public var trainingDaysPerWeek: Int
     public var sessionMinutes: Int
     public var equipment: Equipment
+    /// Correction décidée lors des bilans hebdomadaires (kcal/jour), appliquée dans les limites de sécurité.
+    public var calorieAdjustmentKcal: Double
 
     public init(
         id: EntityID = EntityID(),
@@ -62,7 +64,8 @@ public struct UserProfile: Sendable, Equatable, Codable {
         goal: Goal,
         trainingDaysPerWeek: Int,
         sessionMinutes: Int,
-        equipment: Equipment
+        equipment: Equipment,
+        calorieAdjustmentKcal: Double = 0
     ) {
         self.id = id
         self.sex = sex
@@ -75,6 +78,7 @@ public struct UserProfile: Sendable, Equatable, Codable {
         self.trainingDaysPerWeek = trainingDaysPerWeek
         self.sessionMinutes = sessionMinutes
         self.equipment = equipment
+        self.calorieAdjustmentKcal = calorieAdjustmentKcal
     }
 
     public func age(on date: Date, calendar: Calendar) -> Int {

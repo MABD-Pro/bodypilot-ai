@@ -41,3 +41,20 @@ private let today = day(2026, 10, 27)
     // IMC 37 → poids de référence 27 × 1,8² = 87,5 kg → 175 g.
     #expect(targets.macros.proteinG == 175)
 }
+
+@Test func weeklyAdjustmentShiftsTargetAndIsExplained() {
+    var profile = makeProfile()
+    profile.calorieAdjustmentKcal = -150
+    let targets = calculator.targets(for: profile, currentWeightKg: 90, on: today)
+    #expect(targets.macros.kcal == 2150)
+    #expect(targets.rationale.contains("-150 kcal"))
+}
+
+@Test func weeklyAdjustmentNeverBreaksSafetyLimits() {
+    // Perte de gras : jamais au-dessus de la maintenance (2875), jamais sous le plancher (BMR 1855).
+    var profile = makeProfile()
+    profile.calorieAdjustmentKcal = 900
+    #expect(calculator.targets(for: profile, currentWeightKg: 90, on: today).macros.kcal == 2880)
+    profile.calorieAdjustmentKcal = -900
+    #expect(calculator.targets(for: profile, currentWeightKg: 90, on: today).macros.kcal == 1860)
+}
