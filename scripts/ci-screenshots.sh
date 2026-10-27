@@ -51,6 +51,8 @@ shoot 2-aujourdhui-repas -demoData YES -demoScrollTo nutrition
 shoot 3-aujourdhui-seance -demoData YES -demoScrollTo training
 shoot 4-aujourdhui-progression -demoData YES -demoScrollTo progress
 shoot 5-ajustement-20min-fatigue -demoData YES -demoAdjustments shortOnTime,tired -demoScrollTo training
-shoot 6-accueil -demoOnboarding YES
+shoot 6a-phrase-resto-genou-repas -demoData YES -demoCommand "J'ai mal au genou et ce soir resto" -demoScrollTo nutrition
+shoot 6b-phrase-resto-genou-seance -demoData YES -demoCommand "J'ai mal au genou et ce soir resto" -demoScrollTo training
+shoot 7-accueil -demoOnboarding YES
 xcrun simctl ui "$UDID" appearance dark
-shoot 7-aujourdhui-sombre -demoData YES
+shoot 8-aujourdhui-sombre -demoData YES

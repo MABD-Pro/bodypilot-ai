@@ -76,3 +76,28 @@ private func workout(_ day: TrainingDay) -> Workout? {
     let second = planner.scheduledWorkout(for: makeProfile(), on: wednesday)
     #expect(first.title != second.title)
 }
+
+@Test func kneePainRemovesEveryKneeLoadingExercise() throws {
+    for equipment in Equipment.allCases {
+        for date in [monday, day(2026, 10, 28)] {
+            let result = planner.trainingDay(for: makeProfile(equipment: equipment), on: date, constraints: DayConstraints(kneePain: true))
+            let session = try #require(workout(result))
+            #expect(!session.exercises.contains { $0.loadsKnee || $0.isHighImpact })
+            #expect(session.exercises.count >= 3)
+            #expect(result.notes.contains { $0.contains("professionnel de santé") })
+        }
+    }
+}
+
+@Test func kneePainOnRestDayProposesGentleMobility() {
+    let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints(kneePain: true))
+    #expect(result.kind == .activeRest(title: "Mobilité douce", minutes: 15))
+}
+
+@Test func travelingUsesBodyweightWithinThirtyMinutes() throws {
+    let result = planner.trainingDay(for: makeProfile(sessionMinutes: 60, equipment: .gym), on: monday, constraints: DayConstraints(traveling: true))
+    let session = try #require(workout(result))
+    #expect(result.estimatedMinutes <= TrainingPlanner.travelMaxMinutes)
+    let bodyweightNames = Set(WorkoutCatalog.sessions(for: .bodyweight).flatMap { $0.exercises.map(\.name) })
+    #expect(session.exercises.allSatisfy { bodyweightNames.contains($0.name) })
+}

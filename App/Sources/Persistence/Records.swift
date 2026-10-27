@@ -74,6 +74,8 @@ final class WeightRecord {
 final class DayLogRecord {
     var day: Date = Date.now
     var adjustmentsRaw: [String] = []
+    /// Temps précis annoncé en phrase libre (« j'ai 15 min »).
+    var availableMinutes: Int?
 
     init(day: Date) {
         self.day = day

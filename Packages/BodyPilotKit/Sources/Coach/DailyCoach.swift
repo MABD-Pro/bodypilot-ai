@@ -21,25 +21,38 @@ public struct DailyCoach: Sendable {
     public var nutrition: any NutritionPlanning
     public var training: any TrainingPlanning
     public var progress: any ProgressAnalyzing
+    public var calendar: Calendar
 
-    public init(nutrition: any NutritionPlanning, training: any TrainingPlanning, progress: any ProgressAnalyzing) {
+    public init(
+        nutrition: any NutritionPlanning,
+        training: any TrainingPlanning,
+        progress: any ProgressAnalyzing,
+        calendar: Calendar = .current
+    ) {
         self.nutrition = nutrition
         self.training = training
         self.progress = progress
+        self.calendar = calendar
     }
 
     public func plan(
         for profile: UserProfile,
         weights: [WeightEntry],
         adjustments: Set<QuickAdjustment> = [],
+        availableMinutes: Int? = nil,
         yesterdayAdjustments: Set<QuickAdjustment> = [],
         on date: Date
     ) -> TodayPlan {
         let trend = progress.trend(of: weights, for: profile, on: date)
         let weight = trend.currentTrendKg ?? profile.startWeightKg
         let targets = nutrition.targets(for: profile, currentWeightKg: weight, on: date)
-        let meals = nutrition.mealPlan(for: targets, on: date)
-        let constraints = DayConstraints(today: adjustments, yesterday: yesterdayAdjustments)
+        let meals = nutrition.mealPlan(
+            for: targets,
+            profile: profile,
+            on: date,
+            constraints: MealConstraints(today: adjustments, at: date, calendar: calendar)
+        )
+        let constraints = DayConstraints(today: adjustments, yesterday: yesterdayAdjustments, availableMinutes: availableMinutes)
         let trainingDay = training.trainingDay(for: profile, on: date, constraints: constraints)
 
         return TodayPlan(
@@ -53,15 +66,28 @@ public struct DailyCoach: Sendable {
         )
     }
 
+    /// Une phrase qui dit ce qui change aujourd'hui, la contrainte la plus forte d'abord.
     func headline(training: TrainingDay, adjustments: Set<QuickAdjustment>, kcal: Double) -> String {
+        if adjustments.contains(.kneePain) {
+            return "Genou sensible : on le ménage aujourd'hui, le reste du plan continue."
+        }
         if adjustments.contains(.missedWorkout) {
             return "Séance ratée, pas de souci. On ne double pas, on reprend au prochain créneau."
+        }
+        if adjustments.contains(.traveling) {
+            return "En déplacement : séance sans matériel et repères simples pour manger."
         }
         if adjustments.contains(.tired) && adjustments.contains(.shortOnTime) {
             return "Journée chargée et fatigue : version courte et douce, l'essentiel suffit."
         }
         if adjustments.contains(.tired) {
             return "Journée en douceur : séance allégée, alimentation inchangée pour bien récupérer."
+        }
+        if adjustments.contains(.eatingOut) {
+            return "Restaurant au programme : profite, avec trois repères simples pour garder le cap."
+        }
+        if adjustments.contains(.notHungry) {
+            return "Peu d'appétit : des portions plus petites, les protéines d'abord."
         }
         switch training.kind {
         case .workout(let workout):

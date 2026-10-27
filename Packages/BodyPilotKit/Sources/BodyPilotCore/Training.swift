@@ -15,6 +15,10 @@ public struct WorkoutExercise: Sendable, Equatable {
     public var isHighImpact: Bool
     /// Variante sans impact, utilisée en cas de fatigue.
     public var lowImpactAlternative: String?
+    /// Sollicite fortement le genou (flexion chargée, impacts).
+    public var loadsKnee: Bool
+    /// Variante qui épargne le genou.
+    public var kneeFriendlyAlternative: String?
 
     public init(
         name: String,
@@ -23,7 +27,9 @@ public struct WorkoutExercise: Sendable, Equatable {
         restSeconds: Int,
         priority: Int,
         isHighImpact: Bool = false,
-        lowImpactAlternative: String? = nil
+        lowImpactAlternative: String? = nil,
+        loadsKnee: Bool = false,
+        kneeFriendlyAlternative: String? = nil
     ) {
         self.name = name
         self.sets = sets
@@ -32,6 +38,8 @@ public struct WorkoutExercise: Sendable, Equatable {
         self.priority = priority
         self.isHighImpact = isHighImpact
         self.lowImpactAlternative = lowImpactAlternative
+        self.loadsKnee = loadsKnee
+        self.kneeFriendlyAlternative = kneeFriendlyAlternative
     }
 }
 
@@ -78,12 +86,25 @@ public struct DayConstraints: Sendable, Equatable {
     public var missedToday: Bool
     /// La séance d'hier a été ratée : rattrapable si aujourd'hui est un jour de repos.
     public var missedYesterday: Bool
+    /// Douleur au genou : aucun exercice qui le charge.
+    public var kneePain: Bool
+    /// En déplacement : pas de matériel, peu de temps.
+    public var traveling: Bool
 
-    public init(availableMinutes: Int? = nil, lowEnergy: Bool = false, missedToday: Bool = false, missedYesterday: Bool = false) {
+    public init(
+        availableMinutes: Int? = nil,
+        lowEnergy: Bool = false,
+        missedToday: Bool = false,
+        missedYesterday: Bool = false,
+        kneePain: Bool = false,
+        traveling: Bool = false
+    ) {
         self.availableMinutes = availableMinutes
         self.lowEnergy = lowEnergy
         self.missedToday = missedToday
         self.missedYesterday = missedYesterday
+        self.kneePain = kneePain
+        self.traveling = traveling
     }
 }
 

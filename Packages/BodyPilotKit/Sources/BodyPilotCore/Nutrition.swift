@@ -69,26 +69,44 @@ public struct PlannedMeal: Sendable, Equatable {
     public var title: String
     public var items: [MealItem]
     public var macros: Macros
+    /// Repas pris dehors : des repères plutôt que des quantités.
+    public var isEatingOut: Bool
 
-    public init(slot: MealSlot, title: String, items: [MealItem], macros: Macros) {
+    public init(slot: MealSlot, title: String, items: [MealItem], macros: Macros, isEatingOut: Bool = false) {
         self.slot = slot
         self.title = title
         self.items = items
         self.macros = macros
+        self.isEatingOut = isEatingOut
     }
 }
 
 public struct DayMealPlan: Sendable, Equatable {
     public var meals: [PlannedMeal]
+    /// Ajustements appliqués, en clair.
+    public var notes: [String]
 
-    public init(meals: [PlannedMeal]) {
+    public init(meals: [PlannedMeal], notes: [String] = []) {
         self.meals = meals
+        self.notes = notes
     }
 
     public var totals: Macros { meals.reduce(.zero) { $0 + $1.macros } }
 }
 
+/// Contraintes alimentaires du jour déclarées par l'utilisateur.
+public struct MealConstraints: Sendable, Equatable {
+    /// Repas pris au restaurant, s'il y en a un.
+    public var eatingOut: MealSlot?
+    public var lowAppetite: Bool
+
+    public init(eatingOut: MealSlot? = nil, lowAppetite: Bool = false) {
+        self.eatingOut = eatingOut
+        self.lowAppetite = lowAppetite
+    }
+}
+
 public protocol NutritionPlanning: Sendable {
     func targets(for profile: UserProfile, currentWeightKg: Double, on date: Date) -> NutritionTargets
-    func mealPlan(for targets: NutritionTargets, on date: Date) -> DayMealPlan
+    func mealPlan(for targets: NutritionTargets, profile: UserProfile, on date: Date, constraints: MealConstraints) -> DayMealPlan
 }
