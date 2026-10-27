@@ -46,6 +46,7 @@ enum DayLogEditor {
             availableMinutes: today?.availableMinutes,
             eatingOutSlot: today?.eatingOutSlot,
             yesterdayAdjustments: yesterday?.adjustments ?? [],
+            exerciseSwaps: today?.exerciseSwaps ?? [:],
             on: now
         )
     }

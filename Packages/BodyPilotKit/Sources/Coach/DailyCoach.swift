@@ -42,6 +42,7 @@ public struct DailyCoach: Sendable {
         availableMinutes: Int? = nil,
         eatingOutSlot: MealSlot? = nil,
         yesterdayAdjustments: Set<QuickAdjustment> = [],
+        exerciseSwaps: [String: Int] = [:],
         on date: Date
     ) -> TodayPlan {
         let trend = progress.trend(of: weights, for: profile, on: date)
@@ -53,7 +54,12 @@ public struct DailyCoach: Sendable {
             on: date,
             constraints: MealConstraints(today: adjustments, at: date, calendar: calendar, eatingOutSlot: eatingOutSlot)
         )
-        let constraints = DayConstraints(today: adjustments, yesterday: yesterdayAdjustments, availableMinutes: availableMinutes)
+        let constraints = DayConstraints(
+            today: adjustments,
+            yesterday: yesterdayAdjustments,
+            availableMinutes: availableMinutes,
+            exerciseSwaps: exerciseSwaps
+        )
         let trainingDay = training.trainingDay(for: profile, on: date, constraints: constraints)
 
         return TodayPlan(

@@ -29,6 +29,7 @@ struct TodayView: View {
             availableMinutes: todayLog?.availableMinutes,
             eatingOutSlot: todayLog?.eatingOutSlot,
             yesterdayAdjustments: adjustments(on: calendar.date(byAdding: .day, value: -1, to: now) ?? now),
+            exerciseSwaps: todayLog?.exerciseSwaps ?? [:],
             on: now
         )
 
@@ -45,7 +46,7 @@ struct TodayView: View {
                         AdjustmentBar(active: todayAdjustments, toggle: toggle)
                         NutritionCard(targets: plan.targets, meals: plan.meals)
                             .id("nutrition")
-                        TrainingCard(training: plan.training)
+                        TrainingCard(training: plan.training, swap: swapExercise)
                             .id("training")
                         ProgressCard(
                             trend: plan.trend,
@@ -81,6 +82,7 @@ struct TodayView: View {
                 }
             }
             .sensoryFeedback(.selection, trigger: todayAdjustments)
+            .sensoryFeedback(.selection, trigger: todayLog?.exerciseSwapsRaw.count ?? 0)
             .task(id: scenePhase) {
                 // À chaque retour dans l'app : les pesées de la balance arrivent toutes seules.
                 if scenePhase == .active, healthSync { await importHealthWeights() }
@@ -185,6 +187,14 @@ struct TodayView: View {
                 current.insert(adjustment)
             }
             log.adjustments = current
+        }
+    }
+
+    /// Un exercice ne convient pas (poste occupé, matériel absent) : variante suivante, pour la journée.
+    private func swapExercise(key: String) {
+        let log = todayLog()
+        withAnimation(Theme.springy) {
+            log.exerciseSwapsRaw.append(key)
         }
     }
 
