@@ -37,7 +37,9 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 ## Séance du jour (`Training/TrainingPlanner`)
 
-- Pas de jours fixes ni de jours de repos : chaque jour a sa séance. Si la dernière séance de force (cochée dans l'app ou renforcement d'au moins 20 min enregistré dans Santé) date d'au moins 48 h, ou s'il n'y en a jamais eu, c'est un full body lourd, A puis B en alternance. Sinon, une séance « Cardio et marche inclinée » (à la maison « Cardio et marche en côte ») : échauffement, cardio continu à allure modérée et sans impact (vélo, elliptique ou rameur ; à la maison marche rapide ou boxe dans le vide), puis marche inclinée, sans force ni fractionné, le temps que les muscles récupèrent.
+- Au jour le jour, sans planning : chaque jour, le coach propose 2 ou 3 activités et le repos, en recommande une et dit pourquoi ; l'utilisateur choisit d'une touche (le choix vaut pour la journée). Propositions : force (seulement si la dernière séance de force, cochée dans l'app ou renforcement d'au moins 20 min dans Santé, date d'au moins 48 h, ou s'il n'y en a jamais eu : full body lourd A puis B, ou test de force), « Cardio et marche inclinée » (à la maison « en côte » : cardio continu modéré et sans impact, puis marche inclinée), marche tranquille de 30 min, repos.
+- Recommandation, dans l'ordre : séance ratée → marche tranquille ; 6 jours d'activité d'affilée (app ou Santé, 20 min au moins) → repos ; fatigue et nuit de moins de 6 h (sommeil lu dans Santé) → repos ; nuit de moins de 6 h → cardio et marche (marche tranquille si la force date de moins de 48 h) ; courbatures → cardio et marche ; force possible → force ; séance intense de 45 min ou plus la veille dans Santé (fractionné, cours, sport, combat, course) → marche tranquille ; sinon cardio et marche.
+- « Comment te sens-tu ? » en tête de la carte Bouger : En forme, Courbatures, Fatigué. Fatigué est le même ajustement que « Je suis fatigué » (séance allégée) ; changer de ressenti revient à la recommandation du coach.
 - Fondements scientifiques et références : `docs/TRAINING_EVIDENCE.md`.
 - Chaque séance enchaîne trois axes : musculation lourde en full body (A et B alternés : à la salle 4 × 5 à 8 répétitions sur les polyarticulaires, repos 2 à 3 min ; au poids du corps, variantes difficiles et tempo lent), puis un cardio varié qui change d'une séance à l'autre (rameur, vélo, corde, elliptique ; à la maison burpees, mountain climbers, jumping jacks, boxe), puis la marche inclinée ou l'escalier (tapis 10 à 12 %, stepper ; à la maison côte ou escaliers), qui sert aussi de retour au calme.
 - Répartition : 60 % du temps pour la force, le reste partagé entre cardio et marche. Sous 30 minutes, la force seule.
@@ -79,12 +81,9 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - En bonne voie entre −0,1 % et −1 % du poids par semaine ; au-delà de −1 %, le coach suggère +150 kcal. Le coach suggère, l'utilisateur décide.
 - Tour de taille : saisi à la main, au plus une fois par semaine suffit. Variation sur 4 semaines, avec deux mesures espacées d'au moins 10 jours. Une baisse d'au moins 1 cm montre que le gras part, même si le poids ne bouge pas : le coach ne parle pas de stagnation.
 
-## Régularité (`ProgressInsights/ConsistencyAnalyzer`)
+## Régularité
 
-- La régularité compte les séances de force de la semaine (cochées dans l'app, ou renforcement d'au moins 20 min enregistré dans Santé), pour un objectif de 3 : avec 48 h de récupération, c'est le rythme normal.
-- Semaine du lundi au dimanche : séances faites sur séances prévues, une pastille par séance.
-- Série : semaines complètes d'affilée, la semaine en cours comprise dès qu'elle est bouclée.
-- Le message dit ce qui reste à faire pour boucler la semaine, sans culpabiliser.
+- Pas d'objectif par semaine : la séance se décide au jour le jour. « Ma semaine » (carte Bouger) montre ce qui a été fait. `ProgressInsights/ConsistencyAnalyzer` reste disponible mais n'est plus affiché.
 
 ## Bilan de la semaine (`Coach/WeeklyCheckIn`)
 
@@ -104,7 +103,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 - La carte Bouger montre la semaine en cours : minutes bougées par jour, puis chaque activité (séances cochées dans l'app et entraînements de Santé, Apple Watch comprise), avec durée et kcal.
 - Une séance cochée sans renforcement enregistré dans Santé le même jour s'affiche à part ; avec un enregistrement de la Watch, elle n'apparaît qu'une fois.
-- Apple Watch : la séance du jour s'envoie d'une touche. « Planifier ma semaine sur la Watch » place les séances jusqu'à dimanche, en supposant chaque séance proposée faite.
+- Apple Watch : la séance du jour (celle choisie) s'envoie d'une touche. Pas de planning de semaine : la séance se décide chaque jour.
 
 ## Repas envoyés vers Santé (`Nutrition/HealthMealExport`)
 

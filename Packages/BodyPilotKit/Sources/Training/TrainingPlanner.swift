@@ -1,9 +1,10 @@
 import BodyPilotCore
 import Foundation
 
-/// Planificateur de séances par règles. Pas de jours fixes : chaque jour a sa séance.
-/// Force lourde en full body quand la précédente date d'au moins 48 h, sinon cardio et marche
-/// inclinée, puis les ajustements du jour (temps, fatigue, genou) dans des limites de sécurité.
+/// Planificateur de séances par règles, au jour le jour : chaque jour, force (si la dernière
+/// date d'au moins 48 h), cardio et marche inclinée, marche tranquille ou repos. Le coach en
+/// recommande une selon la récupération, l'utilisateur choisit ; puis les ajustements du jour
+/// (temps, fatigue, genou) dans des limites de sécurité.
 public struct TrainingPlanner: TrainingPlanning {
     public var calendar: Calendar
 
@@ -22,8 +23,15 @@ public struct TrainingPlanner: TrainingPlanning {
     static let mainLiftRestSeconds = 120
     /// Jours entre deux séances de force lourde sur les mêmes muscles (48 h).
     public static let strengthRecoveryDays = 2
-    /// Séances de force visées par semaine : chaque muscle 2 à 3 fois (Schoenfeld et al., 2016).
-    public static let weeklyStrengthTarget = 3
+    /// Au-delà, le coach recommande un jour de repos complet.
+    static let maxActiveStreak = 6
+    /// Sous ce sommeil, la force maximale baisse (Knowles et al., 2018) : pas de séance lourde recommandée.
+    static let shortSleepHours = 6.0
+    /// Séance intense de la veille qui compte dans la récupération.
+    static let hardActivityMinutes = 45.0
+    static let intenseKinds: Set<ActivityKind> = [.intervals, .sport, .combat, .cardio, .running]
+    /// Durée de la marche tranquille proposée.
+    static let lightWalkMinutes = 30
 
     public init(calendar: Calendar = .current) {
         self.calendar = calendar
@@ -46,39 +54,125 @@ public struct TrainingPlanner: TrainingPlanning {
         return days >= Self.strengthRecoveryDays
     }
 
+    public func options(for profile: UserProfile, on date: Date, constraints: DayConstraints) -> TrainingOptions {
+        let profile = adapted(profile, constraints: constraints)
+        let budget = min(constraints.availableMinutes ?? profile.sessionMinutes, profile.sessionMinutes)
+        let strengthOK = isStrengthDay(date, lastStrengthDay: constraints.lastStrengthDay)
+        let test = strengthOK ? strengthTest(for: profile, budget: budget, constraints: constraints) : nil
+        let choices: [TrainingChoice] = (strengthOK ? [.strength] : []) + [.conditioning, .light, .rest]
+        let recommendation = recommend(on: date, constraints: constraints, strengthOK: strengthOK, isTest: test != nil)
+        return TrainingOptions(
+            options: choices.map { TrainingOption(choice: $0, day: day(for: $0, profile: profile, budget: budget, test: test, on: date, constraints: constraints)) },
+            recommended: recommendation.choice,
+            reason: recommendation.reason
+        )
+    }
+
     public func trainingDay(for profile: UserProfile, on date: Date, constraints: DayConstraints) -> TrainingDay {
+        let options = options(for: profile, on: date, constraints: constraints)
+        let chosen = constraints.choice.flatMap { options.option($0) } ?? options.option(options.recommended)
+        return chosen?.day ?? TrainingDay(kind: .rest, estimatedMinutes: 0)
+    }
+
+    /// En déplacement : poids du corps, séance courte.
+    func adapted(_ profile: UserProfile, constraints: DayConstraints) -> UserProfile {
         var profile = profile
         if constraints.traveling {
             profile.equipment = .bodyweight
             profile.sessionMinutes = min(profile.sessionMinutes, Self.travelMaxMinutes)
         }
-        var notes: [String] = []
+        return profile
+    }
 
+    /// La proposition que le coach met en avant, et pourquoi. Repos complet après six jours
+    /// d'activité d'affilée ou quand fatigue et nuit courte s'additionnent ; nuit courte seule :
+    /// pas de force lourde ; courbatures : cardio modéré ; sinon force dès que 48 h sont passées.
+    func recommend(on date: Date, constraints: DayConstraints, strengthOK: Bool, isTest: Bool) -> (choice: TrainingChoice, reason: String) {
         if constraints.missedToday {
-            let minutes = 15
-            return TrainingDay(
-                kind: .activeRest(title: "Marche tranquille", minutes: minutes),
-                estimatedMinutes: minutes,
-                notes: ["Séance ratée : on ne la double pas. Le coach la repropose au prochain jour."]
-            )
+            return (.light, "Séance ratée : on ne la double pas. Une marche tranquille aujourd'hui, la force revient au prochain jour.")
         }
+        let streak = activeStreak(before: date, in: constraints.activeDays)
+        if streak >= Self.maxActiveStreak {
+            return (.rest, "\(streak) jours d'activité d'affilée : une journée de repos complet aide ton corps à récupérer.")
+        }
+        let sleep = constraints.sleepHours.flatMap { $0 < Self.shortSleepHours ? $0 : nil }
+        if constraints.lowEnergy, let sleep {
+            return (.rest, "Fatigue et nuit de \(Self.hours(sleep)) : repos aujourd'hui, la séance attendra demain.")
+        }
+        if let sleep {
+            return strengthOK
+                ? (.conditioning, "Nuit de \(Self.hours(sleep)) : le manque de sommeil fait baisser la force. Cardio modéré et marche plutôt que du lourd.")
+                : (.light, "Nuit de \(Self.hours(sleep)) : une marche tranquille suffit aujourd'hui.")
+        }
+        if constraints.sore {
+            return (.conditioning, "Courbatures : un cardio modéré et de la marche les soulagent mieux que le repos complet.")
+        }
+        if strengthOK {
+            if isTest {
+                return (.strength, "Pas encore de charge notée sur tes mouvements de base : test de force pour trouver les tiennes.")
+            }
+            guard let last = constraints.lastStrengthDay else {
+                return (.strength, "Première séance de force : on pose les bases.")
+            }
+            let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: last), to: calendar.startOfDay(for: date)).day ?? 0
+            return (.strength, "Dernière séance de force il y a \(days) jours : tes muscles ont récupéré, place à la force.")
+        }
+        if let hard = hardActivity(before: date, in: constraints.recentActivities) {
+            return (.light, "\(hard.kind.title) de \(Int(hard.minutes.rounded())) min hier et force il y a moins de 48 h : une marche tranquille pour récupérer.")
+        }
+        return (.conditioning, "Force faite hier : cardio modéré et marche aujourd'hui, les muscles récupèrent 48 h avant la prochaine séance lourde.")
+    }
 
-        let budget = min(constraints.availableMinutes ?? profile.sessionMinutes, profile.sessionMinutes)
-        let composed: Workout
-        if isStrengthDay(date, lastStrengthDay: constraints.lastStrengthDay),
-           let test = strengthTest(for: profile, budget: budget, constraints: constraints) {
-            // Le test se fait tel quel : pas de remplacement, ni de séance resserrée.
-            notes.append("Test de force : monte par paliers jusqu'à une série de 5 lourde et propre, puis note-la. Toutes tes charges de travail en découlent.")
-            return TrainingDay(kind: .workout(test), estimatedMinutes: test.estimatedMinutes, notes: notes)
+    /// Jours d'activité consécutifs juste avant ce jour.
+    func activeStreak(before date: Date, in days: Set<Date>) -> Int {
+        let days = Set(days.map { calendar.startOfDay(for: $0) })
+        var streak = 0
+        var cursor = calendar.startOfDay(for: date)
+        while let previous = calendar.date(byAdding: .day, value: -1, to: cursor), days.contains(previous) {
+            streak += 1
+            cursor = previous
         }
-        if isStrengthDay(date, lastStrengthDay: constraints.lastStrengthDay) {
+        return streak
+    }
+
+    /// Séance intense enregistrée dans Santé la veille (cours collectif, fractionné, sport, course).
+    func hardActivity(before date: Date, in activities: [ActivitySample]) -> ActivitySample? {
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: date)) else { return nil }
+        return activities
+            .filter { calendar.isDate($0.start, inSameDayAs: yesterday) && Self.intenseKinds.contains($0.kind) && $0.minutes >= Self.hardActivityMinutes }
+            .max { $0.minutes < $1.minutes }
+    }
+
+    static func hours(_ value: Double) -> String {
+        let total = Int((value * 60).rounded())
+        return total % 60 == 0 ? "\(total / 60) h" : "\(total / 60) h \(String(format: "%02d", total % 60))"
+    }
+
+    func day(for choice: TrainingChoice, profile: UserProfile, budget: Int, test: Workout?, on date: Date, constraints: DayConstraints) -> TrainingDay {
+        switch choice {
+        case .strength:
+            if let test {
+                // Le test se fait tel quel : pas de remplacement, ni de séance resserrée.
+                return TrainingDay(kind: .workout(test), estimatedMinutes: test.estimatedMinutes, notes: [
+                    "Test de force : monte par paliers jusqu'à une série de 5 lourde et propre, puis note-la. Toutes tes charges de travail en découlent.",
+                ])
+            }
             let strength = nextWorkout(after: constraints.lastWorkoutTitle, for: profile, on: date)
-            composed = budget >= Self.threeAxisMinutes ? withConditioning(strength, budget: budget, equipment: profile.equipment, on: date) : strength
-        } else {
-            composed = conditioningWorkout(budget: budget, equipment: profile.equipment, on: date)
-            notes.append("Force faite hier : aujourd'hui cardio et marche, les muscles récupèrent 48 h avant la prochaine séance lourde.")
+            let composed = budget >= Self.threeAxisMinutes ? withConditioning(strength, budget: budget, equipment: profile.equipment, on: date) : strength
+            return adapt(composed, budget: budget, constraints: constraints)
+        case .conditioning:
+            return adapt(conditioningWorkout(budget: budget, equipment: profile.equipment, on: date), budget: budget, constraints: constraints)
+        case .light:
+            let minutes = max(min(budget, Self.lightWalkMinutes), 10)
+            return TrainingDay(kind: .activeRest(title: "Marche tranquille", minutes: minutes), estimatedMinutes: minutes)
+        case .rest:
+            return TrainingDay(kind: .rest, estimatedMinutes: 0)
         }
+    }
 
+    /// Ajustements du jour (remplacements, déplacement, genou, fatigue, temps) dans des limites de sécurité.
+    func adapt(_ composed: Workout, budget: Int, constraints: DayConstraints) -> TrainingDay {
+        var notes: [String] = []
         // Les remplacements choisis passent avant les règles de sécurité : une variante qui
         // charge le genou est elle aussi remplacée si le genou est douloureux.
         var adapted = swapExercises(composed, swaps: constraints.exerciseSwaps)

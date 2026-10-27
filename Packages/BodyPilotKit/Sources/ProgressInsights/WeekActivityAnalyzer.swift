@@ -42,6 +42,14 @@ public struct WeekActivityAnalyzer: Sendable {
     }
 
     /// Jours où une séance a été faite : cochée dans l'app ou enregistrée dans Santé.
+    /// Famille d'une séance BodyPilot d'après son titre : « Cardio et marche… », « Marche… », sinon force.
+    static func kind(ofSession title: String?) -> ActivityKind {
+        guard let title else { return .strength }
+        if title.hasPrefix("Cardio") { return .cardio }
+        if title.hasPrefix("Marche") { return .walking }
+        return .strength
+    }
+
     public func sessionDays(completedDays: [Date], samples: [ActivitySample]) -> [Date] {
         let days = completedDays.map { calendar.startOfDay(for: $0) }
             + samples.filter(countsAsSession).map { calendar.startOfDay(for: $0.start) }
@@ -68,11 +76,12 @@ public struct WeekActivityAnalyzer: Sendable {
         // Une séance cochée sans renforcement enregistré le même jour (montre restée au vestiaire) s'affiche aussi.
         for item in completed where interval.contains(item.day) && item.day <= date {
             let day = calendar.startOfDay(for: item.day)
-            let recorded = inWeek.contains { $0.kind == .strength && calendar.isDate($0.start, inSameDayAs: day) }
+            let kind = Self.kind(ofSession: item.title)
+            let recorded = inWeek.contains { $0.kind == kind && calendar.isDate($0.start, inSameDayAs: day) }
             guard !recorded else { continue }
             entries.append(WeekActivityEntry(
                 id: "bodypilot-\(Int(day.timeIntervalSince1970))",
-                kind: .strength,
+                kind: kind,
                 title: item.title ?? "Séance BodyPilot",
                 start: day,
                 minutes: Double(sessionMinutes),

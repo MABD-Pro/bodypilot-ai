@@ -40,6 +40,8 @@ enum LaunchOptions {
     }
     /// `-demoActivities YES` : quelques activités Santé dans la semaine (course, vélo, marche).
     static var demoActivities: Bool { defaults.bool(forKey: "demoActivities") }
+    /// `-demoSleep 5.5` : nuit passée lue dans Santé, en heures.
+    static var demoSleepHours: Double? { defaults.object(forKey: "demoSleep") == nil ? nil : defaults.double(forKey: "demoSleep") }
     /// `-demoLifts YES` : profil en salle et séries notées les semaines passées, record du jour sur le premier exercice.
     static var demoLifts: Bool { defaults.bool(forKey: "demoLifts") }
     /// `-demoCalibration YES` : profil en salle sans charge notée, la séance du jour est le premier test de force.
@@ -162,11 +164,12 @@ enum DemoData {
         }
 
         // Trois semaines de séances cochées : force un jour sur deux (B la plus récente, donc A
-        // aujourd'hui), cardio et marche entre deux. Avec -demoRecovery, la force date d'hier.
+        // aujourd'hui), cardio et marche entre deux, un jour de repos. Avec -demoRecovery, la force date d'hier.
         let recovery = LaunchOptions.demoRecovery
         let conditioningTitle = profile.equipment == .gym ? "Cardio et marche inclinée" : "Cardio et marche en côte"
         var strengthCount = 0
-        for offset in 1...21 {
+        // Un jour de repos il y a quatre jours : pas six jours d'activité d'affilée.
+        for offset in 1...21 where offset != 4 {
             guard let date = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
             let log = DayLogRecord(day: calendar.startOfDay(for: date))
             log.workoutDone = true

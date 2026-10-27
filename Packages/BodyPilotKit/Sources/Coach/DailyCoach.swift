@@ -8,6 +8,8 @@ public struct TodayPlan: Sendable, Equatable {
     public var targets: NutritionTargets
     public var meals: DayMealPlan
     public var training: TrainingDay
+    /// Les propositions du jour, dont celle que le coach recommande.
+    public var trainingOptions: TrainingOptions
     public var trend: WeightTrend
     /// Réponse à « est-ce que je progresse ? ».
     public var progressMessage: String
@@ -50,6 +52,10 @@ public struct DailyCoach: Sendable {
         lastWorkoutTitle: String? = nil,
         lastStrengthDay: Date? = nil,
         calibratedLifts: Set<String>? = nil,
+        sleepHours: Double? = nil,
+        activeDays: Set<Date> = [],
+        recentActivities: [ActivitySample] = [],
+        trainingChoice: TrainingChoice? = nil,
         on date: Date
     ) -> TodayPlan {
         let trend = progress.trend(of: weights, for: profile, on: date)
@@ -68,15 +74,22 @@ public struct DailyCoach: Sendable {
             exerciseSwaps: exerciseSwaps,
             lastWorkoutTitle: lastWorkoutTitle,
             lastStrengthDay: lastStrengthDay,
-            calibratedLifts: calibratedLifts
+            calibratedLifts: calibratedLifts,
+            sleepHours: sleepHours,
+            activeDays: activeDays,
+            recentActivities: recentActivities,
+            choice: trainingChoice
         )
-        let trainingDay = training.trainingDay(for: profile, on: date, constraints: constraints)
+        let options = training.options(for: profile, on: date, constraints: constraints)
+        let chosen = trainingChoice.flatMap { options.option($0) } ?? options.option(options.recommended)
+        let trainingDay = chosen?.day ?? TrainingDay(kind: .rest, estimatedMinutes: 0)
 
         return TodayPlan(
             headline: headline(training: trainingDay, adjustments: adjustments, kcal: targets.macros.kcal),
             targets: targets,
             meals: meals,
             training: trainingDay,
+            trainingOptions: options,
             trend: trend,
             progressMessage: progressMessage(for: trend, goal: profile.goal, waistChange: waistChange),
             waistChangeCm: waistChange,
@@ -94,6 +107,9 @@ public struct DailyCoach: Sendable {
         }
         if adjustments.contains(.traveling) {
             return "En déplacement : séance sans matériel et repères simples pour manger."
+        }
+        if case .rest = training.kind {
+            return "Journée de repos : tes muscles se construisent aussi pendant la récupération."
         }
         if adjustments.contains(.tired) && adjustments.contains(.shortOnTime) {
             return "Journée chargée et fatigue : version courte et douce, l'essentiel suffit."
@@ -121,6 +137,8 @@ public struct DailyCoach: Sendable {
             return "\(workout.title) en \(training.estimatedMinutes) min et \(kcal.frenchInteger) kcal au menu."
         case .activeRest(_, let minutes):
             return "Aujourd'hui : \(minutes) min de marche et des repas qui nourrissent."
+        case .rest:
+            return "Journée de repos."
         }
     }
 

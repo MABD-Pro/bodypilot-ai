@@ -66,6 +66,7 @@ shoot 3c-ma-semaine -demoData YES -demoActivities YES -demoHealth YES -demoScrol
 shoot 3d-records-seance -demoData YES -demoLifts YES -demoScrollTo training
 shoot 3e-test-de-force -demoData YES -demoCalibration YES -demoScrollTo training
 shoot 3f-recuperation -demoData YES -demoRecovery YES -demoScrollTo training
+shoot 3g-propositions-nuit-courte -demoData YES -demoSleep 5.5 -demoScrollTo training
 shoot 4-aujourdhui-progression -demoData YES -demoScrollTo progress
 shoot 4c-bilan-semaine -demoData YES -demoCheckIn YES -demoScrollTo progress
 shoot 4b-progression-sante -demoData YES -demoHealth YES -demoScrollTo progress

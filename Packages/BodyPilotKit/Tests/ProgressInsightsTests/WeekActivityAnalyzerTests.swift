@@ -45,3 +45,8 @@ private func at(_ dayOfMonth: Int, _ hour: Int) -> Date {
     #expect(analyzer.week(of: thursdayEvening, samples: [], completed: [], sessionMinutes: 45).summary == "Rien d'enregistré cette semaine pour l'instant.")
     #expect(WeekActivityAnalyzer.duration(65) == "1 h 05")
 }
+
+@Test func checkedSessionsKeepTheirFamily() {
+    let week = analyzer.week(of: thursdayEvening, samples: [], completed: [(at(26, 0), "Cardio et marche en côte"), (at(27, 0), "Marche tranquille")], sessionMinutes: 45)
+    #expect(week.entries.map(\.kind) == [.walking, .cardio])
+}

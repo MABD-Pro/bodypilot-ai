@@ -24,6 +24,8 @@ struct TodayView: View {
     @State private var isEditingProfile = false
     /// Entraînements lus dans Santé (Watch, autres apps), pour la semaine et la régularité.
     @State private var healthActivities: [ActivitySample] = []
+    /// Sommeil de la nuit passée, lu dans Santé.
+    @State private var sleepHours: Double?
 
     private let calendar = Calendar.current
 
@@ -48,10 +50,12 @@ struct TodayView: View {
             lastWorkoutTitle: lastStrength.title,
             lastStrengthDay: lastStrength.day,
             calibratedLifts: DayLogEditor.calibratedLifts(lifts, before: now, calendar: calendar),
+            sleepHours: sleepHours,
+            activeDays: DayLogEditor.activeDays(before: now, completed: completed, samples: healthActivities, calendar: calendar),
+            recentActivities: healthActivities,
+            trainingChoice: todayLog?.trainingChoice,
             on: now
         )
-        // Les jours suivants supposent la séance du jour faite.
-        let afterToday = strength(after: plan.training, on: now, otherwise: lastStrength)
 
         let activityAnalyzer = WeekActivityAnalyzer(calendar: calendar)
         let week = activityAnalyzer.week(
@@ -60,15 +64,6 @@ struct TodayView: View {
             completed: completed,
             sessionMinutes: profileRecord.profile.sessionMinutes
         )
-        // Régularité : séances de force de la semaine, cochées ou enregistrées par la Watch.
-        let strengthDays = completed.filter { $0.title.map(TrainingPlanner.isStrengthSession) == true }.map(\.day)
-            + healthActivities.filter { $0.kind == .strength && $0.minutes >= 20 }.map(\.start)
-        let consistency = ConsistencyAnalyzer(calendar: calendar).consistency(
-            completedDays: strengthDays,
-            plannedPerWeek: TrainingPlanner.weeklyStrengthTarget,
-            on: now
-        )
-
         let checkIn = profileRecord.isCheckInDue(at: now)
             ? CoachFactory.coach.weeklyCheckIn(for: profileRecord.profile, weights: weights.map(\.entry), waists: waists.map(\.entry), on: now)
             : nil
@@ -86,12 +81,16 @@ struct TodayView: View {
                             .id("nutrition")
                         TrainingCard(
                             training: plan.training,
+                            options: plan.trainingOptions,
+                            choice: todayLog?.trainingChoice ?? plan.trainingOptions.recommended,
+                            choose: chooseTraining,
+                            adjustments: todayAdjustments,
+                            setFeeling: setFeeling,
                             swap: swapExercise,
                             isDone: todayLog?.workoutDone ?? false,
                             toggleDone: { toggleWorkoutDone(title: plan.training.workoutTitle) },
                             week: week,
                             healthLinked: healthLink == .on,
-                            planWeekOnWatch: { await planWeekOnWatch(today: plan.training, isTodayDone: todayLog?.workoutDone ?? false, after: afterToday) },
                             lifts: lifts,
                             usesLoads: profileRecord.profile.equipment == .gym,
                             logLift: logLift,
@@ -105,7 +104,6 @@ struct TodayView: View {
                             profile: profileRecord.profile,
                             health: healthLink,
                             checkIn: checkIn,
-                            consistency: consistency,
                             waistCm: waists.last?.cm,
                             waistChange: plan.waistChangeCm,
                             records: StrengthProgress.records(in: lifts),
@@ -125,6 +123,7 @@ struct TodayView: View {
                 .scrollIndicators(.hidden)
                 .task {
                     if LaunchOptions.demoActivities { healthActivities = DemoData.activities() }
+                    if let hours = LaunchOptions.demoSleepHours { sleepHours = hours }
                     guard let target = LaunchOptions.demoScrollTarget else { return }
                     try? await Task.sleep(for: .seconds(2))
                     withAnimation { proxy.scrollTo(target, anchor: .top) }
@@ -147,6 +146,7 @@ struct TodayView: View {
                 if !LaunchOptions.demoData { try? await HealthWeight.requestAccess() }
                 await importHealthWeights()
                 await importHealthActivities()
+                await importSleep()
                 await exportMeals(plan.meals, on: now)
             }
             .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
@@ -204,44 +204,39 @@ struct TodayView: View {
         )
     }
 
+    private func importSleep() async {
+        guard !LaunchOptions.demoData, let hours = try? await HealthSleep.lastNightHours(calendar: calendar) else { return }
+        withAnimation(Theme.springy) { sleepHours = hours }
+    }
+
+    private func chooseTraining(_ choice: TrainingChoice) {
+        let log = todayLog()
+        withAnimation(Theme.springy) { log.trainingChoice = choice }
+        try? context.save()
+    }
+
+    /// « Comment te sens-tu ? » : en forme efface fatigue et courbatures, les autres s'activent ou s'éteignent.
+    private func setFeeling(_ feeling: Feeling) {
+        let log = todayLog()
+        withAnimation(Theme.springy) {
+            var adjustments = log.adjustments
+            switch feeling {
+            case .great: adjustments.subtract([.tired, .sore])
+            case .sore: adjustments.formSymmetricDifference([.sore])
+            case .tired: adjustments.formSymmetricDifference([.tired])
+            }
+            log.adjustments = adjustments
+            // Le ressenti change la recommandation : on la suit plutôt qu'un ancien choix.
+            log.trainingChoice = nil
+        }
+        try? context.save()
+    }
+
     private func importHealthActivities() async {
         guard !LaunchOptions.demoData else { return }
         let since = calendar.date(byAdding: .weekOfYear, value: -HealthWorkouts.lookbackWeeks, to: .now) ?? .now
         guard let samples = try? await HealthWorkouts.samples(since: since) else { return }
         withAnimation(Theme.springy) { healthActivities = samples }
-    }
-
-    /// Les jours à venir, en supposant chaque séance proposée faite : la force revient au plus
-    /// tous les deux jours, cardio et marche entre deux.
-    private func forecast(from start: Date, days: Int, last: (day: Date?, title: String?)) -> [UpcomingDay] {
-        var last = last
-        var result: [UpcomingDay] = []
-        for offset in 0..<days {
-            guard let day = calendar.date(byAdding: .day, value: offset, to: start) else { break }
-            let training = CoachFactory.coach.plan(
-                for: profileRecord.profile, weights: weights.map(\.entry), lastWorkoutTitle: last.title, lastStrengthDay: last.day, on: day
-            ).training
-            if case .workout(let workout) = training.kind, workout.hasStrength {
-                last = (calendar.startOfDay(for: day), workout.title)
-            }
-            result.append(UpcomingDay(date: calendar.startOfDay(for: day), training: training))
-        }
-        return result
-    }
-
-    /// Séances de la semaine, d'aujourd'hui à dimanche, planifiées sur la montre.
-    /// Aujourd'hui garde ses ajustements ; les jours suivants partent du plan de base.
-    private func planWeekOnWatch(today: TrainingDay, isTodayDone: Bool, after last: (day: Date?, title: String?)) async -> Bool {
-        guard let week = calendar.dateInterval(of: .weekOfYear, for: .now),
-              let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: .now))
-        else { return false }
-        let remaining = calendar.dateComponents([.day], from: tomorrow, to: week.end).day ?? 0
-        var plans: [(day: Date, plan: WorkoutPlan)] = []
-        if !isTodayDone, let plan = today.watchPlan { plans.append((calendar.startOfDay(for: .now), plan)) }
-        for upcoming in forecast(from: tomorrow, days: max(remaining, 0), last: last) {
-            if let plan = upcoming.training.watchPlan { plans.append((upcoming.date, plan)) }
-        }
-        return await WatchSchedule.replace(with: plans, calendar: calendar)
     }
 
     private func importHealthWeights() async {
@@ -286,12 +281,6 @@ struct TodayView: View {
 
     private func log(on date: Date) -> DayLogRecord? {
         dayLogs.first { calendar.isDate($0.day, inSameDayAs: date) }
-    }
-
-    /// Dernière force une fois la séance du jour faite.
-    private func strength(after training: TrainingDay, on day: Date, otherwise last: (day: Date?, title: String?)) -> (day: Date?, title: String?) {
-        guard case .workout(let workout) = training.kind, workout.hasStrength else { return last }
-        return (calendar.startOfDay(for: day), workout.title)
     }
 
     private func todayLog() -> DayLogRecord {

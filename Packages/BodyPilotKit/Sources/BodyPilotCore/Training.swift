@@ -78,6 +78,47 @@ public enum TrainingDayKind: Sendable, Equatable {
     case workout(Workout)
     /// Repos actif : marche, mobilité.
     case activeRest(title: String, minutes: Int)
+    /// Repos complet.
+    case rest
+}
+
+/// Ce que l'utilisateur peut faire aujourd'hui : chaque jour, 2 ou 3 activités plus le repos.
+public enum TrainingChoice: String, Sendable, Codable, CaseIterable {
+    /// Force lourde en full body (ou test de force), si la dernière date d'au moins 48 h.
+    case strength
+    /// Cardio modéré puis marche inclinée.
+    case conditioning
+    /// Marche tranquille.
+    case light
+    case rest
+}
+
+/// Une proposition du jour, prête à suivre.
+public struct TrainingOption: Sendable, Equatable {
+    public var choice: TrainingChoice
+    public var day: TrainingDay
+
+    public init(choice: TrainingChoice, day: TrainingDay) {
+        self.choice = choice
+        self.day = day
+    }
+}
+
+/// Les propositions du jour et celle que le coach recommande, avec sa raison en clair.
+public struct TrainingOptions: Sendable, Equatable {
+    public var options: [TrainingOption]
+    public var recommended: TrainingChoice
+    public var reason: String
+
+    public init(options: [TrainingOption], recommended: TrainingChoice, reason: String) {
+        self.options = options
+        self.recommended = recommended
+        self.reason = reason
+    }
+
+    public func option(_ choice: TrainingChoice) -> TrainingOption? {
+        options.first { $0.choice == choice }
+    }
 }
 
 public struct TrainingDay: Sendable, Equatable {
@@ -112,6 +153,16 @@ public struct DayConstraints: Sendable, Equatable {
     /// Exercices dont une charge est déjà notée. Les mouvements de référence absents sont
     /// d'abord testés ; `nil` : pas de calibrage.
     public var calibratedLifts: Set<String>?
+    /// Courbatures déclarées le matin.
+    public var sore: Bool
+    /// Sommeil de la nuit passée, lu dans Santé.
+    public var sleepHours: Double?
+    /// Jours (début de journée) avec une séance faite, dans l'app ou enregistrée dans Santé.
+    public var activeDays: Set<Date>
+    /// Activités enregistrées dans Santé ces derniers jours (cours collectif, course…).
+    public var recentActivities: [ActivitySample]
+    /// Proposition choisie par l'utilisateur ; `nil` : celle que le coach recommande.
+    public var choice: TrainingChoice?
 
     public init(
         availableMinutes: Int? = nil,
@@ -122,7 +173,12 @@ public struct DayConstraints: Sendable, Equatable {
         exerciseSwaps: [String: Int] = [:],
         lastWorkoutTitle: String? = nil,
         lastStrengthDay: Date? = nil,
-        calibratedLifts: Set<String>? = nil
+        calibratedLifts: Set<String>? = nil,
+        sore: Bool = false,
+        sleepHours: Double? = nil,
+        activeDays: Set<Date> = [],
+        recentActivities: [ActivitySample] = [],
+        choice: TrainingChoice? = nil
     ) {
         self.availableMinutes = availableMinutes
         self.lowEnergy = lowEnergy
@@ -133,10 +189,18 @@ public struct DayConstraints: Sendable, Equatable {
         self.lastWorkoutTitle = lastWorkoutTitle
         self.lastStrengthDay = lastStrengthDay
         self.calibratedLifts = calibratedLifts
+        self.sore = sore
+        self.sleepHours = sleepHours
+        self.activeDays = activeDays
+        self.recentActivities = recentActivities
+        self.choice = choice
     }
 }
 
 public protocol TrainingPlanning: Sendable {
+    /// Les propositions du jour, la recommandée en tête.
+    func options(for profile: UserProfile, on date: Date, constraints: DayConstraints) -> TrainingOptions
+    /// La séance retenue : le choix de l'utilisateur, sinon la recommandation.
     func trainingDay(for profile: UserProfile, on date: Date, constraints: DayConstraints) -> TrainingDay
 }
 

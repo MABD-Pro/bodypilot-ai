@@ -105,6 +105,7 @@ enum KeywordParser {
     private static let rules: [Rule] = [
         Rule(.shortOnTime, [#"\b\d{1,3} ?(min|minutes?|mn)\b"#, #"pas (le|beaucoup de) temps"#, #"peu de temps"#, #"\bpresse"#, #"journee chargee"#]),
         Rule(.tired, [#"fatigu"#, #"\bcreve"#, #"epuise"#, #"mal dormi"#, #"pas (beaucoup )?dormi"#, #"\bnaze"#, #"\bko\b"#, #"pas en forme"#, #"\bclaque"#]),
+        Rule(.sore, [#"courbatu"#, #"mal aux (jambes|cuisses|bras|pecs|muscles)"#]),
         Rule(.missedWorkout, [#"\brate"#, #"\bloupe"#, #"manque (ma|la|mon) (seance|entrainement|sport)"#, #"pas pu (faire|m'entrainer|aller)"#, #"saute (ma|la) seance"#]),
         Rule(.eatingOut, [#"\brestau"#, #"\bresto"#, #"\bbrasserie"#, #"\bpizzeria"#, #"\binvite"#, #"repas (d'affaires|de famille|entre amis)"#, #"mange dehors"#, #"\bfast.?food"#]),
         Rule(.notHungry, [#"pas faim"#, #"peu faim"#, #"pas d'appetit"#, #"aucun appetit"#, #"coupe.? l'appetit"#]),

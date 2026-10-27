@@ -5,6 +5,7 @@ import Foundation
 public enum QuickAdjustment: String, CaseIterable, Sendable, Codable {
     case shortOnTime
     case tired
+    case sore
     case missedWorkout
     case eatingOut
     case notHungry
@@ -19,6 +20,7 @@ public enum QuickAdjustment: String, CaseIterable, Sendable, Codable {
         switch self {
         case .shortOnTime: "Je n'ai que \(Self.shortOnTimeMinutes) minutes"
         case .tired: "Je suis fatigué"
+        case .sore: "J'ai des courbatures"
         case .missedWorkout: "J'ai raté ma séance"
         case .eatingOut: "Je mange au restaurant"
         case .notHungry: "Je n'ai pas faim"
@@ -36,7 +38,11 @@ extension DayConstraints {
         exerciseSwaps: [String: Int] = [:],
         lastWorkoutTitle: String? = nil,
         lastStrengthDay: Date? = nil,
-        calibratedLifts: Set<String>? = nil
+        calibratedLifts: Set<String>? = nil,
+        sleepHours: Double? = nil,
+        activeDays: Set<Date> = [],
+        recentActivities: [ActivitySample] = [],
+        choice: TrainingChoice? = nil
     ) {
         self.init(
             availableMinutes: today.contains(.shortOnTime) ? (availableMinutes ?? QuickAdjustment.shortOnTimeMinutes) : nil,
@@ -47,7 +53,12 @@ extension DayConstraints {
             exerciseSwaps: exerciseSwaps,
             lastWorkoutTitle: lastWorkoutTitle,
             lastStrengthDay: lastStrengthDay,
-            calibratedLifts: calibratedLifts
+            calibratedLifts: calibratedLifts,
+            sore: today.contains(.sore),
+            sleepHours: sleepHours,
+            activeDays: activeDays,
+            recentActivities: recentActivities,
+            choice: choice
         )
     }
 }

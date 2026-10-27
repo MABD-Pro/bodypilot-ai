@@ -56,29 +56,8 @@ extension TrainingDay {
             workout.guided.watchPlan
         case .activeRest(_, let minutes):
             WorkoutPlan(.goal(SingleGoalWorkout(activity: .walking, location: .outdoor, goal: .time(Double(minutes), .minutes))))
+        case .rest:
+            nil
         }
-    }
-}
-
-/// Planning de la semaine sur l'Apple Watch : chaque jour apparaît dans l'app Exercice, rubrique planifiée.
-enum WatchSchedule {
-    static var isSupported: Bool { WorkoutScheduler.isSupported }
-
-    /// Heure affichée sur la montre ; c'est toi qui lances l'entraînement quand tu veux.
-    static let hour = 7
-
-    /// Remplace le planning BodyPilot de la montre. `false` si l'autorisation est refusée.
-    static func replace(with plans: [(day: Date, plan: WorkoutPlan)], calendar: Calendar = .current) async -> Bool {
-        let scheduler = WorkoutScheduler.shared
-        guard await scheduler.requestAuthorization() == .authorized else { return false }
-        // Le planificateur ne contient que les entraînements de BodyPilot : on repart de zéro.
-        await scheduler.removeAllWorkouts()
-        for item in plans.prefix(WorkoutScheduler.maxAllowedScheduledWorkoutCount) {
-            var components = calendar.dateComponents([.year, .month, .day], from: item.day)
-            components.hour = hour
-            components.minute = 0
-            await scheduler.schedule(item.plan, at: components)
-        }
-        return true
     }
 }

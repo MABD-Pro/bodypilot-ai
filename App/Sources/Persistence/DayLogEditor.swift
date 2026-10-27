@@ -57,8 +57,22 @@ enum DayLogEditor {
             lastWorkoutTitle: last.title,
             lastStrengthDay: last.day,
             calibratedLifts: calibratedLifts(lifts.map(\.entry), before: now, calendar: calendar),
+            activeDays: activeDays(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar),
+            trainingChoice: today?.trainingChoice,
             on: now
         )
+    }
+
+    /// Jours avec une séance faite avant ce jour : cochée dans l'app, ou d'au moins 20 min dans Santé.
+    nonisolated static func activeDays(
+        before date: Date,
+        completed: [(day: Date, title: String?)],
+        samples: [ActivitySample],
+        calendar: Calendar = .current
+    ) -> Set<Date> {
+        let start = calendar.startOfDay(for: date)
+        let days = completed.map(\.day) + samples.filter { $0.minutes >= 20 }.map(\.start)
+        return Set(days.map { calendar.startOfDay(for: $0) }.filter { $0 < start })
     }
 
     /// Exercices dont une charge est notée avant ce jour. Les séries du jour n'en font pas partie :
