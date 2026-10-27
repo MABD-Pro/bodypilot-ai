@@ -32,6 +32,15 @@ private func workout(_ day: TrainingDay) -> Workout? {
     #expect(session.exercises.count == 2)
     #expect(result.estimatedMinutes <= 45 && result.estimatedMinutes >= 40)
     #expect(result.notes.contains { $0.contains("48 h") })
+    // Cardio sans impact les jours de récupération, quel que soit le format du jour.
+    for offset in 0..<8 {
+        let date = try #require(utc.date(byAdding: .day, value: offset, to: tuesday))
+        let yesterday = try #require(utc.date(byAdding: .day, value: -1, to: date))
+        for equipment in Equipment.allCases {
+            let recovery = try #require(workout(planner.trainingDay(for: makeProfile(equipment: equipment), on: date, constraints: DayConstraints(lastStrengthDay: yesterday))))
+            #expect(!recovery.exercises.contains { $0.isHighImpact })
+        }
+    }
     let gym = try #require(workout(planner.trainingDay(for: makeProfile(equipment: .gym), on: tuesday, constraints: DayConstraints(lastStrengthDay: monday))))
     #expect(gym.title == "Cardio et marche inclinée")
 }

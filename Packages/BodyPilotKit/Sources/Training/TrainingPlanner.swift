@@ -110,19 +110,20 @@ public struct TrainingPlanner: TrainingPlanning {
             title: title, warmupMinutes: 5, cooldownMinutes: 0, exercises: [],
             intensityCue: "Cardio : effort soutenu mais contrôlé. Marche : tu peux parler, avec un léger essoufflement."
         )
-        return withConditioning(base, budget: budget, equipment: equipment, on: date)
+        // Muscles en récupération : cardio sans impact (moins d'interférence, Wilson et al., 2012).
+        return withConditioning(base, budget: budget, equipment: equipment, on: date, lowImpactOnly: true)
     }
 
     /// Force d'abord (60 % du temps), puis un cardio qui change d'une séance à l'autre,
     /// puis la marche inclinée ou l'escalier, qui fait aussi office de retour au calme.
-    func withConditioning(_ strength: Workout, budget: Int, equipment: Equipment, on date: Date) -> Workout {
+    func withConditioning(_ strength: Workout, budget: Int, equipment: Equipment, on date: Date, lowImpactOnly: Bool = false) -> Workout {
         var result = fit(strength, toMinutes: Int(Double(budget) * Self.strengthShare))
         result.cooldownMinutes = 0
         let remaining = budget - result.estimatedMinutes
         guard remaining >= 8 else { return strength }
 
         let index = calendar.ordinality(of: .day, in: .era, for: date) ?? 0
-        let cardioFormats = WorkoutCatalog.cardio(for: equipment)
+        let cardioFormats = WorkoutCatalog.cardio(for: equipment).filter { !lowImpactOnly || !$0.isHighImpact }
         let inclineFormats = WorkoutCatalog.incline(for: equipment)
         let cardio = cardioFormats[index % cardioFormats.count]
         let incline = inclineFormats[index % inclineFormats.count]

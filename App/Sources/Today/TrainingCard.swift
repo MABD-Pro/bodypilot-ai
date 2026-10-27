@@ -44,10 +44,6 @@ struct TrainingCard: View {
                 restContent(title: title, minutes: minutes)
             }
 
-            ForEach(training.notes, id: \.self) { note in
-                CoachNote(text: note, tint: Theme.training)
-            }
-
             if !upcoming.isEmpty {
                 UpcomingSection(days: upcoming)
                     .id("upcoming")
@@ -109,6 +105,8 @@ struct TrainingCard: View {
                 DurationBadge(minutes: training.estimatedMinutes)
             }
 
+            notes
+
             if let celebration {
                 Label(celebration, systemImage: "trophy.fill")
                     .font(.subheadline.weight(.semibold))
@@ -142,7 +140,9 @@ struct TrainingCard: View {
 
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Label(workout.intensityCue, systemImage: "gauge.with.dots.needle.33percent")
-                Label("Touche un exercice pour sa technique et pour noter ta meilleure série : le coach suit tes records et fait monter les charges.", systemImage: "trophy")
+                if workout.hasStrength {
+                    Label("Touche un exercice pour sa technique et pour noter ta meilleure série : le coach suit tes records et fait monter les charges.", systemImage: "trophy")
+                }
                 Label("Machine prise ou matériel absent ? Touche \(Image(systemName: "arrow.triangle.2.circlepath")) pour changer d'exercice.", systemImage: "hand.tap")
             }
             .font(.footnote)
@@ -173,6 +173,13 @@ struct TrainingCard: View {
             }
             .buttonStyle(.glass)
             .sensoryFeedback(.success, trigger: isDone) { _, done in done }
+        }
+    }
+
+    /// Pourquoi la séance est ainsi (récupération, genou, fatigue…), juste sous son titre.
+    private var notes: some View {
+        ForEach(training.notes, id: \.self) { note in
+            CoachNote(text: note, tint: Theme.training)
         }
     }
 
@@ -240,6 +247,7 @@ struct TrainingCard: View {
                 Spacer(minLength: 0)
                 DurationBadge(minutes: minutes)
             }
+            notes
             restActions
         }
     }
@@ -658,7 +666,7 @@ extension Workout {
     /// « 4 exercices de force · cardio · marche inclinée ».
     var summary: String {
         let strength = exercises.filter { !$0.isConditioning }
-        var parts = ["\(strength.count) exercices de force"]
+        var parts: [String] = strength.isEmpty ? [] : ["\(strength.count) exercice\(strength.count > 1 ? "s" : "") de force"]
         let conditioning = exercises.filter(\.isConditioning).count
         if conditioning >= 1 { parts.append("cardio") }
         if conditioning >= 2 { parts.append("marche") }
@@ -708,7 +716,7 @@ private struct UpcomingSection: View {
                         .font(.subheadline.weight(.semibold))
                         .frame(width: 44, alignment: .leading)
                         .accessibilityLabel(calendar.weekdayNames(locale: Theme.locale)[calendar.component(.weekday, from: day.date) - 1])
-                    IconBadge(symbol: workout == nil ? "figure.walk" : "dumbbell.fill", tint: workout == nil ? Theme.progress : Theme.training, size: 26)
+                    IconBadge(symbol: symbol(for: workout), tint: workout?.hasStrength == true ? Theme.training : Theme.progress, size: 26)
                     Text(title(day))
                         .font(.subheadline)
                         .lineLimit(2)
@@ -749,6 +757,12 @@ private struct UpcomingSection: View {
             }
         }
         .padding(.vertical, 8)
+    }
+
+    /// Force en bleu, cardio et marche en vert : l'alternance se lit d'un coup d'œil.
+    private func symbol(for workout: Workout?) -> String {
+        guard let workout else { return "figure.walk" }
+        return workout.hasStrength ? "dumbbell.fill" : "heart.fill"
     }
 
     /// « Mer. » : laisse la place au titre de la séance.
