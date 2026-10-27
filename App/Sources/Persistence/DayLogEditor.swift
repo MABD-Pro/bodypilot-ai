@@ -46,6 +46,8 @@ enum DayLogEditor {
         var days = Set(week.weekdaysRaw)
         if days.contains(weekday) { days.remove(weekday) } else { days.insert(weekday) }
         week.weekdaysRaw = days.sorted()
+        // Sans sauvegarde, la vue ne voit pas tout de suite une semaine tout juste créée.
+        try? context.save()
     }
 
     /// Ajoute ce qui a été compris, sans retirer les ajustements déjà choisis.

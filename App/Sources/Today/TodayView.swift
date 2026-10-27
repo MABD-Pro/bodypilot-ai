@@ -39,9 +39,11 @@ struct TodayView: View {
 
         let consistency = ConsistencyAnalyzer(calendar: calendar).consistency(
             completedDays: dayLogs.filter(\.workoutDone).map(\.day),
-            plannedPerWeek: weekDays.count,
             on: now
-        )
+        ) { day in
+            let plan = weekPlans.first { calendar.isDate($0.weekStart, equalTo: day, toGranularity: .weekOfYear) }
+            return DayLogEditor.trainingDays(week: plan, profile: profileRecord.profile).count
+        }
 
         let checkIn = profileRecord.isCheckInDue(at: now)
             ? CoachFactory.coach.weeklyCheckIn(for: profileRecord.profile, weights: weights.map(\.entry), on: now)

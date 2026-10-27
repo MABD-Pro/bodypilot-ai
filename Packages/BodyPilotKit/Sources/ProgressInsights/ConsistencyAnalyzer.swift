@@ -24,7 +24,13 @@ public struct ConsistencyAnalyzer: Sendable {
     }
 
     public func consistency(completedDays: [Date], plannedPerWeek: Int, on date: Date) -> WeeklyConsistency {
-        let planned = max(plannedPerWeek, 1)
+        consistency(completedDays: completedDays, on: date) { _ in plannedPerWeek }
+    }
+
+    /// - Parameter plannedInWeek: séances prévues pour la semaine qui contient la date donnée.
+    ///   Chaque semaine est jugée sur son propre planning : changer la semaine en cours ne casse pas la série.
+    public func consistency(completedDays: [Date], on date: Date, plannedInWeek: (Date) -> Int) -> WeeklyConsistency {
+        let planned = max(plannedInWeek(date), 1)
         let days = Set(completedDays.map { calendar.startOfDay(for: $0) }).filter { $0 <= date }
         let done = count(days, inWeekOf: date)
 
@@ -32,7 +38,7 @@ public struct ConsistencyAnalyzer: Sendable {
         var week = date
         for _ in 0..<Self.maxStreakWeeks {
             guard let previous = calendar.date(byAdding: .weekOfYear, value: -1, to: week),
-                  count(days, inWeekOf: previous) >= planned
+                  count(days, inWeekOf: previous) >= max(plannedInWeek(previous), 1)
             else { break }
             streak += 1
             week = previous
