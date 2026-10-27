@@ -12,6 +12,13 @@ public struct TrainingPlanner: TrainingPlanning {
     static let minimumExercises = 3
     /// En déplacement, une séance courte est plus réaliste.
     public static let travelMaxMinutes = 30
+    /// À partir de cette durée, la séance enchaîne les trois axes : force, cardio, marche inclinée.
+    /// En dessous, la force seule : mieux vaut l'essentiel bien fait.
+    public static let threeAxisMinutes = 30
+    /// Part du temps donnée à la force ; le reste se partage entre cardio et marche inclinée.
+    static let strengthShare = 0.6
+    /// Repos minimal conservé sur les exercices principaux quand la séance est resserrée.
+    static let mainLiftRestSeconds = 120
 
     public init(calendar: Calendar = .current) {
         self.calendar = calendar
@@ -62,9 +69,12 @@ public struct TrainingPlanner: TrainingPlanning {
             }
         }
 
+        let budget = min(constraints.availableMinutes ?? profile.sessionMinutes, profile.sessionMinutes)
+        let composed = budget >= Self.threeAxisMinutes ? withConditioning(workout, budget: budget, equipment: profile.equipment, on: date) : workout
+
         // Les remplacements choisis passent avant les règles de sécurité : une variante qui
         // charge le genou est elle aussi remplacée si le genou est douloureux.
-        var adapted = swapExercises(workout, swaps: constraints.exerciseSwaps)
+        var adapted = swapExercises(composed, swaps: constraints.exerciseSwaps)
         if constraints.traveling {
             notes.append("Déplacement : séance au poids du corps, faisable dans une chambre d'hôtel.")
         }
@@ -77,7 +87,6 @@ public struct TrainingPlanner: TrainingPlanning {
             notes.append("Fatigue : une série de moins, pas d'impacts, effort modéré.")
         }
 
-        let budget = min(constraints.availableMinutes ?? profile.sessionMinutes, profile.sessionMinutes)
         if budget < Self.minimumWorkoutMinutes {
             return TrainingDay(
                 kind: .activeRest(title: "Marche rapide", minutes: max(budget, 10)),
@@ -100,6 +109,55 @@ public struct TrainingPlanner: TrainingPlanning {
         return sessions[(week * weekdays.count + position) % sessions.count]
     }
 
+    /// Force d'abord (60 % du temps), puis un cardio qui change d'une séance à l'autre,
+    /// puis la marche inclinée ou l'escalier, qui fait aussi office de retour au calme.
+    func withConditioning(_ strength: Workout, budget: Int, equipment: Equipment, on date: Date) -> Workout {
+        var result = fit(strength, toMinutes: Int(Double(budget) * Self.strengthShare))
+        result.cooldownMinutes = 0
+        let remaining = budget - result.estimatedMinutes
+        guard remaining >= 8 else { return strength }
+
+        let index = calendar.ordinality(of: .day, in: .era, for: date) ?? 0
+        let cardioFormats = WorkoutCatalog.cardio(for: equipment)
+        let inclineFormats = WorkoutCatalog.incline(for: equipment)
+        let cardio = cardioFormats[index % cardioFormats.count]
+        let incline = inclineFormats[index % inclineFormats.count]
+        let cardioSeconds = remaining / 2 * 60
+        let transition = WorkoutExercise.transitionSeconds
+
+        if cardio.restSeconds > 0 {
+            // Un nombre pair de tours, plus simple à suivre.
+            let fitting = (cardioSeconds - transition + cardio.restSeconds) / (cardio.workSeconds + cardio.restSeconds)
+            let rounds = max(4, fitting - fitting % 2)
+            result.exercises.append(WorkoutExercise(
+                name: cardio.name, sets: rounds, volume: .seconds(cardio.workSeconds), restSeconds: cardio.restSeconds, priority: 4,
+                isHighImpact: cardio.isHighImpact, lowImpactAlternative: cardio.lowImpactAlternative,
+                loadsKnee: cardio.loadsKnee, kneeFriendlyAlternative: cardio.kneeFriendlyAlternative, alternatives: cardio.alternatives
+            ))
+        } else {
+            result.exercises.append(WorkoutExercise(
+                name: cardio.name, sets: 1, volume: .seconds(cardioSeconds - transition), restSeconds: 0, priority: 4, alternatives: cardio.alternatives
+            ))
+        }
+
+        // La marche prend le temps qui reste, à la minute près.
+        var inclineSeconds = (budget - result.estimatedMinutes) * 60 - transition
+        var walk = WorkoutExercise(
+            name: incline.name, sets: 1, volume: .seconds(inclineSeconds), restSeconds: 0, priority: 4,
+            loadsKnee: incline.loadsKnee, kneeFriendlyAlternative: incline.kneeFriendlyAlternative, alternatives: incline.alternatives
+        )
+        while inclineSeconds > 300 && result.estimatedMinutes + Int((Double(walk.estimatedSeconds) / 60).rounded(.up)) > budget {
+            inclineSeconds -= 60
+            walk.volume = .seconds(inclineSeconds)
+        }
+        guard inclineSeconds >= 300 else {
+            result.cooldownMinutes = strength.cooldownMinutes
+            return result
+        }
+        result.exercises.append(walk)
+        return result
+    }
+
     /// La séance qui suit la dernière faite dans la rotation ; sans historique, celle du calendrier.
     func nextWorkout(after title: String?, for profile: UserProfile, on date: Date) -> Workout {
         let sessions = WorkoutCatalog.sessions(for: profile.equipment)
@@ -118,7 +176,8 @@ public struct TrainingPlanner: TrainingPlanning {
             )
         }
         let minutes = (profile.goal == .loseFat || profile.goal == .recomposition) && !constraints.lowEnergy ? 30 : 20
-        let title = constraints.lowEnergy ? "Marche tranquille" : "Marche active"
+        let incline = profile.equipment == .gym ? "Marche inclinée ou escalier" : "Marche en côte ou escaliers"
+        let title = constraints.lowEnergy ? "Marche tranquille" : incline
         let available = constraints.availableMinutes.map { min($0, minutes) } ?? minutes
         let notes = constraints.traveling ? ["Déplacement : profite-en pour découvrir les lieux à pied."] : []
         return TrainingDay(kind: .activeRest(title: title, minutes: available), estimatedMinutes: available, notes: notes)
@@ -161,7 +220,8 @@ public struct TrainingPlanner: TrainingPlanning {
         var result = workout
         result.exercises = workout.exercises.map { exercise in
             var lighter = exercise
-            lighter.sets = max(exercise.sets - 1, 2)
+            // Un effort continu (marche, cardio tempo) reste en une seule fois.
+            lighter.sets = exercise.sets > 1 ? max(exercise.sets - 1, 2) : 1
             if exercise.isHighImpact, let alternative = exercise.lowImpactAlternative {
                 lighter.name = alternative
                 lighter.isHighImpact = false
@@ -177,10 +237,13 @@ public struct TrainingPlanner: TrainingPlanning {
     func fit(_ workout: Workout, toMinutes budget: Int) -> Workout {
         var result = workout
         let steps: [(inout Workout) -> Void] = [
-            { w in w.exercises = w.exercises.map { var e = $0; e.restSeconds = max(30, e.restSeconds * 2 / 3); return e } },
+            // Les exercices principaux gardent au moins 2 minutes de repos : en dessous, la force
+            // progresse moins sur les polyarticulaires (Grgic et al., 2018). Voir docs/TRAINING_EVIDENCE.md.
+            { w in w.exercises = w.exercises.map { var e = $0; e.restSeconds = e.priority == 1 ? max(min(e.restSeconds, Self.mainLiftRestSeconds), e.restSeconds * 2 / 3) : max(30, e.restSeconds * 2 / 3); return e } },
             { w in w.warmupMinutes = min(w.warmupMinutes, 3); w.cooldownMinutes = min(w.cooldownMinutes, 2) },
-            { w in w.exercises = w.exercises.map { var e = $0; if e.priority > 1 { e.sets = min(e.sets, 2) }; return e } },
-            { w in w.exercises = w.exercises.map { var e = $0; e.sets = min(e.sets, 2); return e } },
+            // Le cardio et la marche (priorité 4) ne perdent pas de séries : ils sont retirés en premier si besoin.
+            { w in w.exercises = w.exercises.map { var e = $0; if e.priority > 1 && e.priority < 4 { e.sets = min(e.sets, 2) }; return e } },
+            { w in w.exercises = w.exercises.map { var e = $0; if e.priority < 4 { e.sets = min(e.sets, 2) }; return e } },
         ]
         for step in steps where result.estimatedMinutes > budget {
             step(&result)

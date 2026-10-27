@@ -25,7 +25,9 @@ private func workout(_ day: TrainingDay) -> Workout? {
 
 @Test func restDayProposesActiveRecovery() {
     let result = planner.trainingDay(for: makeProfile(), on: tuesday, constraints: DayConstraints())
-    #expect(result.kind == .activeRest(title: "Marche active", minutes: 30))
+    #expect(result.kind == .activeRest(title: "Marche en côte ou escaliers", minutes: 30))
+    let gym = planner.trainingDay(for: makeProfile(equipment: .gym), on: tuesday, constraints: DayConstraints())
+    #expect(gym.kind == .activeRest(title: "Marche inclinée ou escalier", minutes: 30))
 }
 
 @Test func twentyMinutesKeepsEssentialExercises() throws {
@@ -51,7 +53,8 @@ private func workout(_ day: TrainingDay) -> Workout? {
     let normal = try #require(workout(planner.trainingDay(for: makeProfile(), on: monday, constraints: DayConstraints())))
     let tired = try #require(workout(planner.trainingDay(for: makeProfile(), on: monday, constraints: DayConstraints(lowEnergy: true))))
     #expect(!tired.exercises.contains { $0.isHighImpact })
-    #expect(tired.exercises.allSatisfy { $0.sets >= 2 })
+    // Les séries baissent sans descendre sous 2 ; un effort continu reste en une fois.
+    #expect(tired.exercises.allSatisfy { $0.sets >= 2 || $0.sets == 1 && $0.restSeconds == 0 })
     #expect(tired.exercises.map(\.sets).reduce(0, +) < normal.exercises.map(\.sets).reduce(0, +))
 }
 
@@ -98,7 +101,8 @@ private func workout(_ day: TrainingDay) -> Workout? {
     let result = planner.trainingDay(for: makeProfile(sessionMinutes: 60, equipment: .gym), on: monday, constraints: DayConstraints(traveling: true))
     let session = try #require(workout(result))
     #expect(result.estimatedMinutes <= TrainingPlanner.travelMaxMinutes)
-    let bodyweightNames = Set(WorkoutCatalog.sessions(for: .bodyweight).flatMap { $0.exercises.map(\.name) })
+    let bodyweightNames = Set(WorkoutCatalog.sessions(for: .bodyweight).flatMap { $0.exercises.map(\.name) }
+        + WorkoutCatalog.cardio(for: .bodyweight).map(\.name) + WorkoutCatalog.incline(for: .bodyweight).map(\.name))
     #expect(session.exercises.allSatisfy { bodyweightNames.contains($0.name) })
 }
 
@@ -185,4 +189,40 @@ private func workout(_ day: TrainingDay) -> Workout? {
     let scheduled = planner.trainingDay(for: makeProfile(), on: monday, constraints: DayConstraints())
     let eager = planner.trainingDay(for: makeProfile(), on: monday, constraints: DayConstraints(wantsExtraSession: true, lastWorkoutTitle: "Full body A"))
     #expect(eager == scheduled)
+}
+
+@Test(arguments: [Equipment.bodyweight, .gym], [45, 60])
+func aSessionChainsStrengthCardioAndInclineWalk(equipment: Equipment, minutes: Int) throws {
+    let profile = makeProfile(sessionMinutes: minutes, equipment: equipment)
+    let result = planner.trainingDay(for: profile, on: monday, constraints: DayConstraints())
+    let session = try #require(workout(result))
+    let cardioNames = Set(WorkoutCatalog.cardio(for: equipment).map(\.name))
+    let inclineNames = Set(WorkoutCatalog.incline(for: equipment).map(\.name))
+    let strengthNames = Set(WorkoutCatalog.sessions(for: equipment).flatMap { $0.exercises.map(\.name) })
+    #expect(session.exercises.dropLast(2).allSatisfy { strengthNames.contains($0.name) })
+    #expect(cardioNames.contains(session.exercises[session.exercises.count - 2].name))
+    #expect(inclineNames.contains(session.exercises[session.exercises.count - 1].name))
+    #expect(result.estimatedMinutes <= minutes)
+    #expect(result.estimatedMinutes >= minutes - 3)
+}
+
+@Test func cardioChangesFromOneSessionToTheNext() throws {
+    let wednesday = day(2026, 10, 28)
+    let first = try #require(workout(planner.trainingDay(for: makeProfile(), on: monday, constraints: DayConstraints())))
+    let second = try #require(workout(planner.trainingDay(for: makeProfile(), on: wednesday, constraints: DayConstraints())))
+    #expect(first.exercises[first.exercises.count - 2].name != second.exercises[second.exercises.count - 2].name)
+}
+
+@Test func shortSessionsKeepStrengthOnly() throws {
+    let result = planner.trainingDay(for: makeProfile(), on: monday, constraints: DayConstraints(availableMinutes: 20))
+    let session = try #require(workout(result))
+    #expect(session.exercises.allSatisfy { $0.priority < 4 })
+}
+
+@Test func mainLiftsKeepTwoMinutesOfRestInAThreeAxisSession() throws {
+    let result = planner.trainingDay(for: makeProfile(equipment: .gym), on: monday, constraints: DayConstraints())
+    let session = try #require(workout(result))
+    let mainLifts = session.exercises.filter { $0.priority == 1 }
+    #expect(!mainLifts.isEmpty)
+    #expect(mainLifts.allSatisfy { $0.restSeconds >= 120 && $0.sets == 4 })
 }

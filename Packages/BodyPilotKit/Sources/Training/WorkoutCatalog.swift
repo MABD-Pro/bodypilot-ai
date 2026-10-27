@@ -1,6 +1,8 @@
 import BodyPilotCore
 
-/// Séances de base : deux full body alternés par équipement, conçues pour ~40 minutes.
+/// Séances sur trois axes : musculation lourde en full body, cardio varié, puis marche inclinée
+/// ou escalier. Les blocs de force alternent (A / B) ; le cardio et la marche sont composés
+/// par le planificateur selon le temps disponible.
 enum WorkoutCatalog {
     static func sessions(for equipment: Equipment) -> [Workout] {
         switch equipment {
@@ -9,75 +11,131 @@ enum WorkoutCatalog {
         }
     }
 
-    static let standardCue = "Garde 1 à 2 répétitions en réserve sur chaque série."
+    static let heavyCue = "Charge lourde : garde 1 à 2 répétitions en réserve et récupère complètement entre les séries."
+    static let bodyweightCue = "Mouvements lents et contrôlés : garde 1 à 2 répétitions en réserve."
+
+    // MARK: Force
+
+    static let gymA = Workout(
+        title: "Full body A",
+        warmupMinutes: 6,
+        cooldownMinutes: 2,
+        exercises: [
+            WorkoutExercise(name: "Squat à la barre", sets: 4, volume: .reps(6), restSeconds: 150, priority: 1, loadsKnee: true, kneeFriendlyAlternative: "Hip thrust", alternatives: ["Squat goblet lourd", "Presse à cuisses"]),
+            WorkoutExercise(name: "Développé couché", sets: 4, volume: .reps(6), restSeconds: 150, priority: 1, alternatives: ["Développé couché haltères", "Développé à la machine"]),
+            WorkoutExercise(name: "Tirage vertical lourd", sets: 4, volume: .reps(8), restSeconds: 120, priority: 2, alternatives: ["Tractions", "Tirage horizontal à la poulie"]),
+            WorkoutExercise(name: "Soulevé de terre roumain", sets: 3, volume: .reps(8), restSeconds: 120, priority: 2, alternatives: ["Soulevé de terre roumain haltères", "Hip thrust"]),
+        ],
+        intensityCue: heavyCue
+    )
+
+    static let gymB = Workout(
+        title: "Full body B",
+        warmupMinutes: 6,
+        cooldownMinutes: 2,
+        exercises: [
+            WorkoutExercise(name: "Soulevé de terre", sets: 4, volume: .reps(5), restSeconds: 180, priority: 1, alternatives: ["Soulevé de terre à la trap bar", "Soulevé de terre roumain"]),
+            WorkoutExercise(name: "Développé militaire", sets: 4, volume: .reps(6), restSeconds: 150, priority: 1, alternatives: ["Développé militaire haltères", "Développé épaules à la machine"]),
+            WorkoutExercise(name: "Rowing barre", sets: 4, volume: .reps(8), restSeconds: 120, priority: 2, alternatives: ["Rowing haltère", "Tirage horizontal à la poulie"]),
+            WorkoutExercise(name: "Fentes bulgares haltères", sets: 3, volume: .reps(8), restSeconds: 90, priority: 2, loadsKnee: true, kneeFriendlyAlternative: "Hip thrust", alternatives: ["Fentes marchées haltères", "Step-ups haltères"]),
+        ],
+        intensityCue: heavyCue
+    )
 
     static let bodyweightA = Workout(
         title: "Full body A",
         warmupMinutes: 5,
-        cooldownMinutes: 3,
+        cooldownMinutes: 2,
         exercises: [
-            WorkoutExercise(name: "Squats", sets: 3, volume: .reps(15), restSeconds: 60, priority: 1, loadsKnee: true, kneeFriendlyAlternative: "Pont fessier une jambe", alternatives: ["Squats tempo lent", "Step-ups sur une chaise"]),
-            WorkoutExercise(name: "Pompes (sur les genoux si besoin)", sets: 3, volume: .reps(10), restSeconds: 60, priority: 1, alternatives: ["Pompes inclinées sur une table", "Dips sur une chaise"]),
-            WorkoutExercise(name: "Fentes alternées", sets: 3, volume: .reps(12), restSeconds: 60, priority: 2, loadsKnee: true, kneeFriendlyAlternative: "Bird dog", alternatives: ["Fentes arrière", "Squats bulgares"]),
-            WorkoutExercise(name: "Pont fessier", sets: 3, volume: .reps(15), restSeconds: 45, priority: 2, alternatives: ["Hip thrust sur le canapé", "Pont fessier une jambe"]),
-            WorkoutExercise(name: "Gainage planche", sets: 3, volume: .seconds(30), restSeconds: 45, priority: 2, alternatives: ["Hollow hold", "Gainage latéral"]),
-            WorkoutExercise(
-                name: "Burpees", sets: 3, volume: .reps(8), restSeconds: 60, priority: 3,
-                isHighImpact: true, lowImpactAlternative: "Squats avec extension des bras", loadsKnee: true, kneeFriendlyAlternative: "Boxe dans le vide",
-                alternatives: ["Mountain climbers", "Squat thrusts"]
-            ),
+            WorkoutExercise(name: "Squats bulgares", sets: 4, volume: .reps(10), restSeconds: 90, priority: 1, loadsKnee: true, kneeFriendlyAlternative: "Pont fessier une jambe", alternatives: ["Squats tempo lent", "Step-ups sur une chaise"]),
+            WorkoutExercise(name: "Pompes", sets: 4, volume: .reps(12), restSeconds: 90, priority: 1, alternatives: ["Pompes déclinées", "Dips sur une chaise"]),
+            WorkoutExercise(name: "Rowing inversé sous une table", sets: 4, volume: .reps(10), restSeconds: 90, priority: 2, alternatives: ["Rowing serviette à la porte", "Superman au sol"]),
+            WorkoutExercise(name: "Gainage planche", sets: 3, volume: .seconds(40), restSeconds: 45, priority: 2, alternatives: ["Hollow hold", "Gainage latéral"]),
         ],
-        intensityCue: standardCue
+        intensityCue: bodyweightCue
     )
 
     static let bodyweightB = Workout(
         title: "Full body B",
         warmupMinutes: 5,
-        cooldownMinutes: 3,
+        cooldownMinutes: 2,
         exercises: [
-            WorkoutExercise(name: "Squats sumo", sets: 3, volume: .reps(15), restSeconds: 60, priority: 1, loadsKnee: true, kneeFriendlyAlternative: "Pont fessier pieds surélevés", alternatives: ["Squats tempo lent", "Step-ups sur une chaise"]),
-            WorkoutExercise(name: "Pompes inclinées", sets: 3, volume: .reps(12), restSeconds: 60, priority: 1, alternatives: ["Pompes", "Dips sur une chaise"]),
-            WorkoutExercise(name: "Superman au sol", sets: 3, volume: .reps(12), restSeconds: 45, priority: 2, alternatives: ["Bird dog", "Good morning sans charge"]),
-            WorkoutExercise(name: "Fentes arrière", sets: 3, volume: .reps(10), restSeconds: 60, priority: 2, loadsKnee: true, kneeFriendlyAlternative: "Gainage planche épaule touchée", alternatives: ["Fentes alternées", "Squats bulgares"]),
-            WorkoutExercise(name: "Gainage latéral", sets: 3, volume: .seconds(25), restSeconds: 45, priority: 3, alternatives: ["Gainage planche", "Hollow hold"]),
-            WorkoutExercise(
-                name: "Jumping jacks", sets: 3, volume: .seconds(40), restSeconds: 45, priority: 3,
-                isHighImpact: true, lowImpactAlternative: "Montées de genoux marchées", loadsKnee: true, kneeFriendlyAlternative: "Boxe dans le vide",
-                alternatives: ["Montées de genoux", "Mountain climbers"]
-            ),
+            WorkoutExercise(name: "Squats tempo lent", sets: 4, volume: .reps(12), restSeconds: 90, priority: 1, loadsKnee: true, kneeFriendlyAlternative: "Pont fessier pieds surélevés", alternatives: ["Squats bulgares", "Step-ups sur une chaise"]),
+            WorkoutExercise(name: "Pompes déclinées", sets: 4, volume: .reps(10), restSeconds: 90, priority: 1, alternatives: ["Pompes", "Dips sur une chaise"]),
+            WorkoutExercise(name: "Hip thrust une jambe", sets: 4, volume: .reps(12), restSeconds: 60, priority: 2, alternatives: ["Pont fessier une jambe", "Good morning sans charge"]),
+            WorkoutExercise(name: "Gainage latéral", sets: 3, volume: .seconds(30), restSeconds: 45, priority: 2, alternatives: ["Gainage planche", "Hollow hold"]),
         ],
-        intensityCue: standardCue
+        intensityCue: bodyweightCue
     )
 
-    static let gymA = Workout(
-        title: "Full body A",
-        warmupMinutes: 5,
-        cooldownMinutes: 3,
-        exercises: [
-            WorkoutExercise(name: "Squat goblet", sets: 3, volume: .reps(10), restSeconds: 90, priority: 1, loadsKnee: true, kneeFriendlyAlternative: "Hip thrust", alternatives: ["Presse à cuisses", "Squat à la barre"]),
-            WorkoutExercise(name: "Développé couché haltères", sets: 3, volume: .reps(10), restSeconds: 90, priority: 1, alternatives: ["Développé couché à la barre", "Développé à la machine", "Pompes"]),
-            WorkoutExercise(name: "Tirage vertical", sets: 3, volume: .reps(12), restSeconds: 75, priority: 1, alternatives: ["Tractions assistées", "Tirage horizontal à la poulie"]),
-            WorkoutExercise(name: "Soulevé de terre roumain", sets: 3, volume: .reps(10), restSeconds: 90, priority: 2, alternatives: ["Soulevé de terre roumain à la barre", "Hip thrust"]),
-            WorkoutExercise(name: "Gainage planche", sets: 2, volume: .seconds(40), restSeconds: 45, priority: 3, alternatives: ["Hollow hold", "Gainage latéral"]),
-        ],
-        intensityCue: standardCue
-    )
+    // MARK: Cardio varié
 
-    static let gymB = Workout(
-        title: "Full body B",
-        warmupMinutes: 5,
-        cooldownMinutes: 3,
-        exercises: [
-            WorkoutExercise(name: "Presse à cuisses", sets: 3, volume: .reps(12), restSeconds: 90, priority: 1, loadsKnee: true, kneeFriendlyAlternative: "Hip thrust", alternatives: ["Squat goblet", "Hack squat"]),
-            WorkoutExercise(name: "Rowing haltère", sets: 3, volume: .reps(10), restSeconds: 75, priority: 1, alternatives: ["Tirage horizontal à la poulie", "Rowing à la machine"]),
-            WorkoutExercise(name: "Développé militaire haltères", sets: 3, volume: .reps(10), restSeconds: 75, priority: 2, alternatives: ["Développé épaules à la machine", "Développé militaire à la barre"]),
-            WorkoutExercise(name: "Fentes marchées haltères", sets: 3, volume: .reps(10), restSeconds: 75, priority: 2, loadsKnee: true, kneeFriendlyAlternative: "Tirage horizontal à la poulie", alternatives: ["Fentes bulgares haltères", "Step-ups haltères"]),
-            WorkoutExercise(
-                name: "Corde à sauter", sets: 3, volume: .seconds(45), restSeconds: 45, priority: 3,
-                isHighImpact: true, lowImpactAlternative: "Vélo d'appartement", loadsKnee: true, kneeFriendlyAlternative: "Rameur à allure douce",
-                alternatives: ["Rameur", "Vélo d'appartement"]
-            ),
-        ],
-        intensityCue: standardCue
-    )
+    /// Format de cardio : effort et récupération répétés, ou effort continu (`restSeconds` = 0).
+    struct CardioFormat: Sendable {
+        var name: String
+        var workSeconds: Int
+        var restSeconds: Int
+        var isHighImpact = false
+        var lowImpactAlternative: String?
+        var loadsKnee = false
+        var kneeFriendlyAlternative: String?
+        var alternatives: [String] = []
+    }
+
+    static func cardio(for equipment: Equipment) -> [CardioFormat] {
+        switch equipment {
+        case .gym:
+            [
+                CardioFormat(name: "Rameur fractionné", workSeconds: 30, restSeconds: 30, alternatives: ["SkiErg fractionné", "Vélo fractionné"]),
+                CardioFormat(name: "Vélo fractionné", workSeconds: 40, restSeconds: 20, alternatives: ["Assault bike", "Rameur fractionné"]),
+                CardioFormat(
+                    name: "Corde à sauter", workSeconds: 45, restSeconds: 30,
+                    isHighImpact: true, lowImpactAlternative: "Vélo fractionné", loadsKnee: true, kneeFriendlyAlternative: "Rameur fractionné",
+                    alternatives: ["Vélo fractionné", "Rameur fractionné"]
+                ),
+                CardioFormat(name: "Elliptique tempo", workSeconds: 0, restSeconds: 0, alternatives: ["Vélo tempo", "Rameur tempo"]),
+            ]
+        case .bodyweight:
+            [
+                CardioFormat(
+                    name: "Burpees", workSeconds: 30, restSeconds: 30,
+                    isHighImpact: true, lowImpactAlternative: "Squats avec extension des bras", loadsKnee: true, kneeFriendlyAlternative: "Boxe dans le vide",
+                    alternatives: ["Squat thrusts", "Mountain climbers"]
+                ),
+                CardioFormat(name: "Mountain climbers", workSeconds: 30, restSeconds: 30, alternatives: ["Boxe dans le vide", "Jumping jacks"]),
+                CardioFormat(
+                    name: "Jumping jacks", workSeconds: 40, restSeconds: 20,
+                    isHighImpact: true, lowImpactAlternative: "Pas chassés", loadsKnee: true, kneeFriendlyAlternative: "Boxe dans le vide",
+                    alternatives: ["Pas chassés", "Montées de genoux"]
+                ),
+                CardioFormat(name: "Boxe dans le vide", workSeconds: 45, restSeconds: 15, alternatives: ["Mountain climbers", "Pas chassés"]),
+            ]
+        }
+    }
+
+    // MARK: Marche inclinée ou escalier
+
+    /// La pente et les marches chargent le genou à chaque pas : avec une douleur, marche à plat ou vélo.
+
+    struct InclineFormat: Sendable {
+        var name: String
+        var loadsKnee: Bool
+        var kneeFriendlyAlternative: String?
+        var alternatives: [String]
+    }
+
+    static func incline(for equipment: Equipment) -> [InclineFormat] {
+        switch equipment {
+        case .gym:
+            [
+                InclineFormat(name: "Marche inclinée (tapis 10 à 12 %, 5 km/h)", loadsKnee: true, kneeFriendlyAlternative: "Vélo à allure douce", alternatives: ["Escalier (stepper)", "Marche inclinée (tapis 8 %, 5,5 km/h)"]),
+                InclineFormat(name: "Escalier (stepper)", loadsKnee: true, kneeFriendlyAlternative: "Vélo à allure douce", alternatives: ["Marche inclinée (tapis 10 à 12 %, 5 km/h)"]),
+            ]
+        case .bodyweight:
+            [
+                InclineFormat(name: "Marche en côte", loadsKnee: true, kneeFriendlyAlternative: "Marche à plat", alternatives: ["Montée d'escaliers", "Marche rapide"]),
+                InclineFormat(name: "Montée d'escaliers", loadsKnee: true, kneeFriendlyAlternative: "Marche à plat", alternatives: ["Marche en côte"]),
+            ]
+        }
+    }
 }
