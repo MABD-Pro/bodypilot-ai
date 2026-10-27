@@ -44,13 +44,14 @@ struct ProgressCard: View {
                 }
             }
 
-            Text(message)
-                .font(.subheadline)
-                .fixedSize(horizontal: false, vertical: true)
-
+            // Le bilan reprend le constat de la tendance : on ne le répète pas au-dessus.
             if let checkIn {
                 checkInBox(checkIn)
                     .transition(.opacity.combined(with: .move(edge: .top)))
+            } else {
+                Text(message)
+                    .font(.subheadline)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if trend.points.count >= 2 {
