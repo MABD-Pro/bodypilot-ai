@@ -38,6 +38,8 @@ enum LaunchOptions {
         guard parts.count == 2, let slot = MealSlot(rawValue: parts[0]) else { return nil }
         return (slot, parts[1])
     }
+    /// `-demoActivities YES` : quelques activités Santé dans la semaine (course, vélo, marche).
+    static var demoActivities: Bool { defaults.bool(forKey: "demoActivities") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }
@@ -81,6 +83,20 @@ enum AppContainer {
 }
 
 enum DemoData {
+    /// Activités de la Watch, sur les jours précédents de la semaine.
+    static func activities(now: Date = .now, calendar: Calendar = .current) -> [ActivitySample] {
+        let items: [(days: Int, hour: Int, kind: ActivityKind, minutes: Double, kcal: Double)] = [
+            (0, 7, .walking, 32, 140), (1, 18, .cycling, 75, 610), (2, 7, .running, 40, 420),
+        ]
+        return items.compactMap { item in
+            guard let day = calendar.date(byAdding: .day, value: -item.days, to: now),
+                  let start = calendar.date(bySettingHour: item.hour, minute: 0, second: 0, of: day),
+                  start <= now
+            else { return nil }
+            return ActivitySample(id: "demo-\(item.days)", kind: item.kind, start: start, minutes: item.minutes, kcal: item.kcal)
+        }
+    }
+
     @MainActor
     static func seed(_ context: ModelContext, now: Date = .now, calendar: Calendar = .current) {
         let birthDate = calendar.date(byAdding: .year, value: -34, to: now) ?? now

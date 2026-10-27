@@ -53,6 +53,10 @@ public struct TrainingPlanner: TrainingPlanning {
             if constraints.missedYesterday && isTrainingDay(yesterday, for: profile) && !constraints.missedToday {
                 workout = scheduledWorkout(for: profile, on: yesterday)
                 notes.append("Rattrapage de la séance d'hier, puisque aujourd'hui est libre.")
+            } else if constraints.wantsExtraSession && !constraints.missedToday {
+                workout = nextWorkout(after: constraints.lastWorkoutTitle, for: profile, on: date)
+                notes.append(constraints.lastWorkoutTitle.map { "Séance en plus : la suite de « \($0) », pour faire travailler d'autres muscles." }
+                    ?? "Séance en plus : les jours cochés sont un repère, pas une limite.")
             } else {
                 return restDay(for: profile, constraints: constraints)
             }
@@ -94,6 +98,15 @@ public struct TrainingPlanner: TrainingPlanning {
         let position = weekdays.firstIndex(of: calendar.component(.weekday, from: date)) ?? 0
         let week = calendar.component(.weekOfYear, from: date)
         return sessions[(week * weekdays.count + position) % sessions.count]
+    }
+
+    /// La séance qui suit la dernière faite dans la rotation ; sans historique, celle du calendrier.
+    func nextWorkout(after title: String?, for profile: UserProfile, on date: Date) -> Workout {
+        let sessions = WorkoutCatalog.sessions(for: profile.equipment)
+        guard let title, let index = sessions.firstIndex(where: { $0.title == title }) else {
+            return scheduledWorkout(for: profile, on: date)
+        }
+        return sessions[(index + 1) % sessions.count]
     }
 
     private func restDay(for profile: UserProfile, constraints: DayConstraints) -> TrainingDay {

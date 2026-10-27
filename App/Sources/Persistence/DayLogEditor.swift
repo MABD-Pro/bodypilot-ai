@@ -82,8 +82,20 @@ enum DayLogEditor {
             weekTrainingDays: week?.weekdaysRaw,
             mealIntakes: today?.mealIntakes ?? [:],
             describedMeals: today?.describedMeals ?? [:],
+            lastWorkoutTitle: lastWorkoutTitle(before: now, in: context, calendar: calendar),
             on: now
         )
+    }
+
+    /// Dernière séance cochée avant ce jour : la séance en plus enchaîne sur la suivante.
+    static func lastWorkoutTitle(before date: Date, in context: ModelContext, calendar: Calendar = .current) -> String? {
+        let start = calendar.startOfDay(for: date)
+        var descriptor = FetchDescriptor<DayLogRecord>(
+            predicate: #Predicate { $0.workoutDone && $0.day < start && $0.doneWorkoutTitle != nil },
+            sortBy: [SortDescriptor(\.day, order: .reverse)]
+        )
+        descriptor.fetchLimit = 1
+        return (try? context.fetch(descriptor))?.first?.doneWorkoutTitle
     }
 }
 

@@ -109,6 +109,7 @@ enum KeywordParser {
         Rule(.eatingOut, [#"\brestau"#, #"\bresto"#, #"\bbrasserie"#, #"\bpizzeria"#, #"\binvite"#, #"repas (d'affaires|de famille|entre amis)"#, #"mange dehors"#, #"\bfast.?food"#]),
         Rule(.notHungry, [#"pas faim"#, #"peu faim"#, #"pas d'appetit"#, #"aucun appetit"#, #"coupe.? l'appetit"#]),
         Rule(.kneePain, [#"genou"#]),
+        Rule(.wantsToTrain, [#"envie (de|d') ?(bouger|sport|faire du sport|faire une seance|m'entrainer|courir|me depenser)"#, #"je veux (bouger|faire du sport|m'entrainer)"#, #"seance en plus"#, #"motive pour"#]),
         Rule(.traveling, [#"deplacement"#, #"\bvoyage"#, #"\bhotel"#, #"\bvacances"#, #"je pars en\b"#, #"\bavion\b"#, #"\btrain\b"#, #"\bmission\b"#]),
     ]
 
@@ -119,6 +120,10 @@ enum KeywordParser {
             found.insert(rule.adjustment)
         }
         // « train » seul est ambigu (« en train de… ») : on l'ignore dans cette tournure.
+        // « Pas envie de bouger » dit le contraire.
+        if found.contains(.wantsToTrain), matches(#"pas (trop |vraiment )?envie|aucune envie"#, in: normalized) {
+            found.remove(.wantsToTrain)
+        }
         if found.contains(.traveling), matches(#"en train de"#, in: normalized), !matches(#"deplacement|voyage|hotel|avion|vacances|je pars en|mission"#, in: normalized) {
             found.remove(.traveling)
         }

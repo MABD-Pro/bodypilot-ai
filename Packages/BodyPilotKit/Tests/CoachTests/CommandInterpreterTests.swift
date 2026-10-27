@@ -49,3 +49,12 @@ func understandsCommonPhrases(text: String, expected: QuickAdjustment) {
     let result = interpreter.interpret("j'ai 500 min")
     #expect(result?.availableMinutes == nil)
 }
+
+@Test(arguments: ["J'ai envie de faire du sport aujourd'hui", "envie de bouger", "Je veux m'entraîner ce soir"])
+func understandsTheWishToTrain(text: String) {
+    #expect(parse(text).contains(.wantsToTrain), "« \(text) »")
+}
+
+@Test func noWishToTrainIsNotAnExtraSession() {
+    #expect(!parse("pas envie de bouger aujourd'hui").contains(.wantsToTrain))
+}

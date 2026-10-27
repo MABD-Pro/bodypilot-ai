@@ -4,6 +4,7 @@ import Nutrition
 import ProgressInsights
 import SwiftData
 import SwiftUI
+import WorkoutKit
 
 /// Écran principal : répond aux trois questions du jour et s'adapte en une touche.
 struct TodayView: View {
@@ -20,6 +21,8 @@ struct TodayView: View {
     @State private var describing: MealToDescribe?
     @State private var isAddingWeight = false
     @State private var isEditingProfile = false
+    /// Entraînements lus dans Santé (Watch, autres apps), pour la semaine et la régularité.
+    @State private var healthActivities: [ActivitySample] = []
 
     private let calendar = Calendar.current
 
@@ -29,6 +32,10 @@ struct TodayView: View {
         let todayAdjustments = todayLog?.adjustments ?? []
         let weekPlan = weekPlans.first { calendar.isDate($0.weekStart, equalTo: now, toGranularity: .weekOfYear) }
         let weekDays = DayLogEditor.trainingDays(week: weekPlan, profile: profileRecord.profile)
+        let doneLogs = dayLogs.filter(\.workoutDone)
+        let lastWorkoutTitle = doneLogs
+            .filter { $0.day < calendar.startOfDay(for: now) && $0.doneWorkoutTitle != nil }
+            .max { $0.day < $1.day }?.doneWorkoutTitle
         let plan = CoachFactory.coach.plan(
             for: profileRecord.profile,
             weights: weights.map(\.entry),
@@ -41,11 +48,20 @@ struct TodayView: View {
             weekTrainingDays: weekPlan?.weekdaysRaw,
             mealIntakes: todayLog?.mealIntakes ?? [:],
             describedMeals: todayLog?.describedMeals ?? [:],
+            lastWorkoutTitle: lastWorkoutTitle,
             on: now
         )
 
+        let activityAnalyzer = WeekActivityAnalyzer(calendar: calendar)
+        let week = activityAnalyzer.week(
+            of: now,
+            samples: healthActivities,
+            completed: doneLogs.map { (day: $0.day, title: $0.doneWorkoutTitle) },
+            sessionMinutes: profileRecord.profile.sessionMinutes
+        )
+        // Une séance enregistrée par la Watch compte comme une séance cochée.
         let consistency = ConsistencyAnalyzer(calendar: calendar).consistency(
-            completedDays: dayLogs.filter(\.workoutDone).map(\.day),
+            completedDays: activityAnalyzer.sessionDays(completedDays: doneLogs.map(\.day), samples: healthActivities),
             on: now
         ) { day in
             let plan = weekPlans.first { calendar.isDate($0.weekStart, equalTo: day, toGranularity: .weekOfYear) }
@@ -71,9 +87,15 @@ struct TodayView: View {
                             training: plan.training,
                             swap: swapExercise,
                             isDone: todayLog?.workoutDone ?? false,
-                            toggleDone: toggleWorkoutDone,
+                            toggleDone: { toggleWorkoutDone(title: plan.training.workoutTitle) },
                             weekDays: weekDays,
-                            toggleWeekDay: toggleWeekDay
+                            toggleWeekDay: toggleWeekDay,
+                            week: week,
+                            healthLinked: healthLink == .on,
+                            wantsToTrain: todayAdjustments.contains(.wantsToTrain) ? nil : { toggle(.wantsToTrain) },
+                            cancelExtraSession: todayAdjustments.contains(.wantsToTrain) && plan.training.notes.contains { $0.hasPrefix("Séance en plus") }
+                                ? { toggle(.wantsToTrain) } : nil,
+                            planWeekOnWatch: { await planWeekOnWatch(today: plan.training, weekDays: weekDays, isTodayDone: todayLog?.workoutDone ?? false) }
                         )
                             .id("training")
                         ProgressCard(
@@ -100,6 +122,7 @@ struct TodayView: View {
                 }
                 .scrollIndicators(.hidden)
                 .task {
+                    if LaunchOptions.demoActivities { healthActivities = DemoData.activities() }
                     guard let target = LaunchOptions.demoScrollTarget else { return }
                     try? await Task.sleep(for: .seconds(2))
                     withAnimation { proxy.scrollTo(target, anchor: .top) }
@@ -121,6 +144,7 @@ struct TodayView: View {
                 // Déjà relié avant l'envoi des repas : Santé demande une fois l'autorisation d'écrire.
                 if !LaunchOptions.demoData { try? await HealthWeight.requestAccess() }
                 await importHealthWeights()
+                await importHealthActivities()
                 await exportMeals(plan.meals, on: now)
             }
             .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
@@ -176,6 +200,30 @@ struct TodayView: View {
             export.entries(for: meals, on: day, now: .now),
             ids: MealSlot.allCases.map { export.id(for: $0, on: day) }
         )
+    }
+
+    private func importHealthActivities() async {
+        guard !LaunchOptions.demoData else { return }
+        let since = calendar.date(byAdding: .weekOfYear, value: -HealthWorkouts.lookbackWeeks, to: .now) ?? .now
+        guard let samples = try? await HealthWorkouts.samples(since: since) else { return }
+        withAnimation(Theme.springy) { healthActivities = samples }
+    }
+
+    /// Séances et marches de la semaine, d'aujourd'hui à dimanche, planifiées sur la montre.
+    /// Aujourd'hui garde ses ajustements ; les jours suivants partent du plan de base.
+    private func planWeekOnWatch(today: TrainingDay, weekDays: [Int], isTodayDone: Bool) async -> Bool {
+        guard let week = calendar.dateInterval(of: .weekOfYear, for: .now) else { return false }
+        var plans: [(day: Date, plan: WorkoutPlan)] = []
+        var day = calendar.startOfDay(for: .now)
+        while day < week.end {
+            let training: TrainingDay? = calendar.isDateInToday(day)
+                ? (isTodayDone ? nil : today)
+                : CoachFactory.coach.plan(for: profileRecord.profile, weights: weights.map(\.entry), weekTrainingDays: weekDays, on: day).training
+            if let plan = training?.watchPlan { plans.append((day, plan)) }
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = next
+        }
+        return await WatchSchedule.replace(with: plans, calendar: calendar)
     }
 
     private func importHealthWeights() async {
@@ -282,10 +330,11 @@ struct TodayView: View {
         }
     }
 
-    private func toggleWorkoutDone() {
+    private func toggleWorkoutDone(title: String?) {
         let log = todayLog()
         withAnimation(Theme.springy) {
             log.workoutDone.toggle()
+            log.doneWorkoutTitle = log.workoutDone ? title : nil
         }
     }
 

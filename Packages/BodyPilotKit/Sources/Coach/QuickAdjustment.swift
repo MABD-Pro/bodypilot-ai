@@ -10,6 +10,7 @@ public enum QuickAdjustment: String, CaseIterable, Sendable, Codable {
     case notHungry
     case kneePain
     case traveling
+    case wantsToTrain
 
     /// Temps disponible par défaut quand l'utilisateur déclare manquer de temps.
     public static let shortOnTimeMinutes = 20
@@ -24,6 +25,7 @@ public enum QuickAdjustment: String, CaseIterable, Sendable, Codable {
         case .notHungry: "Je n'ai pas faim"
         case .kneePain: "J'ai mal au genou"
         case .traveling: "Je pars en déplacement"
+        case .wantsToTrain: "J'ai envie de bouger"
         }
     }
 }
@@ -34,7 +36,8 @@ extension DayConstraints {
         today: Set<QuickAdjustment>,
         yesterday: Set<QuickAdjustment> = [],
         availableMinutes: Int? = nil,
-        exerciseSwaps: [String: Int] = [:]
+        exerciseSwaps: [String: Int] = [:],
+        lastWorkoutTitle: String? = nil
     ) {
         self.init(
             availableMinutes: today.contains(.shortOnTime) ? (availableMinutes ?? QuickAdjustment.shortOnTimeMinutes) : nil,
@@ -43,7 +46,9 @@ extension DayConstraints {
             missedYesterday: yesterday.contains(.missedWorkout),
             kneePain: today.contains(.kneePain),
             traveling: today.contains(.traveling),
-            exerciseSwaps: exerciseSwaps
+            exerciseSwaps: exerciseSwaps,
+            wantsExtraSession: today.contains(.wantsToTrain),
+            lastWorkoutTitle: lastWorkoutTitle
         )
     }
 }
