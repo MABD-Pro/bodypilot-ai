@@ -81,6 +81,13 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Un jour déjà renseigné n'est jamais écrasé : la saisie manuelle garde la main.
 - Valeurs hors 25–350 kg écartées ; une mesure déjà importée (même identifiant Santé) ne revient pas.
 
+## Repas envoyés vers Santé (`Nutrition/HealthMealExport`)
+
+- Avec Santé relié, chaque repas mangé (« Comme prévu », plus ou moins, décrit en texte ou en photo) part dans Santé > Nutrition : énergie consommée, protéines, glucides, lipides, nommés d'après le repas.
+- Heure habituelle du repas (8 h, 12 h 30, 16 h 30, 20 h), jamais dans le futur.
+- Identifiant stable par jour et par repas : une modification remplace les valeurs, une annulation ou un repas sauté les retire. Rien n'est réécrit tant que le contenu ne change pas.
+- Écriture refusée dans Santé : l'app fonctionne sans. Rien ne quitte l'iPhone.
+
 ## Phrase libre (`Coach/CommandInterpreter`)
 
 - « Je suis crevé, j'ai 15 min et resto ce soir » → fatigue + 15 minutes + restaurant.

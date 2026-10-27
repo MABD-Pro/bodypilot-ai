@@ -13,9 +13,10 @@ enum HealthWeight {
 
     private static var bodyMass: HKQuantityType { HKQuantityType(.bodyMass) }
 
-    /// Affiche la feuille d'autorisation de Santé (une seule fois ; ensuite, sans effet).
+    /// Affiche la feuille d'autorisation de Santé : lecture du poids, écriture des repas.
+    /// Une seule fois par type ; ensuite, sans effet.
     static func requestAccess() async throws {
-        try await HKHealthStore().requestAuthorization(toShare: [], read: [bodyMass])
+        try await HKHealthStore().requestAuthorization(toShare: HealthMeals.writtenTypes, read: [bodyMass])
     }
 
     /// Pesées enregistrées depuis une date. Santé ne dit pas si la lecture est refusée :

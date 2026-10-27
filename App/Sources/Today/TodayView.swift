@@ -1,5 +1,6 @@
 import BodyPilotCore
 import Coach
+import Nutrition
 import ProgressInsights
 import SwiftData
 import SwiftUI
@@ -116,7 +117,15 @@ struct TodayView: View {
             .sensoryFeedback(.selection, trigger: todayLog?.exerciseSwapsRaw.count ?? 0)
             .task(id: scenePhase) {
                 // À chaque retour dans l'app : les pesées de la balance arrivent toutes seules.
-                if scenePhase == .active, healthSync { await importHealthWeights() }
+                guard scenePhase == .active, healthSync else { return }
+                // Déjà relié avant l'envoi des repas : Santé demande une fois l'autorisation d'écrire.
+                if !LaunchOptions.demoData { try? await HealthWeight.requestAccess() }
+                await importHealthWeights()
+                await exportMeals(plan.meals, on: now)
+            }
+            .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
+                // Un repas pris, décrit, modifié ou annulé : Santé suit aussitôt.
+                await exportMeals(plan.meals, on: now)
             }
             .sheet(isPresented: $isAddingWeight) {
                 WeightEntrySheet(initialKg: weights.last?.kg ?? profileRecord.startWeightKg)
@@ -157,6 +166,16 @@ struct TodayView: View {
         }
         healthSync = true
         await importHealthWeights()
+    }
+
+    /// Repas mangés du jour → Santé ; un repas annulé ou sauté en est retiré.
+    private func exportMeals(_ meals: DayMealPlan, on day: Date) async {
+        guard healthSync, HealthWeight.isAvailable, !LaunchOptions.demoData else { return }
+        let export = HealthMealExport(calendar: calendar)
+        await HealthMeals.shared.sync(
+            export.entries(for: meals, on: day, now: .now),
+            ids: MealSlot.allCases.map { export.id(for: $0, on: day) }
+        )
     }
 
     private func importHealthWeights() async {
