@@ -63,9 +63,11 @@ shoot 2c-repas-decrit -demoData YES -demoMeals breakfast=asPlanned -demoDescribe
 shoot 3-aujourdhui-seance -demoData YES -demoScrollTo training
 shoot 3b-seance-exercice-remplace -demoData YES -demoSwap YES -demoScrollTo training
 shoot 3c-ma-semaine -demoData YES -demoActivities YES -demoHealth YES -demoScrollTo week
+shoot 3d-records-seance -demoData YES -demoLifts YES -demoScrollTo training
 shoot 4-aujourdhui-progression -demoData YES -demoScrollTo progress
 shoot 4c-bilan-semaine -demoData YES -demoCheckIn YES -demoScrollTo progress
 shoot 4b-progression-sante -demoData YES -demoHealth YES -demoScrollTo progress
+shoot 4d-records-progression -demoData YES -demoLifts YES -demoScrollTo progress
 shoot 5-ajustement-20min-fatigue -demoData YES -demoAdjustments shortOnTime,tired -demoScrollTo training
 shoot 6a-phrase-resto-genou-repas -demoData YES -demoCommand "J'ai mal au genou et ce soir resto" -demoScrollTo nutrition
 shoot 6b-phrase-resto-genou-seance -demoData YES -demoCommand "J'ai mal au genou et ce soir resto" -demoScrollTo training

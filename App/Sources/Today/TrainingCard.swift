@@ -23,8 +23,16 @@ struct TrainingCard: View {
     var cancelExtraSession: (() -> Void)?
     /// Planifie la semaine sur la Watch ; `false` si l'autorisation est refusée.
     var planWeekOnWatch: (() async -> Bool)?
+    /// Meilleures séries notées, toutes séances confondues.
+    var lifts: [LiftEntry] = []
+    /// Matériel de salle : la saisie part d'une charge, sinon du poids du corps.
+    var usesLoads = false
+    var logLift: (LiftEntry) -> Void = { _ in }
 
     @State private var isPreviewingWatch = false
+    @State private var logging: LiftToLog?
+    @State private var celebration: String?
+    private let calendar = Calendar.current
     @State private var watchWeek: WatchWeekState = .idle
 
     private enum WatchWeekState { case idle, sending, sent, refused }
@@ -109,22 +117,40 @@ struct TrainingCard: View {
                 .buttonStyle(.plain)
             }
 
+            if let celebration {
+                Label(celebration, systemImage: "trophy.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.carbs)
+                    .padding(Theme.Spacing.m)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.carbs.opacity(0.14), in: .rect(cornerRadius: Theme.Radius.inner))
+                    .transition(.scale(scale: 0.9).combined(with: .opacity))
+            }
+
             VStack(spacing: 0) {
                 ExerciseRow(index: 0, name: "Échauffement", detail: "\(workout.warmupMinutes) min", isWarmup: true)
                 ForEach(Array(workout.exercises.enumerated()), id: \.offset) { index, exercise in
+                    let toLog = liftToLog(exercise)
                     ExerciseRow(
                         index: index + 1,
                         name: exercise.name,
                         detail: exercise.prescription,
                         isWarmup: false,
                         isSwapped: exercise.isSwapped,
-                        swap: exercise.alternatives.isEmpty ? nil : { swap(exercise.key) }
+                        caption: toLog.map(caption),
+                        swap: exercise.alternatives.isEmpty ? nil : { swap(exercise.key) },
+                        log: toLog.map { item -> () -> Void in { logging = item } }
                     )
                 }
             }
+            .sheet(item: $logging) { item in
+                LiftEntrySheet(item: item) { entry in save(entry) }
+            }
+            .sensoryFeedback(.success, trigger: celebration) { _, new in new != nil }
 
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Label(workout.intensityCue, systemImage: "gauge.with.dots.needle.33percent")
+                Label("Touche un exercice pour noter ta meilleure série : le coach suit tes records et fait monter les charges.", systemImage: "trophy")
                 Label("Machine prise ou matériel absent ? Touche \(Image(systemName: "arrow.triangle.2.circlepath")) pour changer d'exercice.", systemImage: "hand.tap")
             }
             .font(.footnote)
@@ -155,6 +181,50 @@ struct TrainingCard: View {
             }
             .buttonStyle(.glass)
             .sensoryFeedback(.success, trigger: isDone) { _, done in done }
+        }
+    }
+
+    /// Exercice de force aux répétitions : la meilleure série se note, pour suivre records et charges.
+    private func liftToLog(_ exercise: WorkoutExercise) -> LiftToLog? {
+        guard !exercise.isConditioning, case .reps(let planned) = exercise.volume else { return nil }
+        let today = lifts.first { $0.exercise == exercise.name && calendar.isDateInToday($0.date) }
+        let earlier = lifts.filter { !calendar.isDateInToday($0.date) }
+        return LiftToLog(
+            exercise: exercise.name,
+            plannedReps: planned,
+            today: today,
+            target: StrengthProgress.target(for: exercise.name, plannedReps: planned, history: earlier),
+            isRecord: today.map { StrengthProgress.isRecord($0, previous: earlier) } ?? false,
+            usesLoads: usesLoads
+        )
+    }
+
+    private func caption(_ item: LiftToLog) -> ExerciseRow.Caption {
+        if let today = item.today {
+            return item.isRecord
+                ? .init(text: "Record ! \(StrengthProgress.label(today))", symbol: "trophy.fill", tint: Theme.carbs)
+                : .init(text: "Noté : \(StrengthProgress.label(today))", symbol: "checkmark", tint: Theme.progress)
+        }
+        if let target = item.target {
+            return .init(
+                text: "Vise \(StrengthProgress.label(kg: target.kg, reps: target.reps))",
+                symbol: target.isIncrease ? "arrow.up.right" : "scope",
+                tint: target.isIncrease ? Theme.training : .secondary
+            )
+        }
+        return .init(text: item.usesLoads ? "Note ta charge" : "Note tes répétitions", symbol: "square.and.pencil", tint: .secondary)
+    }
+
+    private func save(_ entry: LiftEntry) {
+        let earlier = lifts.filter { !calendar.isDateInToday($0.date) }
+        logLift(entry)
+        guard StrengthProgress.isRecord(entry, previous: earlier) else { return }
+        withAnimation(Theme.springy) {
+            celebration = "Nouveau record : \(entry.exercise), \(StrengthProgress.label(entry))"
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(5))
+            withAnimation(Theme.springy) { celebration = nil }
         }
     }
 
@@ -379,7 +449,16 @@ private struct ExerciseRow: View {
     let detail: String
     let isWarmup: Bool
     var isSwapped = false
+    var caption: Caption?
     var swap: (() -> Void)?
+    /// Ouvre la saisie de la meilleure série.
+    var log: (() -> Void)?
+
+    struct Caption {
+        let text: String
+        let symbol: String
+        let tint: Color
+    }
 
     var body: some View {
         HStack(spacing: Theme.Spacing.m) {
@@ -398,14 +477,21 @@ private struct ExerciseRow: View {
             }
             .frame(width: 28, height: 28)
 
-            Text(name)
-                .font(.subheadline.weight(.medium))
-                .contentTransition(.opacity)
-            Spacer()
+            if let log {
+                Button(action: log) { label }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Noter ta meilleure série")
+            } else {
+                label
+            }
+            Spacer(minLength: Theme.Spacing.s)
+            // Le volume reste sur une ligne : c'est le nom qui passe à la ligne si la place manque.
             Text(detail)
                 .font(.subheadline.weight(.semibold))
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .fixedSize()
             if let swap {
                 Button(action: swap) {
                     Image(systemName: "arrow.triangle.2.circlepath")
@@ -422,6 +508,128 @@ private struct ExerciseRow: View {
             }
         }
         .padding(.vertical, 7)
+    }
+
+    private var label: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(name)
+                .font(.subheadline.weight(.medium))
+                .contentTransition(.opacity)
+            if let caption {
+                Label(caption.text, systemImage: caption.symbol)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(caption.tint)
+                    .contentTransition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(.rect)
+    }
+}
+
+/// Exercice dont on note la meilleure série.
+struct LiftToLog: Identifiable {
+    let exercise: String
+    let plannedReps: Int
+    let today: LiftEntry?
+    let target: LiftTarget?
+    let isRecord: Bool
+    let usesLoads: Bool
+    var id: String { exercise }
+}
+
+/// Meilleure série en deux touches : charge et répétitions partent de l'objectif du jour.
+private struct LiftEntrySheet: View {
+    let item: LiftToLog
+    let save: (LiftEntry) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var withLoad: Bool
+    @State private var kg: Double
+    @State private var reps: Int
+
+    init(item: LiftToLog, save: @escaping (LiftEntry) -> Void) {
+        self.item = item
+        self.save = save
+        let start = item.today.map { LiftTarget(kg: $0.kg, reps: $0.reps, isIncrease: false) } ?? item.target
+        let kg = start?.kg ?? (start == nil && item.usesLoads ? 20 : nil)
+        _withLoad = State(initialValue: kg != nil)
+        _kg = State(initialValue: kg ?? 10)
+        _reps = State(initialValue: start?.reps ?? item.plannedReps)
+    }
+
+    var body: some View {
+        VStack(spacing: Theme.Spacing.xl) {
+            VStack(spacing: Theme.Spacing.xs) {
+                Text(item.exercise)
+                    .font(.display(24))
+                    .multilineTextAlignment(.center)
+                Text("Ta meilleure série du jour. Prévu : \(item.plannedReps) répétitions.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            Toggle("Avec une charge", isOn: $withLoad.animation(.snappy))
+                .font(.subheadline.weight(.medium))
+                .tint(Theme.training)
+
+            if withLoad {
+                counter(value: kg.frenchCompact, unit: "kg", numeric: kg) { up in
+                    let step = StrengthProgress.loadStep(for: up ? kg : max(kg - 1, 0))
+                    kg = max(0, ((kg + (up ? step : -step)) * 10).rounded() / 10)
+                }
+            }
+            counter(value: "\(reps)", unit: "répétitions", numeric: Double(reps)) { up in
+                reps = max(1, reps + (up ? 1 : -1))
+            }
+
+            Button {
+                save(LiftEntry(exercise: item.exercise, date: Calendar.current.startOfDay(for: .now), kg: withLoad && kg > 0 ? kg : nil, reps: reps))
+                dismiss()
+            } label: {
+                Text("Enregistrer")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Theme.training)
+        }
+        .padding(Theme.Spacing.xxl)
+        .presentationDetents([.medium, .large])
+        .sensoryFeedback(.increase, trigger: kg)
+        .sensoryFeedback(.increase, trigger: reps)
+    }
+
+    private func counter(value: String, unit: String, numeric: Double, change: @escaping (Bool) -> Void) -> some View {
+        HStack(spacing: Theme.Spacing.xl) {
+            step(symbol: "minus") { change(false) }
+            VStack(spacing: 0) {
+                Text(value)
+                    .font(.display(44))
+                    .monospacedDigit()
+                    .contentTransition(.numericText(value: numeric))
+                Text(unit)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(minWidth: 130)
+            step(symbol: "plus") { change(true) }
+        }
+    }
+
+    private func step(symbol: String, action: @escaping () -> Void) -> some View {
+        Button {
+            withAnimation(.snappy, action)
+        } label: {
+            Image(systemName: symbol)
+                .font(.title3.weight(.bold))
+                .frame(width: 50, height: 50)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .circle)
+        .buttonRepeatBehavior(.enabled)
     }
 }
 

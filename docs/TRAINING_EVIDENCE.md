@@ -15,10 +15,12 @@ Objectif unique de l'app : la recomposition corporelle, c'est-à-dire perdre du 
 | Cardio varié, en fractionné ou continu. | Fractionné et continu réduisent la masse grasse de façon comparable. Le fractionné le fait en moins de temps. | Wewege et al., 2017, *Obes Rev* ; Viana et al., 2019, *Br J Sports Med* |
 | Marche inclinée ou escalier en fin de séance et les jours de repos. | La dépense d'une marche augmente fortement avec la pente, sans les impacts de la course : c'est une dépense supplémentaire qui coûte peu en récupération. | Équations métaboliques de l'ACSM, *ACSM's Guidelines for Exercise Testing and Prescription* |
 | Plusieurs heures de mouvement par semaine (séances et marche des jours de repos). | 150 à 300 minutes d'activité modérée par semaine, plus du renforcement musculaire au moins 2 jours par semaine. | OMS, 2020 (Bull et al., *Br J Sports Med*) |
-| Prochain lot : progression des charges. | Surcharge progressive : augmenter la charge de 2 à 10 % quand les répétitions visées sont dépassées. | ACSM, 2009, *Med Sci Sports Exerc* |
+| Charge en hausse d'environ 5 % (arrondie à 2,5 kg, ou 1 kg sous 30 kg) dès que la meilleure série dépasse les répétitions prévues ; sinon même charge. | Surcharge progressive : augmenter la charge de 2 à 10 % quand on fait une ou deux répétitions de plus que prévu. | ACSM, 2009, *Med Sci Sports Exerc* |
+| Record = meilleur 1RM estimé (formule d'Epley, plafonnée à 12 répétitions). | Les équations de prédiction du 1RM sont fiables sous une dizaine de répétitions et perdent en précision au-delà. | LeSuer et al., 1997, *J Strength Cond Res* |
 
 ## Limites connues
 
 - Ces recommandations viennent surtout d'études sur des adultes en bonne santé, sur 6 à 12 semaines. Elles ne remplacent pas un avis médical en cas de douleur ou de pathologie.
 - Pour la marche inclinée, il n'existe pas de protocole précis validé (pente, durée) pour la recomposition. La pente de 10 à 12 % est un choix courant et prudent, pas un résultat d'étude.
+- Le record compare des 1RM estimés, pas des 1RM testés : c'est un indicateur de progression, pas une charge à tenter.
 - Le volume réel dépend des jours cochés : une semaine à 2 séances descend sous les 10 séries par muscle.

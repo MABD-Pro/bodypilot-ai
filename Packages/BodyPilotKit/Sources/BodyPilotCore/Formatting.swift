@@ -19,3 +19,11 @@ public extension Double {
         return (value < 0 ? "-" : "") + String(grouped.reversed())
     }
 }
+
+public extension Double {
+    /// Sans décimale inutile : « 80 », « 82,5 ».
+    var frenchCompact: String {
+        let rounded = (self * 10).rounded() / 10
+        return rounded == rounded.rounded() ? String(Int(rounded)) : rounded.frenchOneDecimal
+    }
+}

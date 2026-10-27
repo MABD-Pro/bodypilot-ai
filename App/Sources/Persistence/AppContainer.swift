@@ -40,12 +40,14 @@ enum LaunchOptions {
     }
     /// `-demoActivities YES` : quelques activités Santé dans la semaine (course, vélo, marche).
     static var demoActivities: Bool { defaults.bool(forKey: "demoActivities") }
+    /// `-demoLifts YES` : profil en salle et séries notées les semaines passées, record du jour sur le premier exercice.
+    static var demoLifts: Bool { defaults.bool(forKey: "demoLifts") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }
 
 enum AppContainer {
-    static let schema = Schema([ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self])
+    static let schema = Schema([ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self])
 
     /// Conteneur unique de l'app, partagé avec Siri et Raccourcis pour qu'ils voient les mêmes données.
     @MainActor
@@ -97,6 +99,26 @@ enum DemoData {
         }
     }
 
+    /// Deux séances passées par exercice ; la dernière dépasse les répétitions prévues, d'où une charge en hausse.
+    @MainActor
+    private static func seedLifts(for profile: UserProfile, context: ModelContext, now: Date, calendar: Calendar) {
+        guard case .workout(let workout) = CoachFactory.coach.plan(for: profile, weights: [], on: now).training.kind else { return }
+        let loads: [Double] = [80, 60, 50, 70]
+        let strength = workout.exercises.filter { $0.priority < 4 }
+        for (index, exercise) in strength.enumerated() {
+            guard case .reps(let planned) = exercise.volume else { continue }
+            let kg = loads[index % loads.count]
+            for (daysAgo, reps) in [(9, planned), (4, planned + 1)] {
+                guard let date = calendar.date(byAdding: .day, value: -daysAgo, to: now) else { continue }
+                context.insert(LiftRecord(LiftEntry(exercise: exercise.name, date: calendar.startOfDay(for: date), kg: kg, reps: reps)))
+            }
+            if index == 0 {
+                let today = LiftEntry(exercise: exercise.name, date: calendar.startOfDay(for: now), kg: kg + StrengthProgress.increment(from: kg), reps: planned)
+                context.insert(LiftRecord(today))
+            }
+        }
+    }
+
     @MainActor
     static func seed(_ context: ModelContext, now: Date = .now, calendar: Calendar = .current) {
         let birthDate = calendar.date(byAdding: .year, value: -34, to: now) ?? now
@@ -111,7 +133,7 @@ enum DemoData {
             // Six séances : les captures montrent une séance quel que soit le jour (sauf le dimanche).
             trainingDaysPerWeek: 6,
             sessionMinutes: 45,
-            equipment: .bodyweight
+            equipment: LaunchOptions.demoLifts ? .gym : .bodyweight
         )
         context.insert(ProfileRecord(profile))
 
@@ -140,6 +162,8 @@ enum DemoData {
             log.workoutDone = true
             context.insert(log)
         }
+
+        if LaunchOptions.demoLifts { seedLifts(for: profile, context: context, now: now, calendar: calendar) }
 
         var adjustments = LaunchOptions.demoAdjustments
         var minutes: Int?
