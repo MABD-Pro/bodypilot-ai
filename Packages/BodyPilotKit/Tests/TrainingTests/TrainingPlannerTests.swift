@@ -218,3 +218,11 @@ func aSessionChainsStrengthCardioAndInclineWalk(equipment: Equipment, minutes: I
     let session = try #require(workout(result))
     #expect(session.exercises.allSatisfy { $0.priority < 4 })
 }
+
+@Test func mainLiftsKeepTwoMinutesOfRestInAThreeAxisSession() throws {
+    let result = planner.trainingDay(for: makeProfile(equipment: .gym), on: monday, constraints: DayConstraints())
+    let session = try #require(workout(result))
+    let mainLifts = session.exercises.filter { $0.priority == 1 }
+    #expect(!mainLifts.isEmpty)
+    #expect(mainLifts.allSatisfy { $0.restSeconds >= 120 && $0.sets == 4 })
+}

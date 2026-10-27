@@ -17,6 +17,8 @@ public struct TrainingPlanner: TrainingPlanning {
     public static let threeAxisMinutes = 30
     /// Part du temps donnée à la force ; le reste se partage entre cardio et marche inclinée.
     static let strengthShare = 0.6
+    /// Repos minimal conservé sur les exercices principaux quand la séance est resserrée.
+    static let mainLiftRestSeconds = 120
 
     public init(calendar: Calendar = .current) {
         self.calendar = calendar
@@ -233,7 +235,9 @@ public struct TrainingPlanner: TrainingPlanning {
     func fit(_ workout: Workout, toMinutes budget: Int) -> Workout {
         var result = workout
         let steps: [(inout Workout) -> Void] = [
-            { w in w.exercises = w.exercises.map { var e = $0; e.restSeconds = max(30, e.restSeconds * 2 / 3); return e } },
+            // Les exercices principaux gardent au moins 2 minutes de repos : en dessous, la force
+            // progresse moins sur les polyarticulaires (Grgic et al., 2018). Voir docs/TRAINING_EVIDENCE.md.
+            { w in w.exercises = w.exercises.map { var e = $0; e.restSeconds = e.priority == 1 ? max(min(e.restSeconds, Self.mainLiftRestSeconds), e.restSeconds * 2 / 3) : max(30, e.restSeconds * 2 / 3); return e } },
             { w in w.warmupMinutes = min(w.warmupMinutes, 3); w.cooldownMinutes = min(w.cooldownMinutes, 2) },
             // Le cardio et la marche (priorité 4) ne perdent pas de séries : ils sont retirés en premier si besoin.
             { w in w.exercises = w.exercises.map { var e = $0; if e.priority > 1 && e.priority < 4 { e.sets = min(e.sets, 2) }; return e } },
