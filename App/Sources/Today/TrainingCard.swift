@@ -566,6 +566,7 @@ private struct LiftEntrySheet: View {
     @State private var withLoad: Bool
     @State private var kg: Double
     @State private var reps: Int
+    @State private var showsTechnique = false
 
     init(item: LiftToLog, save: @escaping (LiftEntry) -> Void) {
         self.item = item
@@ -597,12 +598,28 @@ private struct LiftEntrySheet: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                if item.guide != nil {
+                    Button {
+                        withAnimation(.snappy) { showsTechnique.toggle() }
+                    } label: {
+                        Label(showsTechnique ? "Masquer la technique" : "Voir la technique", systemImage: "figure.strengthtraining.traditional")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.training)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, Theme.Spacing.xs)
+                }
                 if item.today == nil, item.target == nil, item.startingKg != nil {
                     Text("Charge d'essai prudente : si tu pouvais faire plus de 3 répétitions de plus, monte la prochaine fois.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
+            }
+
+            if showsTechnique, let guide = item.guide {
+                technique(guide)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             Toggle("Avec une charge", isOn: $withLoad.animation(.snappy))
@@ -631,9 +648,6 @@ private struct LiftEntrySheet: View {
             .buttonStyle(.glassProminent)
             .tint(Theme.training)
 
-            if let guide = item.guide {
-                technique(guide)
-            }
         }
         .padding(Theme.Spacing.xxl)
     }
@@ -764,13 +778,15 @@ private struct UpcomingSection: View {
                 }
             } label: {
                 HStack(spacing: Theme.Spacing.m) {
-                    Text(calendar.weekdayNames(locale: Theme.locale)[calendar.component(.weekday, from: day.date) - 1].capitalizingFirstLetter)
+                    Text(shortWeekday(day.date))
                         .font(.subheadline.weight(.semibold))
-                        .frame(width: 84, alignment: .leading)
+                        .frame(width: 44, alignment: .leading)
+                        .accessibilityLabel(calendar.weekdayNames(locale: Theme.locale)[calendar.component(.weekday, from: day.date) - 1])
                     IconBadge(symbol: workout == nil ? "figure.walk" : "dumbbell.fill", tint: workout == nil ? Theme.progress : Theme.training, size: 26)
                     Text(title(day))
                         .font(.subheadline)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: Theme.Spacing.s)
                     Text("\(day.training.estimatedMinutes) min")
                         .font(.footnote.weight(.semibold))
@@ -802,11 +818,18 @@ private struct UpcomingSection: View {
                         }
                     }
                 }
-                .padding(.leading, 84 + Theme.Spacing.m)
+                .padding(.leading, 44 + Theme.Spacing.m)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(.vertical, 8)
+    }
+
+    /// « Mer. » : laisse la place au titre de la séance.
+    private func shortWeekday(_ date: Date) -> String {
+        var calendar = calendar
+        calendar.locale = Theme.locale
+        return calendar.shortStandaloneWeekdaySymbols[calendar.component(.weekday, from: date) - 1].capitalizingFirstLetter
     }
 
     private func title(_ day: UpcomingDay) -> String {
