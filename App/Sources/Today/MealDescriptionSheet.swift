@@ -12,6 +12,8 @@ struct MealDescriptionSheet: View {
     @State private var parse: MealParse?
     /// Portion choisie pour chaque aliment dont la quantité était devinée (indice → facteur).
     @State private var portions: [Int: Double] = [:]
+    /// Aliments retirés par l'utilisateur (indices dans l'estimation).
+    @State private var removed: Set<Int> = []
     @State private var isAnalyzing = false
     @FocusState private var isEditing: Bool
 
@@ -81,31 +83,34 @@ struct MealDescriptionSheet: View {
         }
         .onAppear { if parse == nil { isEditing = true } }
         .onChange(of: text) { _, new in
-            if new != parse?.text { parse = nil; portions = [:] }
+            if new != parse?.text { parse = nil; portions = [:]; removed = [] }
         }
     }
 
     /// Repas à enregistrer : les aliments reconnus, avec les portions précisées.
     private var meal: DescribedMeal? {
-        guard let parse, !foods(of: parse).isEmpty else { return nil }
-        return DescribedMeal(text: parse.text, foods: foods(of: parse))
+        guard let parse else { return nil }
+        let foods = kept(of: parse).map(\.food)
+        return foods.isEmpty ? nil : DescribedMeal(text: parse.text, foods: foods)
     }
 
-    private func foods(of parse: MealParse) -> [DescribedFood] {
-        parse.foods.enumerated().map { index, food in
+    /// Aliments gardés, avec leur indice d'origine et la portion précisée.
+    private func kept(of parse: MealParse) -> [(index: Int, food: DescribedFood)] {
+        parse.foods.enumerated().compactMap { index, food in
+            guard !removed.contains(index) else { return nil }
             guard food.needsPortion, let factor = portions[index],
                   let choice = MealTextParser.portionChoices.first(where: { $0.factor == factor })
-            else { return food }
-            return food.resized(by: factor, label: choice.factor == 1 ? "Portion normale" : "\(choice.label) portion")
+            else { return (index, food) }
+            return (index, food.resized(by: factor, label: choice.factor == 1 ? "Portion normale" : "\(choice.label) portion"))
         }
     }
 
     @ViewBuilder
     private func result(_ parse: MealParse) -> some View {
-        let foods = foods(of: parse)
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            ForEach(Array(foods.enumerated()), id: \.offset) { index, food in
-                foodRow(food, question: parse.foods[index].needsPortion, index: index)
+            ForEach(kept(of: parse), id: \.index) { item in
+                foodRow(item.food, question: parse.foods[item.index].needsPortion, index: item.index)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
 
             if !parse.unrecognized.isEmpty {
@@ -151,6 +156,17 @@ struct MealDescriptionSheet: View {
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .contentTransition(.numericText(value: food.macros.kcal))
+                Button {
+                    withAnimation(Theme.springy) { _ = removed.insert(index) }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 26, height: 26)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .accessibilityLabel("Retirer \(food.name)")
             }
             if question {
                 Text("Quelle quantité ?")
@@ -187,6 +203,7 @@ struct MealDescriptionSheet: View {
         withAnimation(Theme.springy) {
             parse = result
             portions = [:]
+            removed = []
             isAnalyzing = false
         }
     }
