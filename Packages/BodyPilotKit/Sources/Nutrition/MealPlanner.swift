@@ -18,15 +18,61 @@ public struct MealPlanner: NutritionPlanning {
         calculator.targets(for: profile, currentWeightKg: currentWeightKg, on: date)
     }
 
-    public func mealPlan(for targets: NutritionTargets, on date: Date) -> DayMealPlan {
+    /// Pas faim : on vise 85 % des calories, sans descendre sous le plancher de sécurité.
+    static let lowAppetiteRatio = 0.85
+
+    public func mealPlan(for targets: NutritionTargets, profile: UserProfile, on date: Date, constraints: MealConstraints) -> DayMealPlan {
+        var shares = Self.shares
+        var notes: [String] = []
+        var dayKcal = targets.macros.kcal
+
+        if constraints.lowAppetite {
+            dayKcal = max(dayKcal * Self.lowAppetiteRatio, min(dayKcal, SafetyLimits.minimumKcal(for: profile.sex)))
+            notes.append("Pas faim : portions plus petites et riches en protéines. Mange ce qui passe, sans te forcer : une journée plus légère ne change rien à ta progression.")
+        }
+
+        if let restaurant = constraints.eatingOut {
+            // Un repas au restaurant est souvent plus copieux : il récupère le budget de la collation.
+            if restaurant != .snack {
+                shares[restaurant, default: 0] += shares[.snack] ?? 0
+                shares[.snack] = 0
+            }
+            notes.append("Restaurant : la collation est supprimée pour laisser de la marge. Pas de calcul au restaurant, juste les repères.")
+        }
+
         let day = dayIndex(of: date)
-        let meals = MealSlot.allCases.map { slot -> PlannedMeal in
+        let meals = MealSlot.allCases.compactMap { slot -> PlannedMeal? in
+            let kcal = dayKcal * (shares[slot] ?? 0)
+            guard kcal > 0 else { return nil }
+            if slot == constraints.eatingOut {
+                return restaurantMeal(slot: slot, kcal: kcal, proteinG: targets.macros.proteinG * (shares[slot] ?? 0))
+            }
             let options = MealTemplates.all.filter { $0.slot == slot }
-            let template = options[day % options.count]
-            let kcal = targets.macros.kcal * (Self.shares[slot] ?? 0)
+            var template = options[day % options.count]
+            if constraints.lowAppetite, slot == .snack {
+                // Collation dense et facile à avaler.
+                template = MealTemplates.snacks[1]
+            }
             return portioned(template, targetKcal: kcal)
         }
-        return DayMealPlan(meals: meals)
+        return DayMealPlan(meals: meals, notes: notes)
+    }
+
+    /// Repères simples pour commander, plutôt que des grammes impossibles à vérifier.
+    func restaurantMeal(slot: MealSlot, kcal: Double, proteinG: Double) -> PlannedMeal {
+        let guidance = [
+            ("Une protéine en plat principal", "poisson, volaille, viande grillée"),
+            ("Légumes ou salade", "à volonté"),
+            ("Féculents ou pain", "une portion, la taille du poing"),
+            ("Sauce, dessert ou alcool", "un seul des trois"),
+        ]
+        return PlannedMeal(
+            slot: slot,
+            title: "Au restaurant",
+            items: guidance.map { MealItem(name: $0.0, grams: 0, quantityLabel: $0.1) },
+            macros: Macros(kcal: kcal, proteinG: proteinG, carbsG: 0, fatG: 0),
+            isEatingOut: true
+        )
     }
 
     func portioned(_ template: MealTemplate, targetKcal: Double) -> PlannedMeal {

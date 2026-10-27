@@ -16,6 +16,8 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Répartition : petit-déjeuner 25 %, déjeuner 35 %, collation 10 %, dîner 30 %.
 - Modèles de repas tournants (variété sans saisie), portions ajustées entre ×0,5 et ×2, arrondies à 5 g ou à l'unité (œufs, fruits).
 - Valeurs nutritionnelles : moyennes arrondies, ordre de grandeur Ciqual. À remplacer par une vraie base.
+- « Je mange au restaurant » : le prochain repas principal (déjeuner avant 15 h, dîner ensuite) devient « Au restaurant » avec quatre repères (protéine, légumes, une portion de féculents, un seul extra parmi sauce, dessert ou alcool). La collation est supprimée et son budget va au restaurant.
+- « Je n'ai pas faim » : 85 % des calories, sans descendre sous le plancher de sécurité, collation dense en protéines.
 
 ## Séance du jour (`Training/TrainingPlanner`)
 
@@ -23,6 +25,8 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Jours sans séance : repos actif (marche 30 min en perte de gras, 20 min sinon).
 - « Je n'ai que 20 minutes » : on raccourcit les repos, puis l'échauffement, puis les séries, puis on retire les accessoires. Les exercices essentiels restent. Sous 12 minutes, marche rapide.
 - « Je suis fatigué » : une série de moins (minimum 2), variantes sans impact, effort modéré. Nutrition inchangée.
+- « J'ai mal au genou » : variantes sans flexion chargée ni impact (pont fessier, hip thrust, bird dog…), et conseil de consulter si la douleur est vive, gonfle ou dure. Jour de repos : mobilité douce.
+- « Je pars en déplacement » : séance au poids du corps, 30 minutes maximum.
 - « J'ai raté ma séance » : jamais deux séances le même jour. Si le lendemain est un jour de repos, la séance y est proposée ; sinon on reprend au créneau suivant.
 
 ## Progression (`ProgressInsights/WeightTrendAnalyzer`)
@@ -30,3 +34,9 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Poids lissé (moyenne mobile exponentielle, 0,25) pour gommer l'eau et le sel.
 - Vitesse : régression linéaire sur 21 jours, au moins 3 pesées sur 7 jours.
 - Perte de gras : en bonne voie entre −0,1 % et −1 % du poids par semaine ; au-delà de −1 %, le coach suggère +150 kcal. Le coach suggère, l'utilisateur décide.
+
+## Phrase libre (`Coach/CommandInterpreter`)
+
+- « Je suis crevé, j'ai 15 min et resto ce soir » → fatigue + 15 minutes + restaurant.
+- Passe par l'AIRouter au niveau déterministe : mots-clés français, sans accents ni casse, gratuit et hors ligne. Un temps précis (5 à 120 min) remplace les 20 minutes par défaut.
+- Phrase non comprise : le coach le dit et propose les ajustements en une touche. Un modèle embarqué (Foundation Models) pourra prendre le relais plus tard.

@@ -18,6 +18,8 @@ enum LaunchOptions {
     }
     /// `-demoHoldSplash YES` : garde l'écran de chargement affiché.
     static var demoHoldSplash: Bool { defaults.bool(forKey: "demoHoldSplash") }
+    /// `-demoCommand "…"` : phrase libre appliquée au lancement.
+    static var demoCommand: String? { defaults.string(forKey: "demoCommand") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }
@@ -83,10 +85,19 @@ enum DemoData {
             context.insert(WeightRecord(date: date, kg: (kg * 10).rounded() / 10))
         }
 
-        let adjustments = LaunchOptions.demoAdjustments
+        var adjustments = LaunchOptions.demoAdjustments
+        var minutes: Int?
+        var eatingOutSlot: MealSlot?
+        if let command = LaunchOptions.demoCommand, let interpreted = CommandInterpreter().interpret(command) {
+            adjustments.formUnion(interpreted.adjustments)
+            minutes = interpreted.availableMinutes
+            eatingOutSlot = interpreted.eatingOutSlot
+        }
         if !adjustments.isEmpty {
             let log = DayLogRecord(day: calendar.startOfDay(for: now))
             log.adjustments = adjustments
+            log.availableMinutes = minutes
+            log.eatingOutSlot = eatingOutSlot
             context.insert(log)
         }
     }

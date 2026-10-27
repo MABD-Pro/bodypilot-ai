@@ -9,7 +9,8 @@ import Training
 private let coach = DailyCoach(
     nutrition: MealPlanner(calculator: EnergyCalculator(calendar: utc)),
     training: TrainingPlanner(calendar: utc),
-    progress: WeightTrendAnalyzer(calendar: utc)
+    progress: WeightTrendAnalyzer(calendar: utc),
+    calendar: utc
 )
 private let monday = day(2026, 10, 26)
 
@@ -49,4 +50,30 @@ private let monday = day(2026, 10, 26)
 @Test func quickAdjustmentsMapToConstraints() {
     let constraints = DayConstraints(today: [.shortOnTime, .tired], yesterday: [.missedWorkout])
     #expect(constraints == DayConstraints(availableMinutes: 20, lowEnergy: true, missedToday: false, missedYesterday: true))
+    #expect(DayConstraints(today: [.shortOnTime], availableMinutes: 15).availableMinutes == 15)
+    #expect(DayConstraints(today: [], availableMinutes: 15).availableMinutes == nil)
+}
+
+@Test func restaurantTargetsNextMainMeal() {
+    // Les dates de test sont à 8 h : le restaurant concerne le déjeuner.
+    let plan = coach.plan(for: makeProfile(), weights: [], adjustments: [.eatingOut], on: monday)
+    #expect(plan.meals.meals.first { $0.isEatingOut }?.slot == .lunch)
+    let evening = monday.addingTimeInterval(9 * 3600)
+    let late = coach.plan(for: makeProfile(), weights: [], adjustments: [.eatingOut], on: evening)
+    #expect(late.meals.meals.first { $0.isEatingOut }?.slot == .dinner)
+}
+
+@Test func announcedRestaurantMealWinsOverTimeOfDay() {
+    let plan = coach.plan(for: makeProfile(), weights: [], adjustments: [.eatingOut], eatingOutSlot: .dinner, on: monday)
+    #expect(plan.meals.meals.first { $0.isEatingOut }?.slot == .dinner)
+}
+
+@Test func preciseMinutesOverrideDefault() {
+    let plan = coach.plan(for: makeProfile(), weights: [], adjustments: [.shortOnTime], availableMinutes: 15, on: monday)
+    #expect(plan.training.estimatedMinutes <= 15)
+}
+
+@Test func kneePainLeadsTheHeadline() {
+    let plan = coach.plan(for: makeProfile(), weights: [], adjustments: [.kneePain, .tired, .eatingOut], on: monday)
+    #expect(plan.headline.contains("Genou"))
 }

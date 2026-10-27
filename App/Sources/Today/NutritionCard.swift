@@ -44,6 +44,10 @@ struct NutritionCard: View {
                 MacroGauge(label: "Lipides", grams: targets.macros.fatG, share: share(targets.macros.fatG * 9), tint: Theme.fat)
             }
 
+            ForEach(meals.notes, id: \.self) { note in
+                CoachNote(text: note, tint: Theme.nutrition)
+            }
+
             VStack(spacing: Theme.Spacing.s) {
                 ForEach(meals.meals, id: \.slot) { meal in
                     MealRow(meal: meal, isExpanded: expanded == meal.slot) {
@@ -71,7 +75,7 @@ private struct MealRow: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             Button(action: toggle) {
                 HStack(spacing: Theme.Spacing.m) {
-                    IconBadge(symbol: meal.slot.symbol, tint: meal.slot.tint, size: 38)
+                    IconBadge(symbol: meal.isEatingOut ? "fork.knife" : meal.slot.symbol, tint: meal.isEatingOut ? Theme.nutrition : meal.slot.tint, size: 38)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(meal.slot.title)
                             .font(.caption.weight(.semibold))
@@ -81,7 +85,7 @@ private struct MealRow: View {
                             .multilineTextAlignment(.leading)
                     }
                     Spacer(minLength: Theme.Spacing.s)
-                    Text("\(meal.macros.kcal.frenchInteger) kcal")
+                    Text("\(meal.isEatingOut ? "≈ " : "")\(meal.macros.kcal.frenchInteger) kcal")
                         .font(.footnote.weight(.semibold))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
@@ -106,7 +110,7 @@ private struct MealRow: View {
                         }
                         .font(.subheadline)
                     }
-                    Text("\(Int(meal.macros.proteinG.rounded())) g de protéines")
+                    Text("\(meal.isEatingOut ? "Vise ≈ " : "")\(Int(meal.macros.proteinG.rounded())) g de protéines")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Theme.protein)
                         .padding(.top, 2)

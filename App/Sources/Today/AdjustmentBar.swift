@@ -53,14 +53,32 @@ extension QuickAdjustment {
         case .shortOnTime: "timer"
         case .tired: "battery.25percent"
         case .missedWorkout: "arrow.uturn.backward"
+        case .eatingOut: "fork.knife"
+        case .notHungry: "leaf"
+        case .kneePain: "bandage"
+        case .traveling: "suitcase.rolling"
         }
     }
 
     var tint: Color {
         switch self {
-        case .shortOnTime: Theme.training
+        case .shortOnTime, .traveling: Theme.training
         case .tired: Theme.fat
-        case .missedWorkout: Theme.nutrition
+        case .missedWorkout, .kneePain: Theme.protein
+        case .eatingOut, .notHungry: Theme.nutrition
+        }
+    }
+
+    /// Version courte pour la confirmation (« resto », « genou »).
+    var shortLabel: String {
+        switch self {
+        case .shortOnTime: "peu de temps"
+        case .tired: "fatigue"
+        case .missedWorkout: "séance ratée"
+        case .eatingOut: "restaurant"
+        case .notHungry: "pas faim"
+        case .kneePain: "genou"
+        case .traveling: "déplacement"
         }
     }
 }

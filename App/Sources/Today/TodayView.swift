@@ -17,11 +17,14 @@ struct TodayView: View {
 
     var body: some View {
         let now = Date.now
-        let todayAdjustments = adjustments(on: now)
+        let todayLog = log(on: now)
+        let todayAdjustments = todayLog?.adjustments ?? []
         let plan = CoachFactory.coach.plan(
             for: profileRecord.profile,
             weights: weights.map(\.entry),
             adjustments: todayAdjustments,
+            availableMinutes: todayLog?.availableMinutes,
+            eatingOutSlot: todayLog?.eatingOutSlot,
             yesterdayAdjustments: adjustments(on: calendar.date(byAdding: .day, value: -1, to: now) ?? now),
             on: now
         )
@@ -31,6 +34,7 @@ struct TodayView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                         header(plan: plan, date: now)
+                        CommandField(apply: apply)
                         AdjustmentBar(active: todayAdjustments, toggle: toggle)
                         NutritionCard(targets: plan.targets, meals: plan.meals)
                             .id("nutrition")
@@ -94,28 +98,47 @@ struct TodayView: View {
         }
     }
 
+    private func log(on date: Date) -> DayLogRecord? {
+        dayLogs.first { calendar.isDate($0.day, inSameDayAs: date) }
+    }
+
     private func adjustments(on date: Date) -> Set<QuickAdjustment> {
-        let day = calendar.startOfDay(for: date)
-        return dayLogs.first { calendar.isDate($0.day, inSameDayAs: day) }?.adjustments ?? []
+        log(on: date)?.adjustments ?? []
+    }
+
+    private func todayLog() -> DayLogRecord {
+        if let existing = log(on: .now) { return existing }
+        let created = DayLogRecord(day: calendar.startOfDay(for: .now))
+        context.insert(created)
+        return created
     }
 
     private func toggle(_ adjustment: QuickAdjustment) {
-        let day = calendar.startOfDay(for: .now)
-        let log: DayLogRecord
-        if let existing = dayLogs.first(where: { calendar.isDate($0.day, inSameDayAs: day) }) {
-            log = existing
-        } else {
-            log = DayLogRecord(day: day)
-            context.insert(log)
-        }
+        let log = todayLog()
         withAnimation(Theme.springy) {
             var current = log.adjustments
             if current.contains(adjustment) {
                 current.remove(adjustment)
+                if adjustment == .shortOnTime { log.availableMinutes = nil }
+                if adjustment == .eatingOut { log.eatingOutSlot = nil }
             } else {
                 current.insert(adjustment)
             }
             log.adjustments = current
+        }
+    }
+
+    /// Phrase libre comprise : on ajoute les ajustements, sans retirer ceux déjà choisis.
+    private func apply(_ command: InterpretedCommand) {
+        let log = todayLog()
+        withAnimation(Theme.springy) {
+            log.adjustments = log.adjustments.union(command.adjustments)
+            if let minutes = command.availableMinutes {
+                log.availableMinutes = minutes
+            }
+            if let slot = command.eatingOutSlot {
+                log.eatingOutSlot = slot
+            }
         }
     }
 }

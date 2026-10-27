@@ -10,6 +10,8 @@ public struct TrainingPlanner: TrainingPlanning {
     public static let minimumWorkoutMinutes = 12
     /// On garde au moins les exercices essentiels.
     static let minimumExercises = 3
+    /// En déplacement, une séance courte est plus réaliste.
+    public static let travelMaxMinutes = 30
 
     public init(calendar: Calendar = .current) {
         self.calendar = calendar
@@ -32,6 +34,11 @@ public struct TrainingPlanner: TrainingPlanning {
     }
 
     public func trainingDay(for profile: UserProfile, on date: Date, constraints: DayConstraints) -> TrainingDay {
+        var profile = profile
+        if constraints.traveling {
+            profile.equipment = .bodyweight
+            profile.sessionMinutes = min(profile.sessionMinutes, Self.travelMaxMinutes)
+        }
         var notes: [String] = []
         let workout: Workout
 
@@ -59,6 +66,13 @@ public struct TrainingPlanner: TrainingPlanning {
         }
 
         var adapted = workout
+        if constraints.traveling {
+            notes.append("Déplacement : séance au poids du corps, faisable dans une chambre d'hôtel.")
+        }
+        if constraints.kneePain {
+            adapted = protectKnee(adapted)
+            notes.append("Genou : aucun exercice qui le charge. Si la douleur est vive, gonfle ou dure plus de quelques jours, consulte un professionnel de santé.")
+        }
         if constraints.lowEnergy {
             adapted = lighten(adapted)
             notes.append("Fatigue : une série de moins, pas d'impacts, effort modéré.")
@@ -88,10 +102,33 @@ public struct TrainingPlanner: TrainingPlanning {
     }
 
     private func restDay(for profile: UserProfile, constraints: DayConstraints) -> TrainingDay {
+        if constraints.kneePain {
+            return TrainingDay(
+                kind: .activeRest(title: "Mobilité douce", minutes: 15),
+                estimatedMinutes: 15,
+                notes: ["Genou : marche seulement si elle est indolore. Sinon, mobilité du haut du corps et du bassin."]
+            )
+        }
         let minutes = profile.goal == .loseFat && !constraints.lowEnergy ? 30 : 20
         let title = constraints.lowEnergy ? "Marche tranquille" : "Marche active"
         let available = constraints.availableMinutes.map { min($0, minutes) } ?? minutes
-        return TrainingDay(kind: .activeRest(title: title, minutes: available), estimatedMinutes: available)
+        let notes = constraints.traveling ? ["Déplacement : profite-en pour découvrir les lieux à pied."] : []
+        return TrainingDay(kind: .activeRest(title: title, minutes: available), estimatedMinutes: available, notes: notes)
+    }
+
+    /// Genou douloureux : variantes sans flexion chargée ni impact ; sans variante, l'exercice est retiré.
+    func protectKnee(_ workout: Workout) -> Workout {
+        var result = workout
+        result.exercises = workout.exercises.compactMap { exercise in
+            guard exercise.loadsKnee else { return exercise }
+            guard let alternative = exercise.kneeFriendlyAlternative else { return nil }
+            var safer = exercise
+            safer.name = alternative
+            safer.loadsKnee = false
+            safer.isHighImpact = false
+            return safer
+        }
+        return result
     }
 
     /// Fatigue : une série de moins (minimum 2), variantes sans impact, intensité modérée.
