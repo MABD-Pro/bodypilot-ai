@@ -38,8 +38,16 @@ private let today = day(2026, 10, 27)
 
 @Test func proteinUsesAdjustedWeightAboveBMI30() {
     let targets = calculator.targets(for: makeProfile(weightKg: 120), currentWeightKg: 120, on: today)
-    // IMC 37 → poids de référence 27 × 1,8² = 87,5 kg → 175 g.
-    #expect(targets.macros.proteinG == 175)
+    // IMC 37 → poids de référence 30 × 1,8² = 97,2 kg → 194 g.
+    #expect(targets.macros.proteinG == 194)
+}
+
+@Test func proteinNeverDropsWhenWeightRises() {
+    // Autour de l'IMC 30 (97,2 kg à 1,80 m), un kilo de plus ne baisse jamais l'objectif.
+    let proteins = stride(from: 95.0, through: 100, by: 0.2).map {
+        calculator.targets(for: makeProfile(weightKg: $0), currentWeightKg: $0, on: today).macros.proteinG
+    }
+    #expect(zip(proteins, proteins.dropFirst()).allSatisfy { $0 <= $1 })
 }
 
 @Test func weeklyAdjustmentShiftsTargetAndIsExplained() {

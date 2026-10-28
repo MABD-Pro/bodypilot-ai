@@ -40,14 +40,18 @@ public struct MealPlanner: NutritionPlanning {
         }
 
         if let restaurant = constraints.eatingOut {
-            // Un repas au restaurant est souvent plus copieux : il récupère le budget de la collation.
-            if restaurant != .snack {
+            // Un repas au restaurant est souvent plus copieux : il récupère le budget de la collation,
+            // sauf si elle est déjà mangée (elle compte alors pour ce qu'elle était).
+            let snackTaken = constraints.eaten[.snack] != nil || constraints.described[.snack] != nil
+            if restaurant != .snack, !snackTaken {
                 shares[restaurant, default: 0] += shares[.snack] ?? 0
                 shares[.snack] = 0
                 proteinShares[restaurant, default: 0] += proteinShares[.snack] ?? 0
                 proteinShares[.snack] = 0
+                notes.append("Restaurant : la collation est supprimée pour laisser de la marge. Pas de calcul au restaurant, juste les repères.")
+            } else {
+                notes.append("Restaurant : pas de calcul, juste les repères.")
             }
-            notes.append("Restaurant : la collation est supprimée pour laisser de la marge. Pas de calcul au restaurant, juste les repères.")
         }
 
         // Repas déjà pris : ce qui a été mangé compte, le reste de la journée s'ajuste.
@@ -171,9 +175,16 @@ public struct MealPlanner: NutritionPlanning {
             slot: slot,
             title: "Au restaurant",
             items: guidance.map { MealItem(name: $0.0, grams: 0, quantityLabel: $0.1) },
-            macros: Macros(kcal: kcal, proteinG: proteinG, carbsG: 0, fatG: 0),
+            macros: Self.restaurantMacros(kcal: kcal, proteinG: proteinG),
             isEatingOut: true
         )
+    }
+
+    /// Le reste des calories se partage à parts égales entre glucides et lipides : un ordre de
+    /// grandeur pour les jauges et Santé, plutôt que 0 g.
+    static func restaurantMacros(kcal: Double, proteinG: Double) -> Macros {
+        let rest = max(kcal - proteinG * 4, 0)
+        return Macros(kcal: kcal, proteinG: proteinG, carbsG: rest / 2 / 4, fatG: rest / 2 / 9)
     }
 
     /// Portions du modèle ajustées aux calories visées. Avec un objectif de protéines, les sources

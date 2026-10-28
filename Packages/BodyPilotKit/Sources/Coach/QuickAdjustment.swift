@@ -72,12 +72,16 @@ extension DayConstraints {
 }
 
 extension MealConstraints {
-    /// Le restaurant concerne le repas précisé, sinon le prochain repas principal :
-    /// le déjeuner le matin, le dîner ensuite.
+    /// Le prochain repas principal : le déjeuner avant 15 h, le dîner ensuite. À enregistrer au
+    /// moment où l'utilisateur dit « restaurant », sinon le repas changerait avec l'heure.
+    public static func nextMainMeal(at date: Date, calendar: Calendar) -> MealSlot {
+        calendar.component(.hour, from: date) < 15 ? .lunch : .dinner
+    }
+
+    /// Le restaurant concerne le repas précisé, sinon le prochain repas principal.
     public init(today: Set<QuickAdjustment>, at date: Date, calendar: Calendar, eatingOutSlot: MealSlot? = nil, eaten: [MealSlot: MealIntake] = [:], described: [MealSlot: DescribedMeal] = [:]) {
-        let hour = calendar.component(.hour, from: date)
         self.init(
-            eatingOut: today.contains(.eatingOut) ? (eatingOutSlot ?? (hour < 15 ? .lunch : .dinner)) : nil,
+            eatingOut: today.contains(.eatingOut) ? (eatingOutSlot ?? Self.nextMainMeal(at: date, calendar: calendar)) : nil,
             lowAppetite: today.contains(.notHungry),
             eaten: eaten,
             described: described

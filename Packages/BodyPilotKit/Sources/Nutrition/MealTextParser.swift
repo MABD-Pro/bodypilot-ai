@@ -32,8 +32,11 @@ public enum MealTextParser {
         "petit": 0.7, "petite": 0.7, "grand": 1.4, "grande": 1.4, "gro": 1.4, "grosse": 1.4, "demi": 0.5, "moitie": 0.5,
     ]
     static let numberWords: [String: Double] = [
-        "un": 1, "une": 1, "deu": 2, "troi": 3, "quatre": 4, "cinq": 5, "six": 6, "sept": 7, "huit": 8, "dix": 10, "quelque": 3,
+        "un": 1, "une": 1, "deu": 2, "troi": 3, "quatre": 4, "cinq": 5, "six": 6, "sept": 7, "huit": 8, "neuf": 9, "dix": 10,
+        "onze": 11, "douze": 12, "quelque": 3,
     ]
+    /// « un quart », « trois quarts », « un tiers » : multiplient le nombre qui les précède.
+    static let fractionWords: [String: Double] = ["quart": 0.25, "tier": 1.0 / 3]
     /// Mots sans information, retirés avant de chercher un aliment inconnu.
     static let fillers: Set<String> = [
         "j", "ai", "mange", "pri", "bu", "avec", "de", "du", "d", "la", "le", "l", "les", "des", "au", "aux", "a", "en",
@@ -58,14 +61,19 @@ public enum MealTextParser {
         return MealParse(text: text, foods: foods, unrecognized: unrecognized)
     }
 
+    /// Liaisons qui séparent deux aliments, comparées une fois normalisées (« puis » → « pui »).
+    static let linkWords: Set<String> = ["et", "avec", "pui", "plu"]
+
     /// Découpe sur la ponctuation et les liaisons (« et », « avec », « puis », « + »).
+    /// Les nombres décimaux (« 1,5 l ») et les fractions (« 1/2 baguette ») sont lus avant :
+    /// leur virgule ou leur barre ne sépare pas deux aliments.
     static func segments(of text: String) -> [(original: String, normalized: String)] {
         let separators = CharacterSet(charactersIn: ",;+\n/")
-        return text.components(separatedBy: separators).flatMap { piece -> [(original: String, normalized: String)] in
+        return numbersRead(in: text).components(separatedBy: separators).flatMap { piece -> [(original: String, normalized: String)] in
             let words = piece.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
             var parts: [[String]] = [[]]
             for word in words {
-                if ["et", "avec", "puis", "plus"].contains(normalize(word)) {
+                if linkWords.contains(normalize(word)) {
                     parts.append([])
                 } else {
                     parts[parts.count - 1].append(word)
@@ -73,6 +81,16 @@ public enum MealTextParser {
             }
             return parts.filter { !$0.isEmpty }.map { (original: $0.joined(separator: " "), normalized: normalize($0.joined(separator: " "))) }
         }.filter { !$0.normalized.isEmpty }
+    }
+
+    /// « 1,5 » → « 1.5 », « 1/2 » → « 0.5 ».
+    static func numbersRead(in text: String) -> String {
+        let decimals = text.replacing(#/(\d),(\d)/#) { "\($0.1).\($0.2)" }
+        return decimals.replacing(#/(\d+)\s?\/\s?(\d+)/#) { match in
+            guard let numerator = Double(match.1), let denominator = Double(match.2), denominator > 0 else { return String(match.0) }
+            let value = numerator / denominator
+            return value == value.rounded() ? "\(Int(value))" : "\((value * 100).rounded() / 100)"
+        }
     }
 
     /// Minuscules, sans accents ni pluriel : « Œufs brouillés » → « oeuf brouille ».
@@ -95,12 +113,15 @@ public enum MealTextParser {
         var matches: [(range: Range<String.Index>, entry: LexiconEntry)] = []
         for (alias, entry) in lexicon {
             var searchStart = padded.startIndex
-            while let range = padded.range(of: " \(alias) ", range: searchStart..<padded.endIndex) {
+            while let spaced = padded.range(of: " \(alias) ", range: searchStart..<padded.endIndex) {
+                // Le nom seul, sans ses espaces : deux aliments voisins (« steak frites ») partagent
+                // l'espace qui les sépare sans se chevaucher.
+                let range = padded.index(after: spaced.lowerBound)..<padded.index(before: spaced.upperBound)
                 if !taken.contains(where: { $0.overlaps(range) }) {
                     taken.append(range)
                     matches.append((range, entry))
                 }
-                searchStart = padded.index(before: range.upperBound)
+                searchStart = range.upperBound
             }
         }
         matches.sort { $0.range.lowerBound < $1.range.lowerBound }
@@ -120,7 +141,7 @@ public enum MealTextParser {
         if let grams = explicitGrams(in: before + " " + after) {
             return described(entry, grams: grams, label: "\(Int(grams.rounded())) g")
         }
-        let count = words.compactMap { Double($0.replacingOccurrences(of: ",", with: ".")) ?? numberWords[$0] }.last
+        let count = quantity(in: words)
         let size = words.compactMap { sizeFactors[$0] }.last
         let unit = words.last { FoodLexicon.units[$0] != nil || entry.unitOverrides[$0] != nil }
 
@@ -146,6 +167,23 @@ public enum MealTextParser {
         // Ni quantité, ni contenant, ni taille : la portion habituelle est une supposition.
         let isVague = unit == nil && size == nil && count == nil
         return described(entry, grams: grams, label: label, needsPortion: isVague)
+    }
+
+    /// Dernier nombre avant l'aliment ; une fraction multiplie le nombre qui la précède
+    /// (« trois quarts » = 0,75, « un tiers » = 0,33).
+    static func quantity(in words: [String]) -> Double? {
+        var last: Double?
+        var previous: Double?
+        for word in words {
+            if let fraction = fractionWords[word] {
+                last = (previous ?? 1) * fraction
+                previous = nil
+            } else if let number = Double(word) ?? numberWords[word] {
+                last = number
+                previous = number
+            }
+        }
+        return last
     }
 
     static let unitNames: [String: (singular: String, plural: String, masculine: Bool)] = [

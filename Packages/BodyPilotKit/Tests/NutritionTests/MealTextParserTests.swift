@@ -131,3 +131,38 @@ private struct FakeMealModel: MealLanguageModel {
         #expect(!MealTextParser.parse(name).foods.isEmpty, "\(name)")
     }
 }
+
+@Test func decimalCommaAndFractionsAreQuantities() throws {
+    let coke = try #require(MealTextParser.parse("1,5 l de coca").foods.first)
+    #expect(MealTextParser.parse("1,5 l de coca").foods.count == 1)
+    #expect(coke.grams == 1500)
+    #expect(try #require(MealTextParser.parse("0,5 kg de pâtes").foods.first).grams == 500)
+    let half = try #require(MealTextParser.parse("1/2 baguette").foods.first)
+    #expect(half.name == "Baguette" && half.grams == 125)
+    let pizza = try #require(MealTextParser.parse("trois quarts de pizza").foods.first)
+    #expect(abs(pizza.grams - 262.5) < 0.1)
+    #expect(try #require(MealTextParser.parse("un tiers de pizza").foods.first).grams < 120)
+    #expect(try #require(MealTextParser.parse("douze sushis").foods.first).grams == 360)
+}
+
+@Test func neighbouringFoodsAreAllKept() {
+    #expect(MealTextParser.parse("steak frites").foods.map(\.name) == ["Steak", "Frites"])
+    #expect(MealTextParser.parse("poulet riz brocoli").foods.map(\.name) == ["Blanc de poulet", "Riz", "Brocoli"])
+    #expect(MealTextParser.parse("un thé glacé").foods.map(\.name) == ["Soda"])
+}
+
+@Test func compoundNamesAddNoGhostFood() {
+    #expect(MealTextParser.parse("une pizza 4 fromages").foods.map(\.name) == ["Pizza"])
+    #expect(MealTextParser.parse("une salade de fruits").foods.map(\.name) == ["Fruit"])
+}
+
+@Test func baguetteIsAWholeBaguette() throws {
+    #expect(try #require(MealTextParser.parse("une baguette").foods.first).grams == 250)
+    #expect(try #require(MealTextParser.parse("2 baguettes").foods.first).grams == 500)
+    #expect(try #require(MealTextParser.parse("2 tranches de pain").foods.first).grams == 70)
+}
+
+@Test func puisAndPlusSeparateFoods() {
+    #expect(MealTextParser.parse("un tajine puis un yaourt").unrecognized == ["un tajine"])
+    #expect(MealTextParser.parse("un tajine plus un yaourt").unrecognized == ["un tajine"])
+}

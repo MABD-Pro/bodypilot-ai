@@ -103,7 +103,8 @@ enum KeywordParser {
     }
 
     private static let rules: [Rule] = [
-        Rule(.shortOnTime, [#"\b\d{1,3} ?(min|minutes?|mn)\b"#, #"pas (le|beaucoup de) temps"#, #"peu de temps"#, #"\bpresse"#, #"journee chargee"#]),
+        // Une durée (« 20 min ») ne compte que de 5 à 120 min : voir `firstMinutes`.
+        Rule(.shortOnTime, [#"pas (le|beaucoup de) temps"#, #"peu de temps"#, #"\bpresse"#, #"journee chargee"#]),
         Rule(.tired, [#"fatigu"#, #"\bcreve"#, #"epuise"#, #"mal dormi"#, #"pas (beaucoup )?dormi"#, #"\bnaze"#, #"\bko\b"#, #"pas en forme"#, #"\bclaque"#]),
         Rule(.sore, [#"courbatu"#, #"mal aux (jambes|cuisses|bras|pecs|muscles)"#]),
         Rule(.missedWorkout, [#"\brate"#, #"\bloupe"#, #"manque (ma|la|mon) (seance|entrainement|sport)"#, #"pas pu (faire|m'entrainer|aller)"#, #"saute (ma|la) seance"#]),

@@ -36,7 +36,7 @@ enum FoodLexicon {
         LexiconEntry(Food("Pâtes bolognaise", kcal: 150, protein: 7, carbs: 19, fat: 5), ["pate bolognaise", "pate bolo", "bolognaise", "spaghetti bolognaise"], portion: 350, "1 assiette"),
         LexiconEntry(Food("Pâtes", kcal: 131, protein: 5, carbs: 25, fat: 1.1), ["pate", "spaghetti", "penne", "tagliatelle", "coquillette"], portion: 250, "1 assiette"),
         LexiconEntry(Food("Riz", kcal: 130, protein: 2.7, carbs: 28, fat: 0.3), ["riz"], portion: 200, "1 assiette"),
-        LexiconEntry(Food("Pizza", kcal: 260, protein: 11, carbs: 30, fat: 10, unit: FoodUnit(grams: 350, singular: "pizza", plural: "pizzas")), ["pizza"], portion: 350, "1 pizza", units: ["part": 120]),
+        LexiconEntry(Food("Pizza", kcal: 260, protein: 11, carbs: 30, fat: 10, unit: FoodUnit(grams: 350, singular: "pizza", plural: "pizzas")), ["pizza", "pizza 4 fromage", "pizza quatre fromage", "pizza fromage"], portion: 350, "1 pizza", units: ["part": 120]),
         LexiconEntry(Food("Burger", kcal: 250, protein: 13, carbs: 24, fat: 11, unit: FoodUnit(grams: 220, singular: "burger", plural: "burgers")), ["burger", "hamburger", "cheeseburger"], portion: 220, "1 burger"),
         LexiconEntry(Food("Frites", kcal: 300, protein: 3.4, carbs: 38, fat: 15), ["frite"], portion: 150, "1 portion"),
         LexiconEntry(Food("Kebab", kcal: 220, protein: 12, carbs: 20, fat: 10, unit: FoodUnit(grams: 400, singular: "kebab", plural: "kebabs")), ["kebab", "tacos", "durum"], portion: 400, "1 kebab"),
@@ -64,7 +64,9 @@ enum FoodLexicon {
         LexiconEntry(Food("Whey", kcal: 380, protein: 75, carbs: 8, fat: 6), ["whey", "shaker", "shake proteine", "proteine en poudre"], portion: 30, "1 dose"),
         LexiconEntry(Food("Barre protéinée", kcal: 350, protein: 30, carbs: 35, fat: 10, unit: FoodUnit(grams: 60, singular: "barre", plural: "barres")), ["barre proteinee", "barre de proteine"], portion: 60, "1 barre"),
         // Féculents, pain, petit-déjeuner
-        LexiconEntry(Food("Pain", kcal: 270, protein: 9, carbs: 55, fat: 1.5, unit: FoodUnit(grams: 35, singular: "tranche", plural: "tranches")), ["pain", "baguette", "tartine"], portion: 70, "2 tranches", units: ["baguette": 250]),
+        LexiconEntry(Food("Pain", kcal: 270, protein: 9, carbs: 55, fat: 1.5, unit: FoodUnit(grams: 35, singular: "tranche", plural: "tranches")), ["pain", "tartine"], portion: 70, "2 tranches", units: ["baguette": 250]),
+        // Une baguette entière pèse environ 250 g, pas une tranche.
+        LexiconEntry(Food("Baguette", kcal: 270, protein: 9, carbs: 55, fat: 1.5, unit: FoodUnit(grams: 250, singular: "baguette", plural: "baguettes")), ["baguette", "baguette de pain"], portion: 70, "1 morceau"),
         LexiconEntry(Foods.wholeBread, ["pain complet"], portion: 70, "2 tranches", units: ["tranche": 35]),
         LexiconEntry(Food("Croissant", kcal: 410, protein: 8, carbs: 45, fat: 21, unit: FoodUnit(grams: 60, singular: "croissant", plural: "croissants")), ["croissant"], portion: 60, "1 croissant"),
         LexiconEntry(Food("Pain au chocolat", kcal: 420, protein: 7, carbs: 46, fat: 23, unit: FoodUnit(grams: 70, singular: "pain au chocolat", plural: "pains au chocolat")), ["pain au chocolat", "chocolatine", "viennoiserie"], portion: 70, "1 pièce"),
@@ -87,7 +89,7 @@ enum FoodLexicon {
         LexiconEntry(Foods.banana, ["banane"], portion: 120, "1 banane"),
         LexiconEntry(Foods.apple, ["pomme"], portion: 150, "1 pomme"),
         LexiconEntry(Food("Orange", kcal: 47, protein: 0.9, carbs: 11.8, fat: 0.1, unit: FoodUnit(grams: 150, singular: "orange", plural: "oranges")), ["orange", "clementine", "mandarine"], portion: 150, "1 orange"),
-        LexiconEntry(Food("Fruit", kcal: 55, protein: 0.7, carbs: 13, fat: 0.3, unit: FoodUnit(grams: 150, singular: "fruit", plural: "fruits")), ["fruit", "poire", "peche", "kiwi", "raisin", "compote"], portion: 150, "1 fruit"),
+        LexiconEntry(Food("Fruit", kcal: 55, protein: 0.7, carbs: 13, fat: 0.3, unit: FoodUnit(grams: 150, singular: "fruit", plural: "fruits")), ["fruit", "poire", "peche", "kiwi", "raisin", "compote", "salade de fruit"], portion: 150, "1 fruit"),
         LexiconEntry(Foods.berries, ["fruit rouge", "fraise", "framboise", "myrtille"], portion: 100),
         LexiconEntry(Foods.avocado, ["avocat"], portion: 100, "½ avocat"),
         LexiconEntry(Food("Légumes", kcal: 30, protein: 1.5, carbs: 5, fat: 0.3), ["legume", "carotte", "poivron", "epinard", "chou", "ratatouille", "poelee de legume"], portion: 200),
@@ -108,7 +110,7 @@ enum FoodLexicon {
         LexiconEntry(Food("Chips", kcal: 530, protein: 6, carbs: 50, fat: 34), ["chip"], portion: 30, "1 poignée"),
         // Boissons
         LexiconEntry(Food("Soda zéro", kcal: 0.3, protein: 0, carbs: 0, fat: 0), ["coca zero", "pepsi max", "soda zero"], portion: 330, "1 canette"),
-        LexiconEntry(Food("Soda", kcal: 42, protein: 0, carbs: 10.6, fat: 0), ["coca", "soda", "pepsi", "fanta", "ice tea", "limonade"], portion: 330, "1 canette", units: ["verre": 250]),
+        LexiconEntry(Food("Soda", kcal: 42, protein: 0, carbs: 10.6, fat: 0), ["coca", "soda", "pepsi", "fanta", "ice tea", "the glace", "limonade"], portion: 330, "1 canette", units: ["verre": 250]),
         LexiconEntry(Food("Jus de fruits", kcal: 45, protein: 0.7, carbs: 10, fat: 0.2), ["jus", "jus d orange", "jus de fruit"], portion: 200, "1 verre"),
         LexiconEntry(Food("Bière", kcal: 43, protein: 0.5, carbs: 3.6, fat: 0, unit: FoodUnit(grams: 250, singular: "bière", plural: "bières")), ["biere", "pinte"], portion: 250, "1 bière", units: ["pinte": 500]),
         LexiconEntry(Food("Vin", kcal: 85, protein: 0.1, carbs: 2.6, fat: 0), ["vin", "rose", "champagne"], portion: 125, "1 verre", units: ["verre": 125]),

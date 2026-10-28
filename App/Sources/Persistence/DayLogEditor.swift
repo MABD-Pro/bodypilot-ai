@@ -31,6 +31,8 @@ enum DayLogEditor {
         }
         if let slot = command.eatingOutSlot {
             log.eatingOutSlot = slot
+        } else if command.adjustments.contains(.eatingOut), log.eatingOutSlot == nil {
+            log.eatingOutSlot = MealConstraints.nextMainMeal(at: .now, calendar: .current)
         }
     }
 
