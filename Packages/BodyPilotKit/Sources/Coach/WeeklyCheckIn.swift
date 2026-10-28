@@ -22,7 +22,16 @@ extension DailyCoach {
     /// - Stagnation ou mauvaise direction : seulement si c'était déjà le cas une semaine plus tôt,
     ///   pour ne pas réagir à une variation d'eau.
     /// - Jamais au-delà de ±450 kcal cumulés, jamais sous le plancher de sécurité.
-    public func weeklyCheckIn(for profile: UserProfile, weights: [WeightEntry], waists: [WaistEntry] = [], on date: Date) -> CalorieSuggestion? {
+    /// - Pas de baisse pendant la rétention d'eau qui entoure les règles (`retainsWater`,
+    ///   voir `MenstrualCycle`) : la balance ne reflète pas la perte de gras.
+    public func weeklyCheckIn(
+        for profile: UserProfile,
+        weights: [WeightEntry],
+        waists: [WaistEntry] = [],
+        exerciseKcalPerDay: Double = 0,
+        retainsWater: Bool = false,
+        on date: Date
+    ) -> CalorieSuggestion? {
         let trend = progress.trend(of: weights, for: profile, on: date)
         guard let weekly = trend.weeklyChangeKg else { return nil }
         let weekAgo = calendar.date(byAdding: .day, value: -7, to: date) ?? date
@@ -63,6 +72,8 @@ extension DailyCoach {
             return nil
         }
 
+        if direction < 0, retainsWater { return nil }
+
         let current = profile.calorieAdjustmentKcal
         let proposed = min(max(current + direction * Self.calorieStep, -Self.maxCalorieAdjustment), Self.maxCalorieAdjustment)
         guard proposed != current else { return nil }
@@ -71,8 +82,8 @@ extension DailyCoach {
         let weight = trend.currentTrendKg ?? profile.startWeightKg
         var adjusted = profile
         adjusted.calorieAdjustmentKcal = proposed
-        let before = nutrition.targets(for: profile, currentWeightKg: weight, on: date).macros.kcal
-        let after = nutrition.targets(for: adjusted, currentWeightKg: weight, on: date).macros.kcal
+        let before = nutrition.targets(for: profile, currentWeightKg: weight, exerciseKcalPerDay: exerciseKcalPerDay, on: date).macros.kcal
+        let after = nutrition.targets(for: adjusted, currentWeightKg: weight, exerciseKcalPerDay: exerciseKcalPerDay, on: date).macros.kcal
         guard abs(after - before) >= 50 else { return nil }
 
         let delta = after - before
