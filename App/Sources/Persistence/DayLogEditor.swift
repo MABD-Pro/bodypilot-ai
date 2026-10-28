@@ -39,7 +39,7 @@ enum DayLogEditor {
         let profiles = (try? context.fetch(FetchDescriptor<ProfileRecord>(sortBy: [SortDescriptor(\.createdAt)]))) ?? []
         guard let profile = profiles.first else { return nil }
         let weights = (try? context.fetch(FetchDescriptor<WeightRecord>(sortBy: [SortDescriptor(\.date)]))) ?? []
-        let waists = (try? context.fetch(FetchDescriptor<WaistRecord>(sortBy: [SortDescriptor(\.date)]))) ?? []
+        let waists = (try? context.fetch(FetchDescriptor<WaistRecord>(predicate: #Predicate { !$0.isScan }, sortBy: [SortDescriptor(\.date)]))) ?? []
         let today = log(on: now, in: context, calendar: calendar)
         let start = calendar.startOfDay(for: now)
         let done = (try? context.fetch(FetchDescriptor<DayLogRecord>(predicate: #Predicate { $0.workoutDone && $0.day < start }))) ?? []

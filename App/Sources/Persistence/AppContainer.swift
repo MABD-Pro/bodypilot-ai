@@ -185,6 +185,8 @@ enum DemoData {
             guard let date = calendar.date(byAdding: .day, value: -7 * week, to: now) else { continue }
             context.insert(WaistRecord(date: date, cm: 95.0 - 0.6 * Double(3 - week)))
         }
+        // Un scan LiDAR le jour de la dernière mesure au ruban, pour l'historique.
+        context.insert(WaistRecord(date: now, cm: 94.0, isScan: true))
 
         // Trois semaines de séances cochées : force un jour sur deux (B la plus récente, donc A
         // aujourd'hui), cardio et marche entre deux, un jour de repos. Avec -demoRecovery, la force date d'hier.

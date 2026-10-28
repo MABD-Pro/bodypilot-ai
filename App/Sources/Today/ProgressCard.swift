@@ -200,14 +200,14 @@ struct ProgressCard: View {
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 if let fat = composition.fatPercent {
                     compositionLine(
-                        title: "Masse grasse \(fat.frenchOneDecimal) %",
+                        title: "Masse grasse \(fat.frenchOneDecimal) % (moyenne 7 jours)",
                         change: composition.fatChangePoints.map { "\($0 > 0 ? "+" : "")\($0.frenchOneDecimal) point\(abs($0) >= 2 ? "s" : "") en 4 semaines" },
                         good: (composition.fatChangePoints ?? 0) < 0
                     )
                 }
                 if let lean = composition.leanKg {
                     compositionLine(
-                        title: "Masse maigre \(lean.frenchOneDecimal) kg",
+                        title: "Masse maigre \(lean.frenchOneDecimal) kg (moyenne 7 jours)",
                         change: composition.leanChangeKg.map { "\($0 > 0 ? "+" : "")\($0.frenchOneDecimal) kg en 4 semaines" },
                         good: (composition.leanChangeKg ?? 0) >= 0
                     )
