@@ -12,6 +12,10 @@ struct OnboardingView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var draft: ProfileDraft
     @State private var step: Step = .body
+    /// « Refaire le test de force » touché : appliqué seulement à l'enregistrement, pas si on annule.
+    @State private var redoStrengthTest = false
+    /// Profil déjà créé : une double touche sur le dernier bouton n'en crée pas un second.
+    @State private var isSaved = false
 
     init(editing: ProfileRecord? = nil, currentWeightKg: Double? = nil) {
         self.editing = editing
@@ -60,7 +64,7 @@ struct OnboardingView: View {
                     switch step {
                     case .body: BodyStep(draft: $draft)
                     case .rhythm: RhythmStep(draft: $draft)
-                    case .start: StartStep(equipment: draft.equipment, redoStrengthTest: editing.map { record in { record.strengthTestResetAt = .now } })
+                    case .start: StartStep(equipment: draft.equipment, redoStrengthTest: editing.map { _ in { redoStrengthTest = true } })
                     }
                 }
                 .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
@@ -118,6 +122,7 @@ struct OnboardingView: View {
             withAnimation(Theme.springy) { step = following }
             return
         }
+        guard !isSaved else { return }
         var profile = draft.profile()
         if let editing {
             // Le poids de départ reste celui de l'inscription ; un poids modifié ici devient la pesée du jour.
@@ -131,8 +136,11 @@ struct OnboardingView: View {
                 context.insert(WeightRecord(date: .now, kg: draft.weightKg))
             }
             editing.update(from: profile)
+            if redoStrengthTest { editing.strengthTestResetAt = .now }
+            isSaved = true
             dismiss()
         } else {
+            isSaved = true
             context.insert(ProfileRecord(profile))
         }
     }

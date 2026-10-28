@@ -98,11 +98,12 @@ struct WorkoutDoneIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let context = AppContainer.shared.mainContext
-        let title = DayLogEditor.todayPlan(in: context).flatMap(\.training.workoutTitle)
+        // La séance affichée à l'écran d'abord ; le plan recalculé seulement si l'app n'a pas été ouverte.
+        let title = DisplayedWorkout.title(on: .now) ?? DayLogEditor.todayPlan(in: context).flatMap(\.training.workoutTitle)
         let log = DayLogEditor.todayLog(in: context)
         log.workoutDone = true
         log.doneWorkoutTitle = title
-        try? context.save()
+        guard CoachIntents.save(context) else { return .result(dialog: "\(CoachIntents.saveFailed)") }
         return .result(dialog: "Bravo, séance cochée. La régularité, c'est ce qui fait les résultats.")
     }
 }
@@ -113,12 +114,24 @@ enum CoachIntents {
     static func apply(_ command: InterpretedCommand) -> String {
         let context = AppContainer.shared.mainContext
         DayLogEditor.apply(command, to: DayLogEditor.todayLog(in: context))
-        try? context.save()
+        guard save(context) else { return saveFailed }
         var reply = "C'est noté : \(command.summary)."
         if let plan = DayLogEditor.todayPlan(in: context) {
             reply += " \(plan.headline)"
         }
         return reply
+    }
+
+    static let saveFailed = "Je n'ai pas pu l'enregistrer. Ouvre BodyPilot et réessaie."
+
+    /// Vrai seulement si c'est vraiment enregistré : Siri ne dit pas « c'est noté » sinon.
+    static func save(_ context: ModelContext) -> Bool {
+        do {
+            try context.save()
+            return true
+        } catch {
+            return false
+        }
     }
 
     static func spoken(_ plan: TodayPlan) -> String {

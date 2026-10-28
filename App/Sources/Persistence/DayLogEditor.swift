@@ -155,3 +155,24 @@ extension InterpretedCommand {
         return parts.joined(separator: ", ")
     }
 }
+
+/// Séance affichée aujourd'hui sur l'écran Aujourd'hui. Siri coche celle que l'utilisateur a
+/// vue : son propre calcul du plan ne connaît ni le sommeil, ni les séances de la Watch, et
+/// pouvait proposer une autre séance.
+enum DisplayedWorkout {
+    private static func key(for date: Date, calendar: Calendar) -> String {
+        let day = calendar.dateComponents([.year, .month, .day], from: date)
+        return "displayedWorkout-\(day.year ?? 0)-\(day.month ?? 0)-\(day.day ?? 0)"
+    }
+
+    /// `nil` un jour sans séance (repos, marche), enregistré quand même : c'est ce qui est affiché.
+    static func remember(_ title: String?, on date: Date, calendar: Calendar = .current, defaults: UserDefaults = .standard) {
+        defaults.set(title ?? "", forKey: key(for: date, calendar: calendar))
+    }
+
+    /// La séance affichée ce jour-là, ou `.none` si l'écran ne l'a pas encore montrée.
+    static func title(on date: Date, calendar: Calendar = .current, defaults: UserDefaults = .standard) -> String?? {
+        guard let stored = defaults.string(forKey: key(for: date, calendar: calendar)) else { return .none }
+        return .some(stored.isEmpty ? nil : stored)
+    }
+}

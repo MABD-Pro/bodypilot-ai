@@ -19,7 +19,9 @@ enum HealthSleep {
         let asleep = try await descriptor.result(for: HKHealthStore()).filter {
             HKCategoryValueSleepAnalysis(rawValue: $0.value).map(HKCategoryValueSleepAnalysis.allAsleepValues.contains) ?? false
         }
-        let seconds = merged(asleep.map { DateInterval(start: $0.startDate, end: max($0.startDate, $0.endDate)) })
+        // Coupées à la fenêtre de la nuit : une sieste qui la déborde ne compte que pour sa part dedans.
+        let window = DateInterval(start: start, end: end)
+        let seconds = merged(asleep.compactMap { DateInterval(start: $0.startDate, end: max($0.startDate, $0.endDate)).intersection(with: window) })
             .reduce(0) { $0 + $1.duration }
         return seconds > 0 ? seconds / 3600 : nil
     }

@@ -214,6 +214,13 @@ struct TodayView: View {
                 }
             }
             .sensoryFeedback(.selection, trigger: todayAdjustments)
+            .onChange(of: plan.training.workoutTitle, initial: true) { _, title in
+                DisplayedWorkout.remember(title, on: now, calendar: calendar)
+            }
+            .onChange(of: scenePhase) { _, phase in
+                // Tout ce qui a été touché est écrit avant que l'app ne passe en arrière-plan.
+                if phase != .active { try? context.save() }
+            }
             .sensoryFeedback(.selection, trigger: todayLog?.exerciseSwapsRaw.count ?? 0)
             .task(id: scenePhase) {
                 // À chaque retour dans l'app : les pesées de la balance arrivent toutes seules.
