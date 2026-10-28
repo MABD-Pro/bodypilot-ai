@@ -58,7 +58,7 @@ enum DayLogEditor {
             describedMeals: today?.describedMeals ?? [:],
             lastWorkoutTitle: last.title,
             lastStrengthDay: last.day,
-            calibratedLifts: calibratedLifts(lifts.map(\.entry), before: now, since: profile.strengthTestResetAt, calendar: calendar),
+            calibratedLifts: calibratedLifts(lifts.map(\.entry), before: now, since: profile.strengthTestResetAt, lastStrengthDay: last.day, calendar: calendar),
             activeDays: activeDays(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar),
             trainingChoice: today?.trainingChoice,
             cardio: cardioStatus(for: profile.profile, measures: cardioTests.map(\.measure), restingHeartRate: nil, on: now, calendar: calendar),
@@ -95,11 +95,23 @@ enum DayLogEditor {
 
     /// Exercices dont une charge est notée avant ce jour. Les séries du jour n'en font pas partie :
     /// un test en cours reste affiché jusqu'au bout. Après « Refaire le test de force », seules
-    /// les charges notées depuis comptent.
-    nonisolated static func calibratedLifts(_ lifts: [LiftEntry], before date: Date, since reset: Date? = nil, calendar: Calendar = .current) -> Set<String> {
+    /// les charges notées depuis comptent. Après plus de 3 mois sans force (séries notées, séance
+    /// cochée ou enregistrée dans Santé), le test revient : les anciennes charges ne disent plus grand-chose.
+    nonisolated static func calibratedLifts(
+        _ lifts: [LiftEntry],
+        before date: Date,
+        since reset: Date? = nil,
+        lastStrengthDay: Date? = nil,
+        calendar: Calendar = .current
+    ) -> Set<String> {
         let start = calendar.startOfDay(for: date)
         let resetDay = reset.map { calendar.startOfDay(for: $0) } ?? .distantPast
-        return Set(lifts.filter { $0.date < start && $0.date >= resetDay && ($0.kg ?? 0) > 0 }.map(\.exercise))
+        let earlier = lifts.filter { $0.date < start }
+        if let pause = StrengthProgress.pauseDays(history: earlier, lastStrengthDay: lastStrengthDay, on: date, calendar: calendar),
+           pause > StrengthProgress.retestAfterDays {
+            return []
+        }
+        return Set(earlier.filter { $0.date >= resetDay && ($0.kg ?? 0) > 0 }.map(\.exercise))
     }
 
     /// Dernière séance de force avant ce jour : cochée dans l'app (son titre fixe la suivante, A puis B)

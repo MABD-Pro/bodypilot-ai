@@ -1,4 +1,5 @@
 import BodyPilotCore
+import Foundation
 
 /// Un palier de montée en charge pendant un test.
 public struct RampStep: Sendable, Equatable {
@@ -105,11 +106,19 @@ public enum StrengthCalibration {
     }
 
     /// Charge proposée pour un exercice jamais noté, tirée du test de son mouvement de référence.
-    public static func derivedLoad(for exercise: String, plannedReps: Int, history: [LiftEntry]) -> Double? {
+    public static func derivedLoad(
+        for exercise: String,
+        plannedReps: Int,
+        history: [LiftEntry],
+        lastStrengthDay: Date? = nil,
+        on date: Date? = nil,
+        calendar: Calendar = .current
+    ) -> Double? {
         guard let link = derived[exercise],
-              let record = StrengthProgress.record(for: link.reference, in: history),
-              (record.entry.kg ?? 0) > 0 else { return nil }
-        let load = workingLoad(oneRepMax: record.score * link.ratio, reps: plannedReps)
+              let reference = StrengthProgress.referenceOneRepMax(
+                  for: link.reference, history: history, lastStrengthDay: lastStrengthDay, on: date, calendar: calendar
+              ) else { return nil }
+        let load = workingLoad(oneRepMax: reference * link.ratio, reps: plannedReps)
         return load > 0 ? load : nil
     }
 

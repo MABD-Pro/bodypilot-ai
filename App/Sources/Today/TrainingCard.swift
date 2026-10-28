@@ -24,6 +24,8 @@ struct TrainingCard: View {
     var healthLinked = false
     /// Meilleures séries notées, toutes séances confondues.
     var lifts: [LiftEntry] = []
+    /// Dernière séance de force avant aujourd'hui (app ou Santé), pour pondérer les charges après une pause.
+    var lastStrengthDay: Date?
     /// Matériel de salle : la saisie part d'une charge, sinon du poids du corps.
     var usesLoads = false
     var logLift: (LiftEntry) -> Void = { _ in }
@@ -209,7 +211,10 @@ struct TrainingCard: View {
         let earlier = lifts.filter { !calendar.isDateInToday($0.date) }
         let guide = ExerciseGuide.guide(for: exercise.name)
         let startingKg = usesLoads ? bodyweightKg.flatMap { guide?.startingLoad(bodyweightKg: $0, sex: sex) } : nil
-        let target = StrengthProgress.target(for: exercise.name, plannedReps: planned, history: earlier)
+        let target = StrengthProgress.target(
+            for: exercise.name, plannedReps: planned, history: earlier,
+            lastStrengthDay: lastStrengthDay, on: .now, calendar: calendar
+        )
         // Test refait : le premier essai part des dernières charges plutôt que de la charge d'essai.
         let firstAttemptKg = target?.kg ?? startingKg
         return LiftToLog(

@@ -66,3 +66,44 @@ private func lift(_ kg: Double?, _ reps: Int, on dayOfMonth: Int, _ exercise: St
     #expect(StrengthProgress.label(kg: 80, reps: 5) == "80 kg × 5")
     #expect(StrengthProgress.label(kg: nil, reps: 15) == "15 rép.")
 }
+
+@Test func strengthHoldsThreeWeeksThenSlowlyDrops() {
+    #expect(StrengthProgress.retention(afterDays: 21) == 1)
+    #expect(StrengthProgress.retention(afterDays: 30) == 0.95)
+    #expect(StrengthProgress.retention(afterDays: 60) == 0.9)
+    #expect(StrengthProgress.retention(afterDays: 120) == 0.85)
+}
+
+@Test func loadsDropAfterABreak() {
+    // 100 × 6 il y a 56 jours : 120 kg de 1RM × 0,9 = 108, soit 85 kg pour 6 répétitions.
+    let old = LiftEntry(exercise: "Squat à la barre", date: day(2026, 9, 1), kg: 100, reps: 6)
+    let target = StrengthProgress.target(for: "Squat à la barre", plannedReps: 6, history: [old], on: day(2026, 10, 27), calendar: utc)
+    #expect(target == LiftTarget(kg: 85, reps: 6, isIncrease: false))
+    #expect(StrengthProgress.comebackNote(pauseDays: 56)?.contains("90 %") == true)
+    #expect(StrengthProgress.comebackNote(pauseDays: 10) == nil)
+}
+
+@Test func shortBreakKeepsTheProgression() {
+    let target = StrengthProgress.target(for: "Squat à la barre", plannedReps: 6, history: [lift(100, 7, on: 17)], on: day(2026, 10, 27), calendar: utc)
+    #expect(target == LiftTarget(kg: 105, reps: 6, isIncrease: true))
+}
+
+@Test func recentMaxLiftsTheLoadAfterAWeakSession() {
+    // Max de 5 semaines (102,5 × 6, 123 kg × 0,95 ≈ 117) au-dessus de la dernière série (80 × 6).
+    let max = LiftEntry(exercise: "Squat à la barre", date: day(2026, 9, 15), kg: 102.5, reps: 6)
+    let target = StrengthProgress.target(for: "Squat à la barre", plannedReps: 6, history: [max, lift(80, 6, on: 20)], on: day(2026, 10, 22), calendar: utc)
+    #expect(target == LiftTarget(kg: 90, reps: 6, isIncrease: true))
+}
+
+@Test func veryOldMaxCountsLessThanRecentSets() {
+    // Max d'il y a près de 4 mois : 120 × 0,85 = 102 kg ; la série récente (80 × 6) garde la main.
+    let max = LiftEntry(exercise: "Squat à la barre", date: day(2026, 7, 1), kg: 100, reps: 6)
+    let target = StrengthProgress.target(for: "Squat à la barre", plannedReps: 6, history: [max, lift(80, 6, on: 20)], on: day(2026, 10, 22), calendar: utc)
+    #expect(target == LiftTarget(kg: 80, reps: 6, isIncrease: false))
+}
+
+@Test func strengthSessionsOutsideTheAppCountAsTraining() {
+    let old = LiftEntry(exercise: "Squat à la barre", date: day(2026, 9, 1), kg: 100, reps: 6)
+    #expect(StrengthProgress.pauseDays(history: [old], lastStrengthDay: day(2026, 10, 20), on: day(2026, 10, 27), calendar: utc) == 7)
+    #expect(StrengthProgress.pauseDays(history: [old], lastStrengthDay: nil, on: day(2026, 10, 27), calendar: utc) == 56)
+}

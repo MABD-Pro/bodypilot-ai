@@ -235,3 +235,11 @@ func aSessionChainsStrengthCardioAndInclineWalk(equipment: Equipment, minutes: I
     #expect(!mainLifts.isEmpty)
     #expect(mainLifts.allSatisfy { $0.restSeconds >= 120 && $0.sets == 4 })
 }
+
+@Test func strengthDayAfterALongBreakSaysLoadsAreLower() {
+    let fiveWeeksAgo = utc.date(byAdding: .day, value: -35, to: tuesday)!
+    let gym = planner.trainingDay(for: makeProfile(equipment: .gym), on: tuesday, constraints: DayConstraints(lastStrengthDay: fiveWeeksAgo))
+    #expect(gym.notes.first?.hasPrefix("Reprise après 5 semaines") == true)
+    let recent = planner.trainingDay(for: makeProfile(equipment: .gym), on: tuesday, constraints: DayConstraints(lastStrengthDay: utc.date(byAdding: .day, value: -3, to: tuesday)!))
+    #expect(!recent.notes.contains { $0.hasPrefix("Reprise") })
+}
