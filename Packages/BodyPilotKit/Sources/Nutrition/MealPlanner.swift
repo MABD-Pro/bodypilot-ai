@@ -7,8 +7,15 @@ public struct MealPlanner: NutritionPlanning {
 
     /// Part des calories par repas.
     static let shares: [MealSlot: Double] = [.breakfast: 0.25, .lunch: 0.35, .snack: 0.10, .dinner: 0.30]
+    /// Part des protéines du jour par repas : à parts égales sur les trois repas principaux.
+    /// Avec 2 g/kg par jour, chacun dépasse 0,4 g/kg, le seuil par repas de Schoenfeld et Aragon (2018).
+    static let proteinShares: [MealSlot: Double] = [.breakfast: 0.30, .lunch: 0.30, .snack: 0.10, .dinner: 0.30]
     /// Les portions restent réalistes : jamais moins de la moitié ni plus du double du modèle.
     static let portionRange = 0.5...2.0
+    /// Les aliments d'accompagnement peuvent descendre un peu plus bas pour laisser la place aux protéines.
+    static let sidePortionRange = 0.4...2.0
+    /// Un aliment est une source de protéines quand elles font au moins 30 % de ses calories.
+    static let proteinSourceRatio = 0.3
 
     public init(calculator: EnergyCalculator = EnergyCalculator()) {
         self.calculator = calculator
@@ -23,6 +30,7 @@ public struct MealPlanner: NutritionPlanning {
 
     public func mealPlan(for targets: NutritionTargets, profile: UserProfile, on date: Date, constraints: MealConstraints) -> DayMealPlan {
         var shares = Self.shares
+        var proteinShares = Self.proteinShares
         var notes: [String] = []
         var dayKcal = targets.macros.kcal
 
@@ -36,6 +44,8 @@ public struct MealPlanner: NutritionPlanning {
             if restaurant != .snack {
                 shares[restaurant, default: 0] += shares[.snack] ?? 0
                 shares[.snack] = 0
+                proteinShares[restaurant, default: 0] += proteinShares[.snack] ?? 0
+                proteinShares[.snack] = 0
             }
             notes.append("Restaurant : la collation est supprimée pour laisser de la marge. Pas de calcul au restaurant, juste les repères.")
         }
@@ -79,20 +89,21 @@ public struct MealPlanner: NutritionPlanning {
         }
         if remainingScale != 1, let note = Self.intakeNote(wanted: wanted, applied: remainingScale) { notes.append(note) }
 
-        return plannedMeals(day: dayIndex(of: date), baseKcal: baseKcal, shownKcal: shownKcal, fixed: counted, scale: remainingScale, targets: targets, constraints: constraints, notes: notes)
+        // Les protéines ne suivent pas « Pas faim » : elles comptent le plus pour le muscle.
+        let baseProtein = proteinShares.mapValues { targets.macros.proteinG * $0 }
+        return plannedMeals(day: dayIndex(of: date), baseKcal: baseKcal, baseProtein: baseProtein, shownKcal: shownKcal, fixed: counted, scale: remainingScale, constraints: constraints, notes: notes)
     }
 
     private func plannedMeals(
         day: Int,
         baseKcal: [MealSlot: Double],
+        baseProtein: [MealSlot: Double],
         shownKcal: [MealSlot: Double],
         fixed: Set<MealSlot>,
         scale remainingScale: Double,
-        targets: NutritionTargets,
         constraints: MealConstraints,
         notes: [String]
     ) -> DayMealPlan {
-        let dayKcal = baseKcal.values.reduce(0, +)
         let meals = MealSlot.allCases.compactMap { slot -> PlannedMeal? in
             if let described = constraints.described[slot] {
                 return PlannedMeal(
@@ -107,9 +118,11 @@ public struct MealPlanner: NutritionPlanning {
             guard base > 0 else { return nil }
             let intake = constraints.eaten[slot]
             let kcal = fixed.contains(slot) ? shownKcal[slot] ?? base : base * remainingScale
+            // Un repas allégé ou agrandi pour compenser garde la même proportion de protéines.
+            let protein = (baseProtein[slot] ?? 0) * kcal / base
             var meal: PlannedMeal
             if slot == constraints.eatingOut {
-                meal = restaurantMeal(slot: slot, kcal: kcal, proteinG: targets.macros.proteinG * base / max(dayKcal, 1))
+                meal = restaurantMeal(slot: slot, kcal: kcal, proteinG: protein)
             } else {
                 let options = MealTemplates.all.filter { $0.slot == slot }
                 var template = options[day % options.count]
@@ -117,7 +130,7 @@ public struct MealPlanner: NutritionPlanning {
                     // Collation dense et facile à avaler.
                     template = MealTemplates.snacks[1]
                 }
-                meal = portioned(template, targetKcal: kcal)
+                meal = portioned(template, targetKcal: kcal, targetProteinG: protein)
             }
             if let intake {
                 meal.macros = meal.macros.scaled(by: intake.factor)
@@ -163,18 +176,46 @@ public struct MealPlanner: NutritionPlanning {
         )
     }
 
-    func portioned(_ template: MealTemplate, targetKcal: Double) -> PlannedMeal {
-        let baseKcal = template.ingredients.reduce(0) { $0 + $1.food.per100g.kcal * $1.grams / 100 }
-        let factor = min(max(targetKcal / baseKcal, Self.portionRange.lowerBound), Self.portionRange.upperBound)
+    /// Portions du modèle ajustées aux calories visées. Avec un objectif de protéines, les sources
+    /// de protéines et les accompagnements sont dosés à part : la viande, le poisson ou le skyr
+    /// montent ou descendent pour l'atteindre, les accompagnements complètent les calories.
+    func portioned(_ template: MealTemplate, targetKcal: Double, targetProteinG: Double? = nil) -> PlannedMeal {
+        let isSource = { (food: Food) in food.per100g.proteinG * 4 >= Self.proteinSourceRatio * food.per100g.kcal }
+        func total(_ value: KeyPath<Macros, Double>, sources: Bool) -> Double {
+            template.ingredients.filter { isSource($0.food) == sources }
+                .reduce(0) { $0 + $1.food.per100g[keyPath: value] * $1.grams / 100 }
+        }
+        let sourceKcal = total(\.kcal, sources: true)
+        let sideKcal = total(\.kcal, sources: false)
+        var sourceFactor = clamped(targetKcal / (sourceKcal + sideKcal), to: Self.portionRange)
+        var sideFactor = sourceFactor
+        if let targetProteinG, sourceKcal > 0, sideKcal > 0 {
+            // Deux équations, deux inconnues : protéines et calories visées.
+            let sourceProtein = total(\.proteinG, sources: true)
+            let sideProtein = total(\.proteinG, sources: false)
+            let determinant = sourceProtein * sideKcal - sideProtein * sourceKcal
+            if determinant > 0 {
+                let wanted = (targetProteinG * sideKcal - sideProtein * targetKcal) / determinant
+                sourceFactor = clamped(wanted, to: Self.portionRange)
+                sideFactor = clamped((targetKcal - sourceFactor * sourceKcal) / sideKcal, to: Self.sidePortionRange)
+                // Accompagnements en butée : les calories passent avant, les sources complètent.
+                sourceFactor = clamped((targetKcal - sideFactor * sideKcal) / sourceKcal, to: Self.portionRange)
+            }
+        }
 
         var items: [MealItem] = []
         var macros = Macros.zero
         for ingredient in template.ingredients {
+            let factor = isSource(ingredient.food) ? sourceFactor : sideFactor
             let (rounded, label) = quantity(of: ingredient.food, grams: ingredient.grams * factor)
             items.append(MealItem(name: ingredient.food.name, grams: rounded, quantityLabel: label))
             macros = macros + ingredient.food.per100g.scaled(by: rounded / 100)
         }
         return PlannedMeal(slot: template.slot, title: template.title, items: items, macros: macros)
+    }
+
+    private func clamped(_ value: Double, to range: ClosedRange<Double>) -> Double {
+        min(max(value, range.lowerBound), range.upperBound)
     }
 
     private func quantity(of food: Food, grams: Double) -> (Double, String) {

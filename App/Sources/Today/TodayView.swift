@@ -30,6 +30,8 @@ struct TodayView: View {
     /// Forme cardio estimée par la Watch et pouls au repos, lus dans Santé.
     @State private var watchCardio: CardioMeasure?
     @State private var restingHeartRate: Double?
+    /// Premiers jours des dernières règles, lus dans Santé (femmes seulement).
+    @State private var periodStarts: [Date] = []
 
     private let calendar = Calendar.current
 
@@ -43,6 +45,11 @@ struct TodayView: View {
         let lifts = liftRecords.map(\.entry)
         let cardioMeasures = cardioTests.map(\.measure) + [watchCardio].compactMap { $0 }
         let cardio = DayLogEditor.cardioStatus(for: profileRecord.profile, measures: cardioMeasures, restingHeartRate: restingHeartRate, on: now, calendar: calendar)
+        let exerciseKcal = ExerciseEnergy.dailyAverage(
+            samples: healthActivities, completed: completed,
+            sessionMinutes: profileRecord.profile.sessionMinutes,
+            weightKg: weights.last?.kg ?? profileRecord.startWeightKg, on: now, calendar: calendar
+        )
         let plan = CoachFactory.coach.plan(
             for: profileRecord.profile,
             weights: weights.map(\.entry),
@@ -61,11 +68,7 @@ struct TodayView: View {
             recentActivities: healthActivities,
             trainingChoice: todayLog?.trainingChoice,
             cardio: cardio,
-            exerciseKcalPerDay: ExerciseEnergy.dailyAverage(
-                samples: healthActivities, completed: completed,
-                sessionMinutes: profileRecord.profile.sessionMinutes,
-                weightKg: weights.last?.kg ?? profileRecord.startWeightKg, on: now, calendar: calendar
-            ),
+            exerciseKcalPerDay: exerciseKcal,
             on: now
         )
 
@@ -77,7 +80,15 @@ struct TodayView: View {
             sessionMinutes: profileRecord.profile.sessionMinutes
         )
         let checkIn = profileRecord.isCheckInDue(at: now)
-            ? CoachFactory.coach.weeklyCheckIn(for: profileRecord.profile, weights: weights.map(\.entry), waists: waists.map(\.entry), on: now)
+            ? CoachFactory.coach.weeklyCheckIn(
+                for: profileRecord.profile,
+                weights: weights.map(\.entry),
+                waists: waists.map(\.entry),
+                exerciseKcalPerDay: exerciseKcal,
+                retainsWater: profileRecord.profile.sex == .female
+                    && MenstrualCycle.retainsWater(periodStarts: periodStarts, on: now, calendar: calendar),
+                on: now
+            )
             : nil
 
         NavigationStack {
@@ -164,12 +175,13 @@ struct TodayView: View {
                 // À chaque retour dans l'app : les pesées de la balance arrivent toutes seules.
                 guard scenePhase == .active, healthSync else { return }
                 // Déjà relié avant l'envoi des repas : Santé demande une fois l'autorisation d'écrire.
-                if !LaunchOptions.demoData { try? await HealthWeight.requestAccess() }
+                if !LaunchOptions.demoData { try? await HealthWeight.requestAccess(includeCycle: tracksCycle) }
                 await importHealthWeights()
                 await importHealthActivities()
                 await importSleep()
                 await importCardio()
                 await importProfile()
+                await importCycle()
                 await exportMeals(plan.meals, on: now)
             }
             .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
@@ -209,7 +221,7 @@ struct TodayView: View {
 
     private func connectHealth() async {
         do {
-            try await HealthWeight.requestAccess()
+            try await HealthWeight.requestAccess(includeCycle: tracksCycle)
         } catch {
             return
         }
@@ -248,6 +260,14 @@ struct TodayView: View {
                 profileRecord.sexRaw = sex.rawValue
             }
         }
+    }
+
+    private var tracksCycle: Bool { profileRecord.profile.sex == .female }
+
+    private func importCycle() async {
+        guard tracksCycle, !LaunchOptions.demoData else { return }
+        guard let starts = try? await HealthCycle.periodStarts(calendar: calendar) else { return }
+        periodStarts = starts
     }
 
     private func importCardio() async {

@@ -115,3 +115,26 @@ private let planner = MealPlanner(calculator: EnergyCalculator(calendar: utc))
     #expect(dinnerEaten.macros == dinnerProposed.macros)
     #expect(abs(eaten.totals.kcal - 2200) / 2200 < 0.1)
 }
+
+@Test func proteinIsSpreadEvenlyOverMainMeals() {
+    // 175 g par jour : au moins 0,4 g/kg (35 g pour 87,5 kg de référence) à chaque repas principal.
+    let targets = NutritionTargets(macros: Macros(kcal: 2340, proteinG: 175, carbsG: 250, fatG: 70), maintenanceKcal: 2725, rationale: "")
+    for offset in 0..<3 {
+        let date = utc.date(byAdding: .day, value: offset, to: day(2026, 10, 27))!
+        let plan = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints())
+        for meal in plan.meals where meal.slot != .snack {
+            #expect(meal.macros.proteinG >= 35, "\(meal.title) : \(meal.macros.proteinG) g")
+        }
+        #expect(abs(plan.totals.proteinG - 175) / 175 < 0.1, "jour \(offset) : \(plan.totals.proteinG) g")
+        #expect(abs(plan.totals.kcal - 2340) / 2340 < 0.1)
+    }
+}
+
+@Test func lowAppetiteKeepsProtein() {
+    let targets = NutritionTargets(macros: Macros(kcal: 2340, proteinG: 175, carbsG: 250, fatG: 70), maintenanceKcal: 2725, rationale: "")
+    let date = day(2026, 10, 27)
+    let normal = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints())
+    let light = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints(lowAppetite: true))
+    #expect(light.totals.kcal < normal.totals.kcal)
+    #expect(light.totals.proteinG >= normal.totals.proteinG * 0.9)
+}

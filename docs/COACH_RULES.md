@@ -15,7 +15,8 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 ## Repas du jour (`Nutrition/MealPlanner`)
 
 - Répartition : petit-déjeuner 25 %, déjeuner 35 %, collation 10 %, dîner 30 %.
-- Modèles de repas tournants (variété sans saisie), portions ajustées entre ×0,5 et ×2, arrondies à 5 g ou à l'unité (œufs, fruits).
+- Protéines : 30 % du total du jour au petit-déjeuner, au déjeuner et au dîner, 10 % à la collation. Avec 2 g/kg, chaque repas principal dépasse 0,4 g/kg (Schoenfeld et Aragon, 2018). « Pas faim » ne réduit pas les protéines. Un repas allégé ou agrandi pour compenser garde sa proportion de protéines.
+- Modèles de repas tournants (variété sans saisie), portions ajustées entre ×0,5 et ×2, arrondies à 5 g ou à l'unité (œufs, fruits). Les sources de protéines (au moins 30 % de leurs calories en protéines : viande, poisson, œufs, skyr, tofu, lentilles…) sont dosées pour l'objectif de protéines du repas, les accompagnements (×0,4 à ×2) pour les calories. Les calories passent avant si les deux ne tiennent pas ensemble.
 - Valeurs nutritionnelles : moyennes arrondies, ordre de grandeur Ciqual. À remplacer par une vraie base.
 - « Je mange au restaurant » : le prochain repas principal (déjeuner avant 15 h, dîner ensuite) devient « Au restaurant » avec quatre repères (protéine, légumes, une portion de féculents, un seul extra parmi sauce, dessert ou alcool). La collation est supprimée et son budget va au restaurant.
 - « Je n'ai pas faim » : 85 % des calories, sans descendre sous le plancher de sécurité, collation dense en protéines.
@@ -102,11 +103,13 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Perte trop rapide (plus de 1 % par semaine) : +150 kcal. Prise trop rapide (plus de 0,5 %) : −150 kcal.
 - Stagnation ou mauvaise direction : correction seulement si c'était déjà le cas une semaine plus tôt (pas de réaction à l'eau). Si le tour de taille a baissé d'au moins 1 cm, aucune correction : la recomposition fonctionne. Sans mesure de taille, le coach propose −150 kcal et demande de mesurer la taille.
 - Corrections cumulées limitées à ±450 kcal ; jamais sous le plancher de sécurité, jamais de surplus. Sans effet réel, pas de proposition.
+- Cycle menstruel (femmes, suivi de cycle noté dans Santé) : pas de baisse proposée pendant les 5 premiers jours des règles ni les 5 jours qui les précèdent (prévus d'après la durée moyenne des 3 derniers cycles de 21 à 35 jours). La rétention d'eau y masque la perte de gras (White et al., 2011). Une hausse pour perte trop rapide reste proposée.
+- L'objectif proposé tient compte de la dépense des séances, comme celui du jour.
 
 ## Pesées importées de Santé (`ProgressInsights/WeightImportPlanner`)
 
 - Lecture seule du poids (HealthKit, `bodyMass`), 90 jours en arrière à la connexion, puis à chaque retour dans l'app. Aucune donnée ne quitte l'iPhone.
-- Santé fournit aussi, en lecture : les entraînements (Watch, cours collectifs, autres apps), le sommeil de la nuit passée, la VO2max et le pouls au repos. Progresser affiche ce qui est relié et la nuit dernière.
+- Santé fournit aussi, en lecture : les entraînements (Watch, cours collectifs, autres apps), le sommeil de la nuit passée, la VO2max et le pouls au repos, et pour les femmes le suivi des règles (120 jours ; un saignement après 10 jours sans flux ouvre un nouveau cycle). Progresser affiche ce qui est relié et la nuit dernière.
 - Profil : la taille, la date de naissance et le sexe de Santé remplacent ceux du profil à chaque retour dans l'app, donc les besoins se recalculent. « Mon profil » affiche le poids de la dernière pesée. Un poids modifié là devient la pesée du jour, et le poids de départ ne change pas.
 - Une pesée par jour : la première de la journée (le plus souvent le matin à jeun).
 - Un jour déjà renseigné n'est jamais écrasé : la saisie manuelle garde la main.

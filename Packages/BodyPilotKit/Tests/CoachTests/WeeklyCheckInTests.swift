@@ -82,3 +82,18 @@ private func recompositionProfile() -> UserProfile {
     #expect(suggestion.deltaKcal == -150)
     #expect(suggestion.message.contains("tour de taille"))
 }
+
+@Test func waterRetentionAroundPeriodHoldsBackACut() throws {
+    let flat = weights(start: 88, perDay: 0)
+    #expect(coach.weeklyCheckIn(for: makeProfile(), weights: flat, retainsWater: true, on: today) == nil)
+    // Perte trop rapide : manger plus reste proposé, même pendant les règles.
+    let fast = try #require(coach.weeklyCheckIn(for: makeProfile(), weights: weights(start: 94, perDay: -0.2), retainsWater: true, on: today))
+    #expect(fast.deltaKcal == 150)
+}
+
+@Test func proposedTargetIncludesSessions() throws {
+    let flat = weights(start: 88, perDay: 0)
+    let without = try #require(coach.weeklyCheckIn(for: makeProfile(), weights: flat, on: today))
+    let with = try #require(coach.weeklyCheckIn(for: makeProfile(), weights: flat, exerciseKcalPerDay: 300, on: today))
+    #expect(with.newTargetKcal > without.newTargetKcal)
+}
