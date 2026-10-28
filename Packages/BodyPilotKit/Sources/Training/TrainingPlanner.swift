@@ -355,6 +355,10 @@ public struct TrainingPlanner: TrainingPlanning {
         if constraints.medicalCaution { reasons.append("avis médical en attente") }
         if constraints.kneePain { reasons.append("ton genou est sensible") }
         if reasons.isEmpty { reasons.append("le temps manque") }
+        // Avis médical : le test attend l'accord du médecin, pas une journée plus calme.
+        if constraints.medicalCaution {
+            return "Test de force reporté (\(reasons.joined(separator: ", "))) : il reviendra quand ton médecin aura donné son accord."
+        }
         return "Test de force reporté (\(reasons.joined(separator: ", "))) : il reviendra un prochain jour de force, quand tu seras en forme et disponible au moins 45 min."
     }
 
