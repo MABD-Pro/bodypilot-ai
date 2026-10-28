@@ -120,7 +120,7 @@ struct TodayView: View {
                         })
                             .id("nutrition")
                         TrainingCard(
-                            training: plan.training,
+                            training: (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training),
                             options: plan.trainingOptions,
                             choice: todayLog?.trainingChoice ?? plan.trainingOptions.recommended,
                             choose: chooseTraining,
@@ -149,7 +149,19 @@ struct TodayView: View {
                             },
                             benchmarkToday: todayLog?.benchmarkSeconds,
                             previousBenchmark: dayLogs.filter { !calendar.isDateInToday($0.day) && $0.benchmarkSeconds != nil }.max { $0.day < $1.day }?.benchmarkSeconds,
-                            logBenchmark: logBenchmark
+                            logBenchmark: logBenchmark,
+                            loadShifts: todayLog?.loadShifts ?? [:],
+                            shiftLoads: { exercise, kg in
+                                let log = DayLogEditor.todayLog(in: context, calendar: calendar)
+                                log.loadShifts[exercise] = kg
+                                try? context.save()
+                            },
+                            edits: todayLog?.sessionEdits ?? SessionEdits(),
+                            editSession: { edits in
+                                let log = DayLogEditor.todayLog(in: context, calendar: calendar)
+                                withAnimation(Theme.springy) { log.sessionEdits = edits }
+                                try? context.save()
+                            }
                         )
                             .id("training")
                         ProgressCard(
@@ -362,7 +374,11 @@ struct TodayView: View {
 
     private func chooseTraining(_ choice: TrainingChoice) {
         let log = todayLog()
-        withAnimation(Theme.springy) { log.trainingChoice = choice }
+        withAnimation(Theme.springy) {
+            // Une autre proposition : la séance retouchée pour l'ancienne ne s'applique plus.
+            if log.trainingChoice != choice { log.sessionEdits = SessionEdits() }
+            log.trainingChoice = choice
+        }
         try? context.save()
     }
 

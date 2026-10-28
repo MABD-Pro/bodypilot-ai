@@ -2,6 +2,7 @@ import BodyPilotCore
 import Coach
 import Foundation
 import SwiftData
+import Training
 
 // Persistance locale (source de vérité). Toutes les propriétés ont une valeur par défaut
 // pour rester compatibles avec une future synchronisation.
@@ -189,6 +190,23 @@ final class DayLogRecord {
     var trainingChoiceRaw: String?
     /// Temps du WOD de référence du cycle fait ce jour-là (secondes).
     var benchmarkSeconds: Int?
+    /// Séance retouchée pour la journée (séries, exercices retirés ou ajoutés), en JSON.
+    var sessionEditsData: Data?
+    /// Paliers décalés pour la journée, par exercice (kg, en JSON).
+    var loadShiftsData: Data?
+
+    var sessionEdits: SessionEdits {
+        get { sessionEditsData.flatMap { try? JSONDecoder().decode(SessionEdits.self, from: $0) } ?? SessionEdits() }
+        set { sessionEditsData = newValue.isEmpty ? nil : try? JSONEncoder().encode(newValue) }
+    }
+
+    var loadShifts: [String: Double] {
+        get { loadShiftsData.flatMap { try? JSONDecoder().decode([String: Double].self, from: $0) } ?? [:] }
+        set {
+            let kept = newValue.filter { $0.value != 0 }
+            loadShiftsData = kept.isEmpty ? nil : try? JSONEncoder().encode(kept)
+        }
+    }
 
     var trainingChoice: TrainingChoice? {
         get { trainingChoiceRaw.flatMap(TrainingChoice.init(rawValue:)) }
