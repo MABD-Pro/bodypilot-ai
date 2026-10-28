@@ -160,7 +160,7 @@ extension ActivityLevel {
     }
 }
 
-/// Le point de départ : comment le coach trouve tes charges, et le test à refaire après une pause.
+/// Le point de départ : comment le coach trouve tes charges et ta forme cardio, et le test de force à refaire après une pause.
 struct StartStep: View {
     let equipment: Equipment
     /// `nil` à l'inscription ; en modification du profil, relance le test de force.
@@ -197,13 +197,14 @@ struct StartStep: View {
                 point(symbol: "figure.strengthtraining.functional", title: "Pas de test à la maison", text: "Au poids du corps, le coach part de répétitions simples et te fait progresser en répétitions et en variantes plus dures.")
                 point(symbol: "dumbbell.fill", title: "À la salle, un test de force", text: "Si tu passes en salle dans ton profil, deux séances de test fixeront tes charges de départ.")
             }
+            point(symbol: "heart.circle.fill", title: "Ta forme cardio", text: "Si ton Apple Watch l'estime déjà (marches et courses dehors), le coach la lit dans Santé. Sinon, un jour de cardio devient un test : 1,6 km de marche rapide, puis ton temps et ton pouls. Il fixe ta zone de cardio modéré, et revient toutes les 8 semaines.", tint: Theme.protein)
         }
         .sensoryFeedback(.success, trigger: isRedone)
     }
 
-    private func point(symbol: String, title: String, text: String) -> some View {
+    private func point(symbol: String, title: String, text: String, tint: Color = Theme.training) -> some View {
         HStack(alignment: .top, spacing: Theme.Spacing.m) {
-            IconBadge(symbol: symbol, tint: Theme.training, size: 34)
+            IconBadge(symbol: symbol, tint: tint, size: 34)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))

@@ -24,6 +24,11 @@ struct ProgressCard: View {
     let waistChange: Double?
     /// Records de force, les plus récents d'abord.
     var records: [PersonalRecord] = []
+    /// Dernière forme cardio (Watch ou test de marche) et zone de cardio modéré.
+    var cardio: CardioMeasure?
+    var cardioZone: ClosedRange<Int>?
+    /// Sommeil de la nuit passée, lu dans Santé.
+    var sleepHours: Double?
     let addWeight: () -> Void
     let addWaist: () -> Void
     let acceptCheckIn: () -> Void
@@ -67,6 +72,8 @@ struct ProgressCard: View {
             if !records.isEmpty {
                 recordsRow
             }
+
+            cardioRow
 
             if trend.points.count >= 2 {
                 chart
@@ -193,6 +200,42 @@ struct ProgressCard: View {
         .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
     }
 
+    /// Forme cardio : la VO2max de la Watch ou du test de marche, et la zone qui en découle.
+    private var cardioRow: some View {
+        HStack(spacing: Theme.Spacing.m) {
+            IconBadge(symbol: "heart.circle.fill", tint: Theme.protein, size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                if let cardio {
+                    Text("Forme cardio \(cardio.vo2max.frenchOneDecimal) ml/kg/min")
+                        .font(.subheadline.weight(.semibold))
+                    Text("\(cardio.source == .watch ? "Apple Watch" : "Test de marche"), \(cardio.date.formatted(.dateTime.day().month(.wide).locale(Theme.locale)))")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Forme cardio à mesurer")
+                        .font(.subheadline.weight(.semibold))
+                    Text("La Watch l'estime pendant tes marches dehors. Sinon, un test de marche de 1,6 km sera proposé un jour de cardio.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if let cardioZone {
+                    Text("Cardio modéré : \(cardioZone.lowerBound) à \(cardioZone.upperBound) bpm")
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(Theme.protein)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Theme.Spacing.m)
+        .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+    }
+
+    static func hours(_ value: Double) -> String {
+        let total = Int((value * 60).rounded())
+        return total % 60 == 0 ? "\(total / 60) h" : "\(total / 60) h \(String(format: "%02d", total % 60))"
+    }
+
     /// Proposer Santé tant qu'il n'est pas branché ; ensuite, un simple rappel discret.
     @ViewBuilder
     private var healthRow: some View {
@@ -206,7 +249,7 @@ struct ProgressCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Relier à Santé")
                             .font(.subheadline.weight(.semibold))
-                        Text("Ta balance remplit le suivi, et tes repas mangés partent dans Santé.")
+                        Text("Pesées, séances de la Watch et cours collectifs, sommeil et forme cardio arrivent tout seuls. Tes repas mangés partent dans Santé.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -224,9 +267,15 @@ struct ProgressCard: View {
             Menu {
                 Button("Ne plus relier à Santé", systemImage: "heart.slash", role: .destructive, action: disconnectHealth)
             } label: {
-                Label("Relié à Santé : pesées et repas", systemImage: "heart.fill")
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Label("Relié à Santé : pesées, séances, sommeil, forme cardio et repas", systemImage: "heart.fill")
+                    if let sleepHours {
+                        Label("Nuit dernière : \(Self.hours(sleepHours))", systemImage: "bed.double.fill")
+                    }
+                }
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.leading)
             }
         }
     }

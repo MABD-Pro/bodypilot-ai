@@ -220,3 +220,21 @@ final class LiftRecord {
 
     var entry: LiftEntry { LiftEntry(exercise: exercise, date: day, kg: kg, reps: reps, isTest: isTest) }
 }
+
+/// Test de marche de 1,6 km : temps, pouls à l'arrivée et forme cardio qui en découle.
+@Model
+final class CardioTestRecord {
+    var day: Date = Date.now
+    var minutes: Double = 0
+    var heartRate: Int = 0
+    var vo2max: Double = 0
+
+    init(day: Date, minutes: Double, heartRate: Int, vo2max: Double) {
+        self.day = day
+        self.minutes = minutes
+        self.heartRate = heartRate
+        self.vo2max = vo2max
+    }
+
+    var measure: CardioMeasure { CardioMeasure(vo2max: vo2max, date: day, source: .walkTest) }
+}

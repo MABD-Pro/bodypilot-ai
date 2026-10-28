@@ -30,8 +30,12 @@ struct TrainingCard: View {
     /// Poids et sexe, pour proposer une charge d'essai avant la première série notée.
     var bodyweightKg: Double?
     var sex: BiologicalSex = .male
+    /// Test de cardio noté aujourd'hui.
+    var cardioTestToday: CardioMeasure?
+    var logCardioTest: (_ minutes: Double, _ heartRate: Int) -> Void = { _, _ in }
 
     @State private var isPreviewingWatch = false
+    @State private var isLoggingCardioTest = false
     @State private var logging: LiftToLog?
     @State private var celebration: String?
     private let calendar = Calendar.current
@@ -93,7 +97,7 @@ struct TrainingCard: View {
                     ExerciseRow(
                         index: index + 1,
                         name: exercise.name,
-                        detail: workout.isStrengthTest ? "5 rép." : exercise.prescription,
+                        detail: workout.isStrengthTest ? "5 rép." : workout.isCardioTest ? "1,6 km" : exercise.prescription,
                         isWarmup: false,
                         isSwapped: exercise.isSwapped,
                         caption: toLog.map(caption),
@@ -107,6 +111,10 @@ struct TrainingCard: View {
             }
             .sensoryFeedback(.success, trigger: celebration) { _, new in new != nil }
 
+            if workout.isCardioTest {
+                cardioTestResult
+            }
+
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Label(workout.intensityCue, systemImage: "gauge.with.dots.needle.33percent")
                 if workout.isStrengthTest {
@@ -114,14 +122,14 @@ struct TrainingCard: View {
                 } else if workout.hasStrength {
                     Label("Touche un exercice pour sa technique et pour noter ta meilleure série : le coach suit tes records et fait monter les charges.", systemImage: "trophy")
                 }
-                if !workout.isStrengthTest {
+                if !workout.isStrengthTest && !workout.isCardioTest {
                     Label("Machine prise ou matériel absent ? Touche \(Image(systemName: "arrow.triangle.2.circlepath")) pour changer d'exercice.", systemImage: "hand.tap")
                 }
             }
             .font(.footnote)
             .foregroundStyle(.secondary)
 
-            if let plan = workout.guided.watchPlan {
+            if let plan = training.watchPlan {
                 // La séance déjà adaptée (temps, fatigue, genou) part sur la montre, guidée série par série.
                 Button {
                     isPreviewingWatch = true
@@ -147,6 +155,44 @@ struct TrainingCard: View {
             .buttonStyle(.glass)
             .sensoryFeedback(.success, trigger: isDone) { _, done in done }
         }
+    }
+
+    /// Test de cardio : le noter, puis la forme cardio qui en découle.
+    private var cardioTestResult: some View {
+        Button {
+            isLoggingCardioTest = true
+        } label: {
+            HStack(spacing: Theme.Spacing.m) {
+                IconBadge(symbol: cardioTestToday == nil ? "stopwatch" : "heart.fill", tint: cardioTestToday == nil ? Theme.training : Theme.progress, size: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    if let cardioTestToday {
+                        Text("Forme cardio : \(cardioTestToday.vo2max.frenchOneDecimal) ml/kg/min")
+                            .font(.subheadline.weight(.semibold))
+                        Text("VO2max estimée par le test de marche. Touche pour corriger.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Noter mon test")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Ton temps sur 1,6 km et ton pouls à l'arrivée.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(Theme.Spacing.m)
+            .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $isLoggingCardioTest) {
+            CardioTestSheet(save: logCardioTest)
+        }
+        .sensoryFeedback(.success, trigger: cardioTestToday?.vo2max)
     }
 
     /// Pourquoi la séance est ainsi (récupération, genou, fatigue…), juste sous son titre.
@@ -925,5 +971,69 @@ extension Workout {
         if conditioning >= 1 { parts.append("cardio") }
         if conditioning >= 2 { parts.append("marche") }
         return parts.joined(separator: " · ")
+    }
+}
+
+/// Test de marche : temps sur 1,6 km et pouls dès l'arrivée, en quelques touches.
+private struct CardioTestSheet: View {
+    let save: (_ minutes: Double, _ heartRate: Int) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var minutes = 15
+    @State private var seconds = 0
+    @State private var heartRate = 130
+
+    var body: some View {
+        VStack(spacing: Theme.Spacing.xl) {
+            VStack(spacing: Theme.Spacing.xs) {
+                Text("Test de cardio")
+                    .font(.display(24))
+                Text("Ton temps sur 1,6 km et ton pouls à l'arrivée, lus sur la Watch.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            VStack(spacing: Theme.Spacing.xs) {
+                Text("Temps")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 0) {
+                    Picker("Minutes", selection: $minutes) {
+                        ForEach(8...35, id: \.self) { Text("\($0) min").tag($0) }
+                    }
+                    Picker("Secondes", selection: $seconds) {
+                        ForEach(Array(stride(from: 0, to: 60, by: 5)), id: \.self) { Text(String(format: "%02d s", $0)).tag($0) }
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 120)
+            }
+
+            VStack(spacing: Theme.Spacing.xs) {
+                Text("Pouls à l'arrivée")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Picker("Pouls", selection: $heartRate) {
+                    ForEach(70...200, id: \.self) { Text("\($0) bpm").tag($0) }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 120)
+            }
+
+            Button {
+                save(Double(minutes) + Double(seconds) / 60, heartRate)
+                dismiss()
+            } label: {
+                Text("Enregistrer")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Theme.training)
+        }
+        .padding(Theme.Spacing.xxl)
+        .presentationDetents([.large])
     }
 }

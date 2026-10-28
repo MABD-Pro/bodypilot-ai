@@ -46,6 +46,8 @@ enum LaunchOptions {
     static var demoLifts: Bool { defaults.bool(forKey: "demoLifts") }
     /// `-demoCalibration YES` : profil en salle sans charge notée, la séance du jour est le premier test de force.
     static var demoCalibration: Bool { defaults.bool(forKey: "demoCalibration") }
+    /// `-demoCardioTest YES` : aucune forme cardio connue, le jour de cardio devient le test de marche.
+    static var demoCardioTest: Bool { defaults.bool(forKey: "demoCardioTest") }
     /// `-demoVideo YES` : la fiche d'exercice s'ouvre avec la démonstration affichée.
     static var demoVideo: Bool { defaults.bool(forKey: "demoVideo") }
     /// `-demoRecovery YES` : force faite hier, la séance du jour est cardio et marche.
@@ -55,7 +57,7 @@ enum LaunchOptions {
 }
 
 enum AppContainer {
-    static let schema = Schema([ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self])
+    static let schema = Schema([ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self])
 
     /// Conteneur unique de l'app, partagé avec Siri et Raccourcis pour qu'ils voient les mêmes données.
     @MainActor
@@ -93,6 +95,11 @@ enum AppContainer {
 }
 
 enum DemoData {
+    /// Forme cardio de la Watch il y a 3 jours : pas de test de cardio à faire.
+    static func watchCardio(now: Date = .now) -> CardioMeasure {
+        CardioMeasure(vo2max: 41.5, date: now.addingTimeInterval(-3 * 86_400), source: .watch)
+    }
+
     /// Activités de la Watch, sur les jours précédents de la semaine.
     static func activities(now: Date = .now, calendar: Calendar = .current) -> [ActivitySample] {
         let items: [(days: Int, hour: Int, kind: ActivityKind, minutes: Double, kcal: Double)] = [
