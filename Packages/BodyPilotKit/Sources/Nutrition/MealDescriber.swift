@@ -38,10 +38,17 @@ public struct MealDescriber: Sendable {
 
     public var router: AIRouter
     public var model: (any MealLanguageModel)?
+    /// Chaque appel au modèle y est mesuré (latence, réussite).
+    public var usage: (any AIUsageRecording)?
 
-    public init(router: AIRouter = AIRouter(availableTiers: [.deterministic]), model: (any MealLanguageModel)? = nil) {
+    public init(
+        router: AIRouter = AIRouter(availableTiers: [.deterministic]),
+        model: (any MealLanguageModel)? = nil,
+        usage: (any AIUsageRecording)? = nil
+    ) {
         self.router = router
         self.model = model
+        self.usage = usage
     }
 
     /// Catalogue seul : instantané.
@@ -54,14 +61,16 @@ public struct MealDescriber: Sendable {
         var parse = MealTextParser.parse(text)
         let unknown = parse.unrecognized.joined(separator: ", ")
         guard !unknown.isEmpty, unknown.count <= Self.maxModelInputLength, let model,
-              case .route(let tier) = router.route(AIRequest(feature: Self.feature, minimumTier: .onDevice), usage: AIUsageSnapshot()),
-              tier == .onDevice,
-              let drafts = try? await model.estimate(unknown)
+              let drafts = await router.run(AIRequest(feature: Self.feature, minimumTier: .onDevice), on: .onDevice, recorder: usage, {
+                  try await model.estimate(unknown)
+              })
         else { return parse }
         let estimated = drafts.compactMap(Self.checked)
         guard !estimated.isEmpty else { return parse }
         parse.foods += estimated
-        parse.unrecognized = []
+        // Moins d'aliments estimés que de morceaux inconnus : on ne sait pas lesquels manquent,
+        // ils restent signalés pour que l'utilisateur les précise.
+        if estimated.count >= parse.unrecognized.count { parse.unrecognized = [] }
         return parse
     }
 

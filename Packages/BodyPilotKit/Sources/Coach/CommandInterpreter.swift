@@ -53,10 +53,17 @@ public struct CommandInterpreter: Sendable {
 
     public var router: AIRouter
     public var model: (any CommandLanguageModel)?
+    /// Chaque appel au modèle y est mesuré (latence, réussite).
+    public var usage: (any AIUsageRecording)?
 
-    public init(router: AIRouter = AIRouter(availableTiers: [.deterministic]), model: (any CommandLanguageModel)? = nil) {
+    public init(
+        router: AIRouter = AIRouter(availableTiers: [.deterministic]),
+        model: (any CommandLanguageModel)? = nil,
+        usage: (any AIUsageRecording)? = nil
+    ) {
         self.router = router
         self.model = model
+        self.usage = usage
     }
 
     /// Mots-clés seuls : instantané, sans modèle.
@@ -73,11 +80,11 @@ public struct CommandInterpreter: Sendable {
         let keywords = interpret(text)
         if let keywords, keywords.isUnderstood { return keywords }
         guard let model, text.count <= Self.maxModelInputLength,
-              case .route(let tier) = router.route(AIRequest(feature: Self.feature, minimumTier: .onDevice), usage: AIUsageSnapshot()),
-              tier == .onDevice,
-              let draft = try? await model.draft(for: text)
+              let draft = await router.run(AIRequest(feature: Self.feature, minimumTier: .onDevice), on: .onDevice, recorder: usage, {
+                  try await model.draft(for: text)
+              })
         else { return keywords }
-        return Self.checked(draft, tier: tier)
+        return Self.checked(draft, tier: .onDevice)
     }
 
     /// Mêmes bornes que les mots-clés : temps entre 5 et 120 min, repas seulement si restaurant.

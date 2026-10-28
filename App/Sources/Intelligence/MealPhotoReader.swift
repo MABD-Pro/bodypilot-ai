@@ -1,3 +1,4 @@
+import AIRouter
 import FoundationModels
 import Nutrition
 import UIKit
@@ -10,37 +11,65 @@ import Vision
 /// Dans les deux cas, la phrase repasse par le catalogue et les questions de portion.
 @MainActor
 enum MealPhotoReader {
+    static let feature = "meal-photo"
+    static let labelsFeature = "meal-photo-labels"
+
+    /// Les deux lectures sont embarquées : elles passent par le routeur, qui les mesure.
+    private static let router = AIRouter(availableTiers: [.deterministic, .onDevice])
+
     static func sentence(for image: UIImage) async -> String? {
-        if let described = await describedByModel(image) { return described }
-        return await classified(image)
+        guard let cgImage = image.cgImage else { return nil }
+        let orientation = image.imageOrientation.cgOrientation
+        if canDescribeImages,
+           let described = await router.run(AIRequest(feature: feature, minimumTier: .onDevice), on: .onDevice, recorder: AIUsageStore.shared, {
+               try await describedByModel(cgImage, orientation: orientation)
+           }) {
+            return described
+        }
+        return await router.run(AIRequest(feature: labelsFeature, minimumTier: .onDevice), on: .onDevice, recorder: AIUsageStore.shared) {
+            try await classified(cgImage, orientation: orientation)
+        }
     }
 
-    private static func describedByModel(_ image: UIImage) async -> String? {
+    private struct NothingRecognized: Error {}
+
+    /// Modèle Apple embarqué capable de voir les images (iOS 27, appareil compatible).
+    private static var canDescribeImages: Bool {
         #if compiler(>=6.4)
         if #available(iOS 27.0, *) {
             let model = SystemLanguageModel.default
-            guard model.isAvailable, model.capabilities.contains(.vision), let cgImage = image.cgImage else { return nil }
+            return model.isAvailable && model.capabilities.contains(.vision)
+        }
+        #endif
+        return false
+    }
+
+    private static func describedByModel(_ cgImage: CGImage, orientation: CGImagePropertyOrientation) async throws -> String {
+        #if compiler(>=6.4)
+        if #available(iOS 27.0, *) {
             let session = LanguageModelSession(instructions: """
                 Tu regardes la photo d'un repas. Décris en français, en une phrase courte, les aliments \
                 et boissons visibles avec leur quantité approximative, séparés par des virgules. \
                 Exemple : « une grande assiette de pâtes carbonara, un verre de vin ». \
                 Pas de calories, pas de commentaire.
                 """)
-            let answer = try? await session.respond {
+            let answer = try await session.respond {
                 "Qu'y a-t-il dans ce repas ?"
-                Attachment(cgImage, orientation: image.imageOrientation.cgOrientation)
+                Attachment(cgImage, orientation: orientation)
             }.content
-            let sentence = answer?.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "«»\"."))
-            return sentence?.isEmpty == false ? sentence : nil
+            let sentence = answer.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "«»\"."))
+            if !sentence.isEmpty { return sentence }
         }
         #endif
-        return nil
+        throw NothingRecognized()
     }
 
-    private static func classified(_ image: UIImage) async -> String? {
-        guard let cgImage = image.cgImage else { return nil }
-        let observations = (try? await ClassifyImageRequest().perform(on: cgImage, orientation: image.imageOrientation.cgOrientation)) ?? []
-        return PhotoLabelReader.sentence(from: observations.map { (identifier: $0.identifier, confidence: Double($0.confidence)) })
+    private static func classified(_ cgImage: CGImage, orientation: CGImagePropertyOrientation) async throws -> String {
+        let observations = try await ClassifyImageRequest().perform(on: cgImage, orientation: orientation)
+        guard let sentence = PhotoLabelReader.sentence(from: observations.map { (identifier: $0.identifier, confidence: Double($0.confidence)) }) else {
+            throw NothingRecognized()
+        }
+        return sentence
     }
 }
 

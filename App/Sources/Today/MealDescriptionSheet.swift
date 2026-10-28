@@ -338,6 +338,11 @@ struct MealDescriptionSheet: View {
         isEditing = false
         isAnalyzing = true
         let result = await OnDeviceMealModel.describer().describe(input)
+        // Texte modifié pendant l'estimation : ce résultat ne correspond plus, le suivant le remplacera.
+        guard text.trimmingCharacters(in: .whitespacesAndNewlines) == input else {
+            isAnalyzing = false
+            return
+        }
         withAnimation(Theme.springy) {
             parse = result
             portions = [:]
