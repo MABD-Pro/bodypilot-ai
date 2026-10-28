@@ -44,6 +44,9 @@ struct BackupArchive: Codable {
         var screeningSituationsRaw: [String]?
         var screeningAnsweredAt: Date?
         var medicalClearance: Bool?
+        // Semaine à l'équilibre : absente des sauvegardes plus anciennes.
+        var maintenanceWeekUntil: Date?
+        var maintenanceOfferDismissedAt: Date?
     }
 
     struct Weight: Codable {
@@ -88,6 +91,8 @@ struct BackupArchive: Codable {
         var kg: Double?
         var reps: Int
         var isTest: Bool
+        /// Absent des sauvegardes plus anciennes.
+        var effortRaw: String?
     }
 
     struct CardioTest: Codable {
@@ -120,7 +125,8 @@ enum Backup {
                 strengthTestResetAt: $0.strengthTestResetAt, cycleProgramRaw: $0.cycleProgramRaw, cycleStartDate: $0.cycleStartDate,
                 cycleSessionsPerWeek: $0.cycleSessionsPerWeek, cycleSessionsWeekStart: $0.cycleSessionsWeekStart,
                 screeningYesRaw: $0.screeningYesRaw, screeningSituationsRaw: $0.screeningSituationsRaw,
-                screeningAnsweredAt: $0.screeningAnsweredAt, medicalClearance: $0.medicalClearance
+                screeningAnsweredAt: $0.screeningAnsweredAt, medicalClearance: $0.medicalClearance,
+                maintenanceWeekUntil: $0.maintenanceWeekUntil, maintenanceOfferDismissedAt: $0.maintenanceOfferDismissedAt
             )
         }
         archive.weights = try context.fetch(FetchDescriptor<WeightRecord>(sortBy: [SortDescriptor(\.date)])).map {
@@ -142,7 +148,7 @@ enum Backup {
             )
         }
         archive.lifts = try context.fetch(FetchDescriptor<LiftRecord>(sortBy: [SortDescriptor(\.day)])).map {
-            .init(day: $0.day, exercise: $0.exercise, kg: $0.kg, reps: $0.reps, isTest: $0.isTest)
+            .init(day: $0.day, exercise: $0.exercise, kg: $0.kg, reps: $0.reps, isTest: $0.isTest, effortRaw: $0.effortRaw)
         }
         archive.cardioTests = try context.fetch(FetchDescriptor<CardioTestRecord>(sortBy: [SortDescriptor(\.day)])).map {
             .init(day: $0.day, minutes: $0.minutes, heartRate: $0.heartRate, vo2max: $0.vo2max)
@@ -219,6 +225,8 @@ enum Backup {
                 record.screeningSituationsRaw = item.screeningSituationsRaw ?? []
                 record.screeningAnsweredAt = item.screeningAnsweredAt
                 record.medicalClearance = item.medicalClearance ?? false
+                record.maintenanceWeekUntil = item.maintenanceWeekUntil
+                record.maintenanceOfferDismissedAt = item.maintenanceOfferDismissedAt
             }
             for extra in profiles { context.delete(extra) }
             for item in archive.weights {
@@ -251,7 +259,7 @@ enum Backup {
                 context.insert(record)
             }
             for item in archive.lifts {
-                context.insert(LiftRecord(LiftEntry(exercise: item.exercise, date: item.day, kg: item.kg, reps: item.reps, isTest: item.isTest)))
+                context.insert(LiftRecord(LiftEntry(exercise: item.exercise, date: item.day, kg: item.kg, reps: item.reps, isTest: item.isTest, effort: item.effortRaw.flatMap(SetEffort.init(rawValue:)))))
             }
             for item in archive.cardioTests {
                 context.insert(CardioTestRecord(day: item.day, minutes: item.minutes, heartRate: item.heartRate, vo2max: item.vo2max))

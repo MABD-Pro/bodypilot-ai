@@ -59,6 +59,8 @@ public struct UserProfile: Sendable, Equatable, Codable {
     public var calorieAdjustmentKcal: Double
     /// Questionnaire de santé : limite l'intensité ou le déficit si besoin.
     public var screening: HealthScreening
+    /// Fin de la semaine à l'équilibre choisie après un long déficit ; `nil` : aucune.
+    public var maintenanceWeekUntil: Date? = nil
     /// Moyenne de pas mesurée dans Santé (14 jours) ; remplace le niveau déclaré pour la vie
     /// quotidienne. `nil` : pas assez de jours mesurés, ou Santé non relié.
     public var averageDailySteps: Double?

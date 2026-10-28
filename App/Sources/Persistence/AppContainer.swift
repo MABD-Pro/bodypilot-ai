@@ -45,6 +45,8 @@ enum LaunchOptions {
     /// `-demoActivities YES` : quelques activités Santé dans la semaine (course, vélo, marche).
     static var demoActivities: Bool { defaults.bool(forKey: "demoActivities") }
     /// `-demoSleep 5.5` : nuit passée lue dans Santé, en heures.
+    /// `-demoMaintenanceOffer YES` : la semaine à l'équilibre est proposée dans Progresser.
+    static var demoMaintenanceOffer: Bool { defaults.bool(forKey: "demoMaintenanceOffer") }
     /// `-demoAge 68` : âge du profil de démo (séries de 10, équilibre à partir de 65 ans).
     static var demoAge: Int? { defaults.object(forKey: "demoAge") == nil ? nil : defaults.integer(forKey: "demoAge") }
     /// `-demoSleepAverage 6.25` : sommeil moyen des 7 dernières nuits.
@@ -80,7 +82,7 @@ enum LaunchOptions {
 }
 
 enum AppContainer {
-    static let schema = Schema(versionedSchema: SchemaV3.self)
+    static let schema = Schema(versionedSchema: SchemaV4.self)
 
     /// Raison pour laquelle la base locale n'a pas pu s'ouvrir : l'app l'affiche au lieu de
     /// planter à chaque lancement (Siri compris), sans jamais effacer les données.

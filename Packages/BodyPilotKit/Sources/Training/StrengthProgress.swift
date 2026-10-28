@@ -149,8 +149,9 @@ public enum StrengthProgress {
                 .map { LiftTarget(kg: $0, reps: plannedReps, isIncrease: false) }
         }
         guard let kg = last.kg, kg > 0 else {
-            let beat = last.reps >= plannedReps
-            return LiftTarget(kg: nil, reps: beat ? last.reps + 1 : plannedReps, isIncrease: beat)
+            // Au poids du corps : « Dur » garde le même nombre, sinon une répétition de plus.
+            let beat = last.reps >= plannedReps && last.effort != .hard
+            return LiftTarget(kg: nil, reps: beat ? last.reps + 1 : max(plannedReps, last.reps), isIncrease: beat)
         }
         let reference = referenceOneRepMax(for: exercise, history: history, lastStrengthDay: lastStrengthDay, on: date, calendar: calendar) ?? score(last)
         let barbell = StrengthCalibration.isBarbell(exercise)
@@ -163,9 +164,21 @@ public enum StrengthProgress {
         if last.isTest || retention(afterDays: pause) < 1 {
             return LiftTarget(kg: fromMax, reps: plannedReps, isIncrease: false)
         }
-        let progressed = last.reps > plannedReps ? kg + increment(from: kg, barbell: barbell) : kg
-        let load = max(progressed, fromMax)
-        return LiftTarget(kg: load, reps: plannedReps, isIncrease: load > kg)
+        // Effort ressenti (autorégulation par les répétitions en réserve, Graham et Cleather,
+        // 2021) : « Facile » monte dès les répétitions prévues faites, « Dur » attend, et « Dur »
+        // sans les répétitions prévues allège d'un cran.
+        switch last.effort {
+        case .hard where last.reps < plannedReps:
+            let lighter = StrengthCalibration.roundDown(kg - increment(from: kg, barbell: barbell), barbell: barbell)
+            return LiftTarget(kg: max(lighter, 0), reps: plannedReps, isIncrease: false)
+        case .hard:
+            return LiftTarget(kg: kg, reps: plannedReps, isIncrease: false)
+        default:
+            let beat = last.effort == .easy ? last.reps >= plannedReps : last.reps > plannedReps
+            let progressed = beat ? kg + increment(from: kg, barbell: barbell) : kg
+            let load = max(progressed, fromMax)
+            return LiftTarget(kg: load, reps: plannedReps, isIncrease: load > kg)
+        }
     }
 
     /// Note de reprise sous le titre de la séance de force, après plus de 3 semaines sans force.

@@ -82,7 +82,7 @@ public struct DailyCoach: Sendable {
         let composition = progress.compositionChange(of: compositions, on: date)
         let weight = trend.currentTrendKg ?? profile.startWeightKg
         var targets = nutrition.targets(for: profile, currentWeightKg: weight, exerciseKcalPerDay: exerciseKcalPerDay, on: date)
-        if phase.goal == profile.goal { targets.rationale += " " + phase.reason(for: profile, currentWeightKg: weight) }
+        if phase.goal == profile.goal { targets.rationale += " " + phase.reason(for: profile, currentWeightKg: weight, on: date) }
         let meals = nutrition.mealPlan(
             for: targets,
             profile: profile,

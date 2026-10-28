@@ -325,6 +325,25 @@ public struct ActivitySample: Sendable, Equatable, Identifiable {
     }
 }
 
+/// Effort ressenti sur la série notée, en répétitions qu'il restait en réserve (RIR, Helms et
+/// al., 2016) : une touche suffit, la charge suivante en tient compte.
+public enum SetEffort: String, CaseIterable, Sendable, Codable {
+    /// 3 répétitions ou plus en réserve.
+    case easy
+    /// 1 à 2 répétitions en réserve : l'effort visé.
+    case right
+    /// Plus rien en réserve.
+    case hard
+
+    public var title: String {
+        switch self {
+        case .easy: "Facile"
+        case .right: "Juste"
+        case .hard: "Dur"
+        }
+    }
+}
+
 /// Série notée par l'utilisateur : la meilleure série d'un exercice, une par séance.
 public struct LiftEntry: Sendable, Equatable {
     /// Nom affiché de l'exercice (après remplacement ou adaptation) : chaque variante a ses records.
@@ -335,12 +354,15 @@ public struct LiftEntry: Sendable, Equatable {
     public var reps: Int
     /// Série de test (calibrage) : une série de 5 au maximum, plus lourde que les charges de travail.
     public var isTest: Bool
+    /// Effort ressenti ; `nil` : non noté (séries d'avant, test).
+    public var effort: SetEffort?
 
-    public init(exercise: String, date: Date, kg: Double?, reps: Int, isTest: Bool = false) {
+    public init(exercise: String, date: Date, kg: Double?, reps: Int, isTest: Bool = false, effort: SetEffort? = nil) {
         self.exercise = exercise
         self.date = date
         self.kg = kg
         self.reps = reps
         self.isTest = isTest
+        self.effort = effort
     }
 }
