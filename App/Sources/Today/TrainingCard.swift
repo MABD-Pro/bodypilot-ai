@@ -135,10 +135,13 @@ struct TrainingCard: View {
                 }
             }
             .sheet(item: $logging) { item in
+                // Une feuille par exercice : l'état ne passe pas d'un exercice au suivant.
                 LiftEntrySheet(item: item) { entry in save(entry) }
+                    .id(item.id)
             }
             .sheet(item: $station) { item in
                 StationSheet(exercise: item.id)
+                    .id(item.id)
             }
             .sensoryFeedback(.success, trigger: celebration) { _, new in new != nil }
 
