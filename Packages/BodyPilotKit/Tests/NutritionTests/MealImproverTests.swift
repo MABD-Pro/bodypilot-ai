@@ -48,3 +48,24 @@ import Testing
     #expect(recent.map(\.meal.title) == [pasta.title, porridge.title, salad.title])
     #expect(recent.first?.day == day(1))
 }
+
+@Test func fattyBreadPlateGetsTwoLighterSwaps() {
+    let meal = MealTextParser.parse("pain fromage beurre huile d'olive dattes et les olives").meal
+    #expect(Set(meal.foods.map(\.name)).isSuperset(of: ["Pain", "Fromage", "Beurre", "Huile d'olive", "Dattes", "Olives"]))
+    let lighter = MealImprover.suggestions(for: meal, slot: .lunch).filter { $0.goal == .lighter }
+    #expect(lighter.map(\.title) == ["Beurre ou huile, pas les deux", "Moitié moins de fromage"])
+    #expect(lighter.first?.meal.foods.contains { $0.name == "Beurre" } == false)
+}
+
+@Test func alternativesStayInTheFamilyLightestFirst() {
+    let cheese = MealTextParser.parse("du fromage").meal.foods[0]
+    let alternatives = MealImprover.alternatives(for: cheese)
+    #expect(alternatives.first?.name == "Fromage blanc 0 %")
+    #expect(!alternatives.contains { $0.name == "Fromage" })
+    #expect(alternatives.allSatisfy { ["Fromage blanc 0 %", "Skyr nature", "Yaourt grec 0 %", "Yaourt"].contains($0.name) })
+    #expect(alternatives.map(\.macros.kcal) == alternatives.map(\.macros.kcal).sorted())
+
+    let halfRice = DescribedFood(name: "Riz", grams: 100, quantityLabel: "½ assiette", macros: Macros(kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3))
+    let quinoa = MealImprover.alternatives(for: halfRice).first { $0.name == "Quinoa cuit" }
+    #expect(quinoa?.grams == 75)
+}

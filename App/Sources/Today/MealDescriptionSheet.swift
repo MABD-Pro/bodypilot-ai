@@ -16,6 +16,10 @@ struct MealDescriptionSheet: View {
     @State private var portions: [Int: Double] = [:]
     /// Aliments retirés par l'utilisateur (indices dans l'estimation).
     @State private var removed: Set<Int> = []
+    /// Quantité réglée sans chiffre (« un peu moins », « le double »), par aliment.
+    @State private var scales: [Int: Double] = [:]
+    /// Aliment remplacé par un équivalent, par indice d'origine.
+    @State private var replacements: [Int: DescribedFood] = [:]
     @State private var isAnalyzing = false
     @FocusState private var isEditing: Bool
     @State private var photo: UIImage?
@@ -128,7 +132,7 @@ struct MealDescriptionSheet: View {
             .ignoresSafeArea()
         }
         .onChange(of: text) { _, new in
-            if new != parse?.text { parse = nil; portions = [:]; removed = [] }
+            if new != parse?.text { parse = nil; portions = [:]; removed = []; scales = [:]; replacements = [:] }
         }
     }
 
@@ -141,20 +145,36 @@ struct MealDescriptionSheet: View {
 
     /// Aliments gardés, avec leur indice d'origine et la portion précisée.
     private func kept(of parse: MealParse) -> [(index: Int, food: DescribedFood)] {
-        parse.foods.enumerated().compactMap { index, food in
+        parse.foods.enumerated().compactMap { index, original in
             guard !removed.contains(index) else { return nil }
-            guard food.needsPortion, let factor = portions[index],
-                  let choice = MealTextParser.portionChoices.first(where: { $0.factor == factor })
-            else { return (index, food) }
-            return (index, food.resized(by: factor, label: choice.factor == 1 ? "Portion normale" : "\(choice.label) portion"))
+            var food = base(of: parse, at: index)
+            if replacements[index] == nil, food.needsPortion, let factor = portions[index],
+               let choice = MealTextParser.portionChoices.first(where: { $0.factor == factor }) {
+                food = food.resized(by: factor, label: choice.factor == 1 ? "Portion normale" : "\(choice.label) portion")
+            }
+            if let scale = scales[index], scale != 1, let amount = Self.amounts.first(where: { $0.factor == scale }) {
+                food = food.resized(by: scale, label: "\(food.quantityLabel), \(amount.label.lowercased())")
+            }
+            return (index, food)
         }
     }
+
+    /// L'aliment saisi, ou son remplaçant choisi dans « Remplacer par ».
+    private func base(of parse: MealParse, at index: Int) -> DescribedFood {
+        replacements[index] ?? parse.foods[index]
+    }
+
+    /// Quantités sans chiffre, appliquées à la portion lue.
+    static let amounts: [(label: String, factor: Double)] = [
+        ("La moitié", 0.5), ("Un peu moins", 0.75), ("Comme indiqué", 1), ("Un peu plus", 1.25), ("Le double", 2),
+    ]
 
     @ViewBuilder
     private func result(_ parse: MealParse) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             ForEach(kept(of: parse), id: \.index) { item in
-                foodRow(item.food, question: parse.foods[item.index].needsPortion, index: item.index)
+                foodRow(item.food, base: base(of: parse, at: item.index),
+                        question: replacements[item.index] == nil && parse.foods[item.index].needsPortion, index: item.index)
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
 
@@ -190,7 +210,11 @@ struct MealDescriptionSheet: View {
     @ViewBuilder
     private func suggestions(for meal: DescribedMeal) -> some View {
         let suggestions = MealImprover.suggestions(for: meal, slot: slot)
-        if !suggestions.isEmpty {
+        if suggestions.isEmpty {
+            Label("Repas équilibré : rien à changer", systemImage: "checkmark.seal.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.progress)
+        } else {
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 Text("Pour la prochaine fois, ou si tu n'as pas encore mangé")
                     .font(.caption.weight(.semibold))
@@ -201,6 +225,8 @@ struct MealDescriptionSheet: View {
                             parse = MealParse(text: suggestion.meal.text, foods: suggestion.meal.foods)
                             portions = [:]
                             removed = []
+                            scales = [:]
+                            replacements = [:]
                         }
                     } label: {
                         HStack(spacing: Theme.Spacing.m) {
@@ -232,15 +258,13 @@ struct MealDescriptionSheet: View {
         }
     }
 
-    private func foodRow(_ food: DescribedFood, question: Bool, index: Int) -> some View {
+    private func foodRow(_ food: DescribedFood, base: DescribedFood, question: Bool, index: Int) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(food.name)
                         .font(.subheadline.weight(.semibold))
-                    Text(food.isEstimate ? "\(food.quantityLabel) · estimé" : food.quantityLabel)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    adjustMenu(food, base: base, index: index)
                 }
                 Spacer()
                 Text("\(food.macros.kcal.frenchInteger) kcal")
@@ -284,6 +308,47 @@ struct MealDescriptionSheet: View {
         }
         .padding(Theme.Spacing.m)
         .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+    }
+
+    /// Touche sur la quantité : la régler sans chiffre, ou remplacer l'aliment par un équivalent.
+    private func adjustMenu(_ food: DescribedFood, base: DescribedFood, index: Int) -> some View {
+        Menu {
+            Section("Quantité") {
+                ForEach(Self.amounts, id: \.factor) { amount in
+                    Button {
+                        withAnimation(Theme.springy) { scales[index] = amount.factor }
+                    } label: {
+                        if (scales[index] ?? 1) == amount.factor {
+                            Label(amount.label, systemImage: "checkmark")
+                        } else {
+                            Text(amount.label)
+                        }
+                    }
+                }
+            }
+            let alternatives = MealImprover.alternatives(for: base)
+            if !alternatives.isEmpty {
+                Section("Remplacer par") {
+                    ForEach(alternatives, id: \.name) { alternative in
+                        Button("\(alternative.name) · \(alternative.macros.kcal.frenchInteger) kcal") {
+                            withAnimation(Theme.springy) {
+                                replacements[index] = alternative
+                                scales[index] = nil
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 3) {
+                Text(food.isEstimate ? "\(food.quantityLabel) · estimé" : food.quantityLabel)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2.weight(.semibold))
+            }
+            .font(.caption)
+            .foregroundStyle(slot.tint)
+        }
+        .accessibilityLabel("Quantité de \(food.name) : \(food.quantityLabel). Modifier ou remplacer")
     }
 
     /// Appareil photo (s'il existe) et photothèque : la photo préremplit la description.
@@ -347,6 +412,8 @@ struct MealDescriptionSheet: View {
             parse = result
             portions = [:]
             removed = []
+            scales = [:]
+            replacements = [:]
             isAnalyzing = false
         }
     }
