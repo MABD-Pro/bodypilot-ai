@@ -97,3 +97,24 @@ private func recompositionProfile() -> UserProfile {
     let with = try #require(coach.weeklyCheckIn(for: makeProfile(), weights: flat, exerciseKcalPerDay: 300, on: today))
     #expect(with.newTargetKcal > without.newTargetKcal)
 }
+
+/// Taux de gras d'une balance sur 4 semaines, d'une valeur à l'autre.
+private func compositions(from start: Double, to end: Double) -> [BodyCompositionEntry] {
+    (0..<28).map { index in
+        BodyCompositionEntry(date: utc.date(byAdding: .day, value: index - 27, to: today)!, fatPercent: start + (end - start) * Double(index) / 27)
+    }
+}
+
+@Test func recompositionStallWithFallingBodyFatNeedsNoChange() {
+    let flat = weights(start: 88, perDay: 0)
+    let falling = compositions(from: 30, to: 29)
+    #expect(coach.weeklyCheckIn(for: recompositionProfile(), weights: flat, compositions: falling, on: today) == nil)
+    let plan = coach.plan(for: recompositionProfile(), weights: flat, compositions: falling, on: today)
+    #expect(plan.progressMessage.contains("taux de gras"))
+    #expect(plan.composition?.fatChangePoints ?? 0 < -0.5)
+}
+
+@Test func recompositionStallWithFlatBodyFatStillSuggestsACut() throws {
+    let suggestion = try #require(coach.weeklyCheckIn(for: recompositionProfile(), weights: weights(start: 88, perDay: 0), compositions: compositions(from: 30, to: 29.9), on: today))
+    #expect(suggestion.deltaKcal == -150)
+}

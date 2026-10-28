@@ -83,6 +83,31 @@ public struct WeightTrendAnalyzer: ProgressAnalyzing {
         return last.cm - first.cm
     }
 
+    /// Moyenne de la première et de la dernière semaine de mesures sur 4 semaines : une mesure
+    /// d'impédance varie avec l'hydratation, la moyenne en gomme une partie.
+    public func compositionChange(of entries: [BodyCompositionEntry], on date: Date) -> BodyCompositionChange? {
+        let start = calendar.date(byAdding: .day, value: -28, to: date) ?? date
+        let recent = entries.filter { $0.date >= start && $0.date <= date }.sorted { $0.date < $1.date }
+        guard let first = recent.first, let last = recent.last else { return nil }
+        let week: TimeInterval = 7 * 86_400
+        let opening = recent.filter { $0.date.timeIntervalSince(first.date) < week }
+        let closing = recent.filter { last.date.timeIntervalSince($0.date) < week }
+        let spansTwoWeeks = last.date.timeIntervalSince(first.date) >= 14 * 86_400
+
+        func mean(_ list: [BodyCompositionEntry], _ value: KeyPath<BodyCompositionEntry, Double?>) -> Double? {
+            let values = list.compactMap { $0[keyPath: value] }
+            return values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
+        }
+        func change(_ value: KeyPath<BodyCompositionEntry, Double?>) -> Double? {
+            guard spansTwoWeeks, let now = mean(closing, value), let then = mean(opening, value) else { return nil }
+            return now - then
+        }
+        let fat = mean(closing, \.fatPercent)
+        let lean = mean(closing, \.leanKg)
+        guard fat != nil || lean != nil else { return nil }
+        return BodyCompositionChange(fatPercent: fat, fatChangePoints: change(\.fatPercent), leanKg: lean, leanChangeKg: change(\.leanKg))
+    }
+
     /// Pente de la régression linéaire, en kg par semaine.
     func weeklySlope(of entries: [WeightEntry]) -> Double? {
         guard entries.count >= Self.minimumEntries,

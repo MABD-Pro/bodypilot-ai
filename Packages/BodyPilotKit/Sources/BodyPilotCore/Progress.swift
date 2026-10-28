@@ -21,6 +21,36 @@ public struct WaistEntry: Sendable, Equatable, Codable {
     }
 }
 
+/// Composition corporelle lue dans Santé (balance à impédance) : taux de gras et masse maigre.
+/// Une mesure isolée est peu fiable ; seule la tendance sur plusieurs semaines compte.
+public struct BodyCompositionEntry: Sendable, Equatable, Codable {
+    public var date: Date
+    public var fatPercent: Double?
+    public var leanKg: Double?
+
+    public init(date: Date, fatPercent: Double? = nil, leanKg: Double? = nil) {
+        self.date = date
+        self.fatPercent = fatPercent
+        self.leanKg = leanKg
+    }
+}
+
+/// Composition récente (moyenne de la dernière semaine de mesures) et variation sur 4 semaines.
+public struct BodyCompositionChange: Sendable, Equatable {
+    public var fatPercent: Double?
+    /// Variation du taux de gras, en points ; `nil` sans deux semaines de recul.
+    public var fatChangePoints: Double?
+    public var leanKg: Double?
+    public var leanChangeKg: Double?
+
+    public init(fatPercent: Double?, fatChangePoints: Double?, leanKg: Double?, leanChangeKg: Double?) {
+        self.fatPercent = fatPercent
+        self.fatChangePoints = fatChangePoints
+        self.leanKg = leanKg
+        self.leanChangeKg = leanChangeKg
+    }
+}
+
 public struct TrendPoint: Sendable, Equatable {
     public var date: Date
     public var measuredKg: Double
@@ -70,6 +100,8 @@ public protocol ProgressAnalyzing: Sendable {
     func trend(of entries: [WeightEntry], for profile: UserProfile, on date: Date) -> WeightTrend
     /// Variation récente du tour de taille (cm), ou `nil` sans assez de mesures.
     func waistChange(of entries: [WaistEntry], on date: Date) -> Double?
+    /// Taux de gras et masse maigre récents, et leur variation sur 4 semaines ; `nil` sans mesure.
+    func compositionChange(of entries: [BodyCompositionEntry], on date: Date) -> BodyCompositionChange?
 }
 
 /// Pesée lue dans une source externe (Santé, balance connectée).

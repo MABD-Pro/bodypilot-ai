@@ -16,6 +16,8 @@ public struct TodayPlan: Sendable, Equatable {
     /// Variation du tour de taille sur 4 semaines (cm), si mesurée.
     public var waistChangeCm: Double?
     public var adjustments: Set<QuickAdjustment>
+    /// Taux de gras et masse maigre (balance dans Santé), si mesurés.
+    public var composition: BodyCompositionChange? = nil
 }
 
 /// Orchestre nutrition, entraînement et progression via les protocoles de BodyPilotCore.
@@ -43,6 +45,7 @@ public struct DailyCoach: Sendable {
         for profile: UserProfile,
         weights: [WeightEntry],
         waists: [WaistEntry] = [],
+        compositions: [BodyCompositionEntry] = [],
         adjustments: Set<QuickAdjustment> = [],
         availableMinutes: Int? = nil,
         eatingOutSlot: MealSlot? = nil,
@@ -62,6 +65,7 @@ public struct DailyCoach: Sendable {
     ) -> TodayPlan {
         let trend = progress.trend(of: weights, for: profile, on: date)
         let waistChange = progress.waistChange(of: waists, on: date)
+        let composition = progress.compositionChange(of: compositions, on: date)
         let weight = trend.currentTrendKg ?? profile.startWeightKg
         let targets = nutrition.targets(for: profile, currentWeightKg: weight, exerciseKcalPerDay: exerciseKcalPerDay, on: date)
         let meals = nutrition.mealPlan(
@@ -94,9 +98,10 @@ public struct DailyCoach: Sendable {
             training: trainingDay,
             trainingOptions: options,
             trend: trend,
-            progressMessage: progressMessage(for: trend, goal: profile.goal, waistChange: waistChange),
+            progressMessage: progressMessage(for: trend, goal: profile.goal, waistChange: waistChange, fatChange: composition?.fatChangePoints),
             waistChangeCm: waistChange,
-            adjustments: adjustments
+            adjustments: adjustments,
+            composition: composition
         )
     }
 
@@ -147,10 +152,20 @@ public struct DailyCoach: Sendable {
 
     /// En recomposition, le tour de taille qui baisse prouve le progrès même quand le poids stagne.
     static let meaningfulWaistDropCm = -1.0
+    /// Même rôle pour le taux de gras d'une balance : une baisse d'un demi-point sur 4 semaines,
+    /// moyennes de semaines comparées (choix BodyPilot, au-dessus du bruit d'une mesure isolée).
+    static let meaningfulFatDropPoints = -0.5
 
-    func progressMessage(for trend: WeightTrend, goal: Goal, waistChange: Double? = nil) -> String {
-        if goal == .recomposition, let waistChange, waistChange <= Self.meaningfulWaistDropCm,
-           trend.status == .stalled || trend.status == .onTrack || trend.status == .notEnoughData {
+    func progressMessage(for trend: WeightTrend, goal: Goal, waistChange: Double? = nil, fatChange: Double? = nil) -> String {
+        let weightFlat = trend.status == .stalled || trend.status == .onTrack || trend.status == .notEnoughData
+        if goal == .recomposition, let fatChange, fatChange <= Self.meaningfulFatDropPoints, weightFlat,
+           waistChange.map({ $0 > Self.meaningfulWaistDropCm }) ?? true {
+            let points = abs(fatChange).frenchOneDecimal
+            return trend.status == .onTrack
+                ? "Oui, sur les deux plans : le poids baisse au bon rythme et ton taux de gras a perdu \(points) point\(abs(fatChange) >= 2 ? "s" : "") en 4 semaines."
+                : "Oui : ton taux de gras a perdu \(points) point\(abs(fatChange) >= 2 ? "s" : "") en 4 semaines alors que ton poids bouge peu. Tu perds du gras et gagnes du muscle, c'est la recomposition."
+        }
+        if goal == .recomposition, let waistChange, waistChange <= Self.meaningfulWaistDropCm, weightFlat {
             let cm = abs(waistChange).frenchOneDecimal
             return trend.status == .onTrack
                 ? "Oui, sur les deux plans : le poids baisse au bon rythme et ta taille a perdu \(cm) cm en 4 semaines."

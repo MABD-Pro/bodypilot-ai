@@ -32,6 +32,8 @@ struct TodayView: View {
     @State private var restingHeartRate: Double?
     /// Premiers jours des dernières règles, lus dans Santé (femmes seulement).
     @State private var periodStarts: [Date] = []
+    /// Taux de gras et masse maigre écrits dans Santé par la balance.
+    @State private var compositions: [BodyCompositionEntry] = []
 
     private let calendar = Calendar.current
 
@@ -54,6 +56,7 @@ struct TodayView: View {
             for: profileRecord.profile,
             weights: weights.map(\.entry),
             waists: waists.map(\.entry),
+            compositions: bodyCompositions,
             adjustments: todayAdjustments,
             availableMinutes: todayLog?.availableMinutes,
             eatingOutSlot: todayLog?.eatingOutSlot,
@@ -84,6 +87,7 @@ struct TodayView: View {
                 for: profileRecord.profile,
                 weights: weights.map(\.entry),
                 waists: waists.map(\.entry),
+                compositions: bodyCompositions,
                 exerciseKcalPerDay: exerciseKcal,
                 retainsWater: profileRecord.profile.sex == .female
                     && MenstrualCycle.retainsWater(periodStarts: periodStarts, on: now, calendar: calendar),
@@ -132,6 +136,7 @@ struct TodayView: View {
                             checkIn: checkIn,
                             waistCm: waists.last?.cm,
                             waistChange: plan.waistChangeCm,
+                            composition: plan.composition,
                             records: StrengthProgress.records(in: lifts),
                             cardio: CardioTest.latest(cardioMeasures),
                             cardioZone: cardio.moderateHeartRate,
@@ -152,6 +157,7 @@ struct TodayView: View {
                 .scrollIndicators(.hidden)
                 .task {
                     if LaunchOptions.demoActivities { healthActivities = DemoData.activities() }
+                    if LaunchOptions.demoComposition { compositions = DemoData.compositions() }
                     if let hours = LaunchOptions.demoSleepHours { sleepHours = hours }
                     if LaunchOptions.demoData && !LaunchOptions.demoCardioTest {
                         watchCardio = DemoData.watchCardio()
@@ -183,6 +189,7 @@ struct TodayView: View {
                 await importCardio()
                 await importProfile()
                 await importCycle()
+                await importComposition()
                 await exportMeals(plan.meals, on: now)
             }
             .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
@@ -264,6 +271,24 @@ struct TodayView: View {
     }
 
     private var tracksCycle: Bool { profileRecord.profile.sex == .female }
+
+    /// Une balance qui n'écrit que le taux de gras : la masse maigre se déduit de la pesée du même jour.
+    private var bodyCompositions: [BodyCompositionEntry] {
+        compositions.map { entry in
+            var entry = entry
+            if entry.leanKg == nil, let fat = entry.fatPercent,
+               let weight = weights.last(where: { calendar.isDate($0.date, inSameDayAs: entry.date) }) {
+                entry.leanKg = weight.kg * (1 - fat / 100)
+            }
+            return entry
+        }
+    }
+
+    private func importComposition() async {
+        guard !LaunchOptions.demoData else { return }
+        let entries = await HealthBodyComposition.entries(calendar: calendar)
+        withAnimation(Theme.springy) { compositions = entries }
+    }
 
     private func importCycle() async {
         guard tracksCycle, !LaunchOptions.demoData else { return }

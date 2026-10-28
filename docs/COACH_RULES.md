@@ -116,6 +116,9 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Une pesée par jour : la première de la journée (le plus souvent le matin à jeun).
 - Un jour déjà renseigné n'est jamais écrasé : la saisie manuelle garde la main.
 - Valeurs hors 25–350 kg écartées ; une mesure déjà importée (même identifiant Santé) ne revient pas.
+- Composition corporelle (balance à impédance) : taux de gras (`bodyFatPercentage`) et masse maigre (`leanBodyMass`) lus dans Santé, 90 jours, une mesure par jour, valeurs aberrantes écartées (gras hors 3–70 %, masse maigre hors 20–150 kg). Sans masse maigre, elle se déduit du poids du même jour. Rien n'est enregistré dans l'app : Santé reste la source.
+- Progresser affiche la moyenne de la dernière semaine de mesures et l'écart avec la première semaine sur 4 semaines (au moins 2 semaines de recul). Une mesure d'impédance varie avec l'hydratation : seule la tendance compte.
+- Recomposition : une baisse du taux de gras d'au moins 0,5 point (choix BodyPilot) joue le même rôle que la taille qui baisse : message de progrès et aucune baisse de calories au bilan.
 
 ## Ma semaine (`ProgressInsights/WeekActivityAnalyzer`)
 
