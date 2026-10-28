@@ -60,6 +60,10 @@ struct TodayView: View {
         let cardioMeasures = cardioTests.map(\.measure) + [watchCardio].compactMap { $0 }
         let cardio = DayLogEditor.cardioStatus(for: profileRecord.profile, measures: cardioMeasures, restingHeartRate: restingHeartRate, on: now, calendar: calendar)
         let averageSteps = StepActivity.average(dailySteps, excluding: healthActivities, before: now, calendar: calendar)
+        let measuredExpenditure = EnergyBalance.measured(
+            intakes: dayLogs.compactMap { log in log.eatenKcal.map { IntakeDay(day: log.day, kcal: $0) } },
+            weights: weights.map(\.entry), on: now, calendar: calendar
+        )
         let exerciseKcal = ExerciseEnergy.dailyAverage(
             samples: healthActivities, completed: completed,
             sessionMinutes: profileRecord.profile.sessionMinutes,
@@ -89,8 +93,11 @@ struct TodayView: View {
             cycleWorkoutsThisWeek: profileRecord.cycle?.workoutsThisWeek(completed, on: now, calendar: calendar) ?? [],
             cycleSessionsPerWeek: cycleSessions?.sessions,
             averageDailySteps: averageSteps,
+            measuredExpenditure: measuredExpenditure,
             on: now
         )
+        // Journée complète (les quatre repas notés) : ses calories servent à mesurer la dépense.
+        let eatenToday = plan.meals.meals.allSatisfy(\.isEaten) ? plan.meals.eatenTotals.kcal.rounded() : nil
 
         let activityAnalyzer = WeekActivityAnalyzer(calendar: calendar)
         let week = activityAnalyzer.week(
@@ -109,6 +116,7 @@ struct TodayView: View {
                 retainsWater: profileRecord.profile.sex == .female
                     && MenstrualCycle.retainsWater(periodStarts: periodStarts, on: now, calendar: calendar),
                 averageDailySteps: averageSteps,
+                measuredExpenditure: measuredExpenditure,
                 on: now
             )
             : nil
@@ -231,6 +239,10 @@ struct TodayView: View {
                 }
             }
             .sensoryFeedback(.selection, trigger: todayAdjustments)
+            .onChange(of: eatenToday, initial: true) { _, kcal in
+                guard let record = log(on: now), record.eatenKcal != kcal else { return }
+                record.eatenKcal = kcal
+            }
             .onChange(of: plan.training.workoutTitle, initial: true) { _, title in
                 DisplayedWorkout.remember(title, on: now, calendar: calendar)
             }

@@ -224,6 +224,9 @@ final class DayLogRecord {
     var sessionEditsData: Data?
     /// Paliers décalés pour la journée, par exercice (kg, en JSON).
     var loadShiftsData: Data?
+    /// Calories mangées, une fois les quatre repas notés (pris, sautés ou décrits) ; `nil` : journée
+    /// incomplète. Sert à mesurer la dépense réelle (schéma V3).
+    var eatenKcal: Double?
 
     var sessionEdits: SessionEdits {
         get { sessionEditsData.flatMap { try? JSONDecoder().decode(SessionEdits.self, from: $0) } ?? SessionEdits() }

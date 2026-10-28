@@ -63,6 +63,9 @@ public struct UserProfile: Sendable, Equatable, Codable {
     /// quotidienne. `nil` : pas assez de jours mesurés, ou Santé non relié.
     public var averageDailySteps: Double?
 
+    /// Dépense réelle mesurée (repas notés et pesées) ; `nil` : pas assez de données.
+    public var measuredExpenditure: MeasuredExpenditure?
+
     /// Niveau d'activité retenu : celui des pas mesurés, sinon celui déclaré.
     public var dailyActivity: ActivityLevel {
         averageDailySteps.map(ActivityLevel.init(averageSteps:)) ?? activity

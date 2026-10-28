@@ -65,6 +65,8 @@ enum LaunchOptions {
     static var demoScreening: String? { defaults.string(forKey: "demoScreening") }
     /// `-demoOnboardingStep 1` : l'accueil s'ouvre sur cette étape (0 à 3).
     static var demoOnboardingStep: Int? { defaults.object(forKey: "demoOnboardingStep") == nil ? nil : defaults.integer(forKey: "demoOnboardingStep") }
+    /// `-demoIntake YES` : les 3 dernières semaines ont leurs quatre repas notés (dépense mesurée).
+    static var demoIntake: Bool { defaults.bool(forKey: "demoIntake") }
     /// `-demoSteps YES` : deux semaines de pas lus dans Santé (environ 6 500 par jour).
     static var demoSteps: Bool { defaults.bool(forKey: "demoSteps") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
@@ -72,7 +74,7 @@ enum LaunchOptions {
 }
 
 enum AppContainer {
-    static let schema = Schema(versionedSchema: SchemaV2.self)
+    static let schema = Schema(versionedSchema: SchemaV3.self)
 
     /// Raison pour laquelle la base locale n'a pas pu s'ouvrir : l'app l'affiche au lieu de
     /// planter à chaque lancement (Siri compris), sans jamais effacer les données.
@@ -240,6 +242,7 @@ enum DemoData {
             guard let date = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
             let log = DayLogRecord(day: calendar.storedDay(for: date))
             log.workoutDone = true
+            if LaunchOptions.demoIntake { log.eatenKcal = 2_050 + Double((offset * 37) % 7 - 3) * 40 }
             if offset % 2 == (recovery ? 1 : 0) {
                 log.doneWorkoutTitle = strengthCount % 2 == 0 ? "Full body B" : "Full body A"
                 strengthCount += 1

@@ -9,7 +9,7 @@ enum SchemaV1: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
 
     static var models: [any PersistentModel.Type] {
-        [SchemaV1.ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self]
+        [SchemaV1.ProfileRecord.self, WeightRecord.self, SchemaV2.DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self]
     }
 
     /// Profil tel qu'il était avant le questionnaire de santé.
@@ -45,14 +45,48 @@ enum SchemaV2: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
 
     static var models: [any PersistentModel.Type] {
+        [ProfileRecord.self, WeightRecord.self, SchemaV2.DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self]
+    }
+
+    /// Journal du jour tel qu'il était avant les calories mangées (V1 et V2).
+    @Model
+    final class DayLogRecord {
+        var day: Date = Date.now
+        var adjustmentsRaw: [String] = []
+        var availableMinutes: Int?
+        var eatingOutSlotRaw: String?
+        var exerciseSwapsRaw: [String] = []
+        var workoutDone = false
+        var doneWorkoutTitle: String?
+        var mealIntakesRaw: [String] = []
+        var describedMealsData: Data?
+        var trainingChoiceRaw: String?
+        var benchmarkSeconds: Int?
+        var sessionEditsData: Data?
+        var loadShiftsData: Data?
+
+        init() {}
+    }
+}
+
+/// V3 : calories mangées des journées complètes (`DayLogRecord.eatenKcal`), base de la dépense mesurée.
+enum SchemaV3: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(3, 0, 0) }
+
+    static var models: [any PersistentModel.Type] {
         [ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self]
     }
 }
 
 enum BodyPilotMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self] }
-    /// Champs ajoutés avec une valeur par défaut : migration légère, sans perte.
-    static var stages: [MigrationStage] { [.lightweight(fromVersion: SchemaV1.self, toVersion: SchemaV2.self)] }
+    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self, SchemaV3.self] }
+    /// Champs ajoutés avec une valeur par défaut : migrations légères, sans perte.
+    static var stages: [MigrationStage] {
+        [
+            .lightweight(fromVersion: SchemaV1.self, toVersion: SchemaV2.self),
+            .lightweight(fromVersion: SchemaV2.self, toVersion: SchemaV3.self),
+        ]
+    }
 }
 
 /// Jours enregistrés à minuit par les versions précédentes, ramenés à midi (voir

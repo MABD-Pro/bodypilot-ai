@@ -38,5 +38,6 @@ Objectif unique de l'app : la recomposition corporelle, c'est-à-dire perdre du 
 - Le repos recommandé après 6 jours d'activité d'affilée et la marche tranquille après une séance intense de 45 min la veille sont des choix prudents, pas des seuils validés par une étude.
 - Les ratios qui déduisent une variante (haltères, machine, hip thrust…) du mouvement de référence sont des repères prudents, pas des résultats d'étude : la première série notée sur la variante les remplace.
 - Le record compare des 1RM estimés, pas des 1RM testés : c'est un indicateur de progression, pas une charge à tenter.
+- La dépense mesurée suppose des repas notés fidèlement. Une sous-déclaration régulière donne une dépense plus basse mais des objectifs cohérents avec la façon de noter ; des oublis ponctuels faussent la mesure, d'où la borne de ±25 %.
 - Une marche enregistrée comme entraînement compte à la fois dans les pas et dans la dépense des séances : la dépense peut être un peu surestimée chez qui marche beaucoup en séance.
 - Le volume réel dépend des séances faites : une semaine à 2 séances de force descend sous les 10 séries par muscle.

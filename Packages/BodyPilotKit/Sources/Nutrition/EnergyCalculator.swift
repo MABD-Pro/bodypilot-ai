@@ -21,18 +21,29 @@ public struct EnergyCalculator: Sendable {
         let age = profile.age(on: date, calendar: calendar)
         let bmr = basalMetabolicRate(sex: profile.sex, weightKg: currentWeightKg, heightCm: profile.heightCm, age: age)
         let exercise = max(exerciseKcalPerDay, 0)
-        let maintenance = bmr * profile.dailyActivity.factor + exercise
+        let estimated = bmr * profile.dailyActivity.factor + exercise
+        // Dépense mesurée sur les repas et les pesées : elle prend le pas sur l'équation au fil des jours.
+        let measured = profile.measuredExpenditure
+        let confidence = measured?.confidence ?? 0
+        let maintenance = measured.map { measured in
+            let bounded = min(max(measured.kcal, estimated * (1 - MeasuredExpenditure.maxDeviation)), estimated * (1 + MeasuredExpenditure.maxDeviation))
+            return estimated * (1 - confidence) + bounded * confidence
+        } ?? estimated
         // Les pas, quand Santé les donne, expliquent la vie quotidienne juste après la dépense.
         let daily = profile.averageDailySteps.map { "vie quotidienne d'après tes pas, environ \(StepActivity.displayed($0).frenchInteger) par jour sur 14 jours" }
         let spent: String
-        switch (daily, exercise >= 1) {
-        case let (daily?, true):
+        switch (measured, daily, exercise >= 1) {
+        case let (measured?, daily, _):
+            // Mesure encore partielle : l'estimation par les pas compte toujours un peu.
+            let steps = confidence < 1 ? daily.map { ", et ta \($0)" } ?? "" : ""
+            spent = "Dépense mesurée \(maintenance.frenchInteger) kcal, d'après tes repas notés et tes pesées sur \(measured.days) jours\(steps)"
+        case let (nil, daily?, true):
             spent = "Dépense estimée \(maintenance.frenchInteger) kcal : \(daily), plus \(exercise.frenchInteger) kcal pour tes séances (moyenne de 14 jours)"
-        case let (daily?, false):
+        case let (nil, daily?, false):
             spent = "Dépense estimée \(maintenance.frenchInteger) kcal (\(daily))"
-        case (nil, true):
+        case (nil, nil, true):
             spent = "Dépense estimée \(maintenance.frenchInteger) kcal, dont \(exercise.frenchInteger) kcal pour tes séances (moyenne de 14 jours)"
-        case (nil, false):
+        case (nil, nil, false):
             spent = "Dépense estimée \(maintenance.frenchInteger) kcal"
         }
 
@@ -72,8 +83,11 @@ public struct EnergyCalculator: Sendable {
             kcal = maintenance + surplus
             explanation = "\(spent), plus \(surplus.frenchInteger) kcal pour construire du muscle en limitant le gras."
         }
-        if profile.calorieAdjustmentKcal != 0 {
-            let adjusted = clampAdjusted(kcal + profile.calorieAdjustmentKcal, planned: kcal, bmr: bmr, maintenance: maintenance, profile: profile, on: date)
+        // Les corrections des bilans s'effacent à mesure que la dépense est mesurée : elles
+        // compensaient l'erreur de l'équation, que la mesure corrige déjà.
+        let adjustment = profile.calorieAdjustmentKcal * (1 - confidence)
+        if abs(adjustment) >= 1 {
+            let adjusted = clampAdjusted(kcal + adjustment, planned: kcal, bmr: bmr, maintenance: maintenance, profile: profile, on: date)
             let applied = adjusted - kcal
             if abs(applied) >= 1 {
                 explanation += " Ajusté de \(applied > 0 ? "+" : "")\(applied.frenchInteger) kcal après tes bilans de la semaine."
