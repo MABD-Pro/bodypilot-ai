@@ -38,7 +38,7 @@ extension DailyCoach {
         let weekAgo = calendar.date(byAdding: .day, value: -7, to: date) ?? date
         let previous = progress.trend(of: weights, for: profile, on: weekAgo).status
         let persistent = trend.status == previous
-        let change = "\(weekly > 0 ? "+" : "")\(weekly.frenchOneDecimal) kg/semaine"
+        let change = "\(weekly.frenchSignedOneDecimal) kg/semaine"
 
         let direction: Double
         let reason: String

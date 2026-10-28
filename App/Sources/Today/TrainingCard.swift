@@ -1134,7 +1134,7 @@ private struct ExerciseEditSheet: View {
         }
         .font(.subheadline.weight(.medium))
         .padding(Theme.Spacing.xxl)
-        .presentationDetents([.height(isWave ? 400 : 380)])
+        .adaptiveDetents(height: isWave ? 400 : 380)
     }
 }
 
@@ -1402,32 +1402,21 @@ private struct LiftEntrySheet: View {
 
     private func counter(value: String, unit: String, numeric: Double, change: @escaping (Bool) -> Void) -> some View {
         HStack(spacing: Theme.Spacing.xl) {
-            step(symbol: "minus") { change(false) }
-            VStack(spacing: 0) {
-                Text(value)
-                    .font(.display(44))
-                    .monospacedDigit()
-                    .contentTransition(.numericText(value: numeric))
-                Text(unit)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+            StepButton(symbol: "minus", label: "Diminuer", size: 50, font: .title3.weight(.bold)) { change(false) }
+            SteppedValue(accessibilityValue: "\(value) \(unit)", decrease: { change(false) }, increase: { change(true) }) {
+                VStack(spacing: 0) {
+                    Text(value)
+                        .font(.display(44))
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: numeric))
+                    Text(unit)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(minWidth: 130)
             }
-            .frame(minWidth: 130)
-            step(symbol: "plus") { change(true) }
+            StepButton(symbol: "plus", label: "Augmenter", size: 50, font: .title3.weight(.bold)) { change(true) }
         }
-    }
-
-    private func step(symbol: String, action: @escaping () -> Void) -> some View {
-        Button {
-            withAnimation(.snappy, action)
-        } label: {
-            Image(systemName: symbol)
-                .font(.title3.weight(.bold))
-                .frame(width: 50, height: 50)
-        }
-        .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .circle)
-        .buttonRepeatBehavior(.enabled)
     }
 }
 
@@ -1561,7 +1550,7 @@ private struct CardioTestSheet: View {
         }
         .padding(Theme.Spacing.xxl)
         .frame(maxHeight: .infinity, alignment: .top)
-        .presentationDetents([.height(600), .large])
+        .adaptiveDetents(height: 600, alsoLarge: true)
     }
 }
 
@@ -1616,7 +1605,7 @@ private struct BenchmarkTimeSheet: View {
             .tint(Theme.training)
         }
         .padding(Theme.Spacing.xxl)
-        .presentationDetents([.height(400)])
+        .adaptiveDetents(height: 400)
     }
 }
 

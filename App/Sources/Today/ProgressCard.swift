@@ -56,7 +56,7 @@ struct ProgressCard: View {
                 }
                 Spacer()
                 if let weekly = trend.weeklyChangeKg {
-                    Tag(text: "\(weekly > 0 ? "+" : "")\(weekly.frenchOneDecimal) kg/sem.", symbol: weekly < 0 ? "arrow.down.right" : "arrow.up.right", tint: trend.status.tint)
+                    Tag(text: "\(weekly.frenchSignedOneDecimal) kg/sem.", symbol: weekly < 0 ? "arrow.down.right" : "arrow.up.right", tint: trend.status.tint)
                 }
             }
 

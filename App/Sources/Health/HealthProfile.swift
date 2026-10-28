@@ -21,7 +21,11 @@ enum HealthProfile {
         let store = HKHealthStore()
         var values = Values()
         if let components = try? store.dateOfBirthComponents() {
-            values.birthDate = calendar.date(from: components)
+            // Santé donne la date de naissance dans le calendrier grégorien, quel que soit
+            // celui de l'appareil (bouddhiste, japonais…).
+            var gregorian = Calendar(identifier: .gregorian)
+            gregorian.timeZone = calendar.timeZone
+            values.birthDate = (components.calendar ?? gregorian).date(from: components)
         }
         switch (try? store.biologicalSex())?.biologicalSex {
         case .male: values.sex = .male

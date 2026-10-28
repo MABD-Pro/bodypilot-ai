@@ -227,13 +227,7 @@ struct TodayView: View {
                 guard scenePhase == .active, healthSync else { return }
                 // Déjà relié avant l'envoi des repas : Santé demande une fois l'autorisation d'écrire.
                 if !LaunchOptions.demoData { try? await HealthWeight.requestAccess(includeCycle: tracksCycle) }
-                await importHealthWeights()
-                await importHealthActivities()
-                await importSleep()
-                await importCardio()
-                await importProfile()
-                await importCycle()
-                await importComposition()
+                await importFromHealth()
                 await exportMeals(plan.meals, on: now)
             }
             .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
@@ -284,8 +278,7 @@ struct TodayView: View {
             return
         }
         healthSync = true
-        await importHealthWeights()
-        await importProfile()
+        await importFromHealth()
     }
 
     /// Repas mangés du jour → Santé ; un repas annulé ou sauté en est retiré.
@@ -298,26 +291,54 @@ struct TodayView: View {
         )
     }
 
-    private func importSleep() async {
-        guard !LaunchOptions.demoData, let hours = try? await HealthSleep.lastNightHours(calendar: calendar) else { return }
-        withAnimation(Theme.springy) { sleepHours = hours }
-    }
-
-    /// Taille, date de naissance et sexe de Santé : le profil suit, les besoins se recalculent.
-    private func importProfile() async {
+    /// Toutes les lectures Santé partent en même temps, puis l'écran change une seule fois :
+    /// le plan se recalcule une fois au lieu d'une fois par lecture.
+    private func importFromHealth() async {
         guard !LaunchOptions.demoData else { return }
-        let values = await HealthProfile.read(calendar: calendar)
+        let calendar = calendar
+        let readsCycle = tracksCycle
+        let weightsSince = calendar.date(byAdding: .day, value: -HealthWeight.lookbackDays, to: .now) ?? .now
+        let activitiesSince = calendar.date(byAdding: .weekOfYear, value: -HealthWorkouts.lookbackWeeks, to: .now) ?? .now
+        async let weightSamples = try? HealthWeight.samples(since: weightsSince)
+        async let activities = try? HealthWorkouts.samples(since: activitiesSince)
+        async let sleep = try? HealthSleep.lastNightHours(calendar: calendar)
+        async let measure = try? HealthCardio.latestVO2max()
+        async let resting = try? HealthCardio.restingHeartRate()
+        async let values = HealthProfile.read(calendar: calendar)
+        async let starts: [Date]? = readsCycle ? (try? HealthCycle.periodStarts(calendar: calendar)) : nil
+        async let entries = HealthBodyComposition.entries(calendar: calendar)
+        let read = await (weights: weightSamples, activities: activities, sleep: sleep, measure: measure,
+                          resting: resting, values: values, starts: starts, entries: entries)
+
+        let toImport = read.weights.map {
+            WeightImportPlanner(calendar: calendar).samplesToImport(
+                $0,
+                recordedDays: Set(weights.map { calendar.startOfDay(for: $0.date) }),
+                knownIDs: Set(weights.compactMap(\.externalID))
+            )
+        } ?? []
         withAnimation(Theme.springy) {
-            if let height = values.heightCm, abs(height - profileRecord.heightCm) >= 1 {
+            for sample in toImport {
+                context.insert(WeightRecord(sample))
+            }
+            if let activities = read.activities { healthActivities = activities }
+            if let hours = read.sleep { sleepHours = hours }
+            watchCardio = read.measure
+            restingHeartRate = read.resting
+            if let starts = read.starts { periodStarts = starts }
+            compositions = read.entries
+            // Taille, date de naissance et sexe de Santé : le profil suit, les besoins se recalculent.
+            if let height = read.values.heightCm, abs(height - profileRecord.heightCm) >= 1 {
                 profileRecord.heightCm = height
             }
-            if let birthDate = values.birthDate, !calendar.isDate(birthDate, inSameDayAs: profileRecord.birthDate) {
+            if let birthDate = read.values.birthDate, !calendar.isDate(birthDate, inSameDayAs: profileRecord.birthDate) {
                 profileRecord.birthDate = birthDate
             }
-            if let sex = values.sex, sex.rawValue != profileRecord.sexRaw {
+            if let sex = read.values.sex, sex.rawValue != profileRecord.sexRaw {
                 profileRecord.sexRaw = sex.rawValue
             }
         }
+        try? context.save()
     }
 
     private var tracksCycle: Bool { profileRecord.profile.sex == .female }
@@ -334,28 +355,6 @@ struct TodayView: View {
                 if entry.leanKg == nil { entry.leanKg = derived }
             }
             return entry
-        }
-    }
-
-    private func importComposition() async {
-        guard !LaunchOptions.demoData else { return }
-        let entries = await HealthBodyComposition.entries(calendar: calendar)
-        withAnimation(Theme.springy) { compositions = entries }
-    }
-
-    private func importCycle() async {
-        guard tracksCycle, !LaunchOptions.demoData else { return }
-        guard let starts = try? await HealthCycle.periodStarts(calendar: calendar) else { return }
-        periodStarts = starts
-    }
-
-    private func importCardio() async {
-        guard !LaunchOptions.demoData else { return }
-        let measure = try? await HealthCardio.latestVO2max()
-        let resting = try? await HealthCardio.restingHeartRate()
-        withAnimation(Theme.springy) {
-            watchCardio = measure
-            restingHeartRate = resting
         }
     }
 
@@ -404,29 +403,6 @@ struct TodayView: View {
             log.trainingChoice = nil
         }
         try? context.save()
-    }
-
-    private func importHealthActivities() async {
-        guard !LaunchOptions.demoData else { return }
-        let since = calendar.date(byAdding: .weekOfYear, value: -HealthWorkouts.lookbackWeeks, to: .now) ?? .now
-        guard let samples = try? await HealthWorkouts.samples(since: since) else { return }
-        withAnimation(Theme.springy) { healthActivities = samples }
-    }
-
-    private func importHealthWeights() async {
-        guard !LaunchOptions.demoData else { return }
-        let since = calendar.date(byAdding: .day, value: -HealthWeight.lookbackDays, to: .now) ?? .now
-        guard let samples = try? await HealthWeight.samples(since: since) else { return }
-        let toImport = WeightImportPlanner(calendar: calendar).samplesToImport(
-            samples,
-            recordedDays: Set(weights.map { calendar.startOfDay(for: $0.date) }),
-            knownIDs: Set(weights.compactMap(\.externalID))
-        )
-        withAnimation(Theme.springy) {
-            for sample in toImport {
-                context.insert(WeightRecord(sample))
-            }
-        }
     }
 
     private func header(plan: TodayPlan, date: Date) -> some View {
