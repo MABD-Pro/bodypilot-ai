@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Design system BodyPilot : une couleur par question du jour, espacements réguliers,
 /// typographie arrondie, cartes en Liquid Glass sur un fond dégradé doux.
@@ -35,8 +36,11 @@ enum Theme {
 }
 
 extension Font {
+    /// Titres et grandes valeurs : suivent la taille de texte choisie dans Réglages, sans dépasser
+    /// 1,6 fois la taille prévue pour que les chiffres tiennent sur une ligne.
     static func display(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
-        .system(size: size, weight: weight, design: .rounded)
+        let scaled = UIFontMetrics(forTextStyle: .largeTitle).scaledValue(for: size)
+        return .system(size: min(scaled, size * 1.6), weight: weight, design: .rounded)
     }
 }
 

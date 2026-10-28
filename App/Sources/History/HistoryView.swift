@@ -273,7 +273,8 @@ struct HistoryView: View {
 
     private func historyCard<Content: View>(title: String, symbol: String, tint: Color, @ViewBuilder content: () -> Content) -> some View {
         CoachCard(eyebrow: title, symbol: symbol, tint: tint) {
-            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            // Des mois de lignes : seules celles à l'écran sont construites.
+            LazyVStack(alignment: .leading, spacing: Theme.Spacing.m) {
                 content()
             }
         }

@@ -21,9 +21,11 @@ public struct CycleWeek: Sendable, Equatable {
     /// 1 à 12.
     public var number: Int
 
+    /// Un numéro hors du cycle (option de démo, date bricolée) est ramené entre 1 et 12 :
+    /// les tables par semaine ne sont jamais lues hors de leurs bornes.
     public init(program: CycleProgram, number: Int) {
         self.program = program
-        self.number = number
+        self.number = min(max(number, 1), TrainingCycle.weeks)
     }
 
     /// 1 à 3.

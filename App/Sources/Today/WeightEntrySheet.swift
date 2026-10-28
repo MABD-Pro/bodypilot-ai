@@ -23,22 +23,25 @@ struct WeightEntrySheet: View {
             }
 
             HStack(spacing: Theme.Spacing.xl) {
-                step(-0.1, symbol: "minus")
-                VStack(spacing: 0) {
-                    Text(kg.frenchOneDecimal)
-                        .font(.display(60))
-                        .monospacedDigit()
-                        .contentTransition(.numericText(value: kg))
-                    Text("kg")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
+                StepButton(symbol: "minus", label: "Retirer 100 g") { change(by: -0.1) }
+                SteppedValue(accessibilityValue: "\(kg.frenchOneDecimal) kg", decrease: { change(by: -0.1) }, increase: { change(by: 0.1) }) {
+                    VStack(spacing: 0) {
+                        Text(kg.frenchOneDecimal)
+                            .font(.display(60))
+                            .monospacedDigit()
+                            .contentTransition(.numericText(value: kg))
+                        Text("kg")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(minWidth: 150)
                 }
-                .frame(minWidth: 150)
-                step(0.1, symbol: "plus")
+                StepButton(symbol: "plus", label: "Ajouter 100 g") { change(by: 0.1) }
             }
 
             Button {
                 context.insert(WeightRecord(date: .now, kg: kg))
+                try? context.save()
                 dismiss()
             } label: {
                 Text("Enregistrer")
@@ -50,21 +53,13 @@ struct WeightEntrySheet: View {
             .tint(Theme.progress)
         }
         .padding(Theme.Spacing.xxl)
-        .presentationDetents([.height(340)])
+        .adaptiveDetents(height: 340)
         .sensoryFeedback(.increase, trigger: kg)
     }
 
-    private func step(_ delta: Double, symbol: String) -> some View {
-        Button {
-            withAnimation(.snappy) { kg = ((kg + delta) * 10).rounded() / 10 }
-        } label: {
-            Image(systemName: symbol)
-                .font(.title2.weight(.bold))
-                .frame(width: 56, height: 56)
-        }
-        .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .circle)
-        .buttonRepeatBehavior(.enabled)
+    /// Bornée à des valeurs plausibles : un appui maintenu ne descend pas sous 30 kg.
+    private func change(by delta: Double) {
+        kg = min(300, max(30, ((kg + delta) * 10).rounded() / 10))
     }
 }
 
@@ -91,18 +86,20 @@ struct WaistEntrySheet: View {
             }
 
             HStack(spacing: Theme.Spacing.xl) {
-                step(-0.5, symbol: "minus")
-                VStack(spacing: 0) {
-                    Text(cm.frenchOneDecimal)
-                        .font(.display(60))
-                        .monospacedDigit()
-                        .contentTransition(.numericText(value: cm))
-                    Text("cm")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
+                StepButton(symbol: "minus", label: "Retirer 5 mm") { change(by: -0.5) }
+                SteppedValue(accessibilityValue: "\(cm.frenchOneDecimal) cm", decrease: { change(by: -0.5) }, increase: { change(by: 0.5) }) {
+                    VStack(spacing: 0) {
+                        Text(cm.frenchOneDecimal)
+                            .font(.display(60))
+                            .monospacedDigit()
+                            .contentTransition(.numericText(value: cm))
+                        Text("cm")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(minWidth: 150)
                 }
-                .frame(minWidth: 150)
-                step(0.5, symbol: "plus")
+                StepButton(symbol: "plus", label: "Ajouter 5 mm") { change(by: 0.5) }
             }
 
             Button {
@@ -127,7 +124,7 @@ struct WaistEntrySheet: View {
             }
         }
         .padding(Theme.Spacing.xxl)
-        .presentationDetents([.height(WaistScanView.isSupported ? 400 : 340)])
+        .adaptiveDetents(height: WaistScanView.isSupported ? 400 : 340)
         .sensoryFeedback(.increase, trigger: cm)
         .fullScreenCover(isPresented: $isScanning) {
             WaistScanView {
@@ -137,16 +134,8 @@ struct WaistEntrySheet: View {
         }
     }
 
-    private func step(_ delta: Double, symbol: String) -> some View {
-        Button {
-            withAnimation(.snappy) { cm = ((cm + delta) * 10).rounded() / 10 }
-        } label: {
-            Image(systemName: symbol)
-                .font(.title2.weight(.bold))
-                .frame(width: 56, height: 56)
-        }
-        .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .circle)
-        .buttonRepeatBehavior(.enabled)
+    /// Bornée à des valeurs plausibles : un appui maintenu ne descend pas sous 40 cm.
+    private func change(by delta: Double) {
+        cm = min(200, max(40, ((cm + delta) * 10).rounded() / 10))
     }
 }

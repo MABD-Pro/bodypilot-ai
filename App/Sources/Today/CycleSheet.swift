@@ -10,6 +10,7 @@ struct CycleSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @State private var program: CycleProgram = LaunchOptions.demoHyrox ? .hyrox : .crossfit
+    @State private var isConfirmingStop = false
     private let calendar = Calendar.current
 
     var body: some View {
@@ -89,11 +90,19 @@ struct CycleSheet: View {
             weekTable(week.program)
             phases(week.program)
             Button("Arrêter le cycle", role: .destructive) {
-                profile.cycle = nil
-                try? context.save()
-                dismiss()
+                isConfirmingStop = true
             }
             .buttonStyle(.glass)
+            // Arrêter efface la progression du cycle : on le confirme, un appui de trop coûte des semaines.
+            .confirmationDialog("Arrêter le cycle ?", isPresented: $isConfirmingStop, titleVisibility: .visible) {
+                Button("Arrêter le cycle", role: .destructive) {
+                    profile.cycle = nil
+                    try? context.save()
+                    dismiss()
+                }
+            } message: {
+                Text("Tu es en semaine \(week.number) sur \(TrainingCycle.weeks). Un nouveau cycle repartira de la semaine 1.")
+            }
         }
     }
 

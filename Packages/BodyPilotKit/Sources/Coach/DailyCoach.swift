@@ -184,7 +184,7 @@ public struct DailyCoach: Sendable {
                 ? "Pèse-toi demain matin à jeun : la tendance apparaît après une semaine."
                 : "Encore quelques pesées et la tendance sera fiable. Une pesée le matin suffit."
         }
-        let change = "\(weekly > 0 ? "+" : "")\(weekly.frenchOneDecimal) kg/semaine"
+        let change = "\(weekly.frenchSignedOneDecimal) kg/semaine"
         switch trend.status {
         case .onTrack:
             return "Oui : \(change), le rythme visé. Continue comme ça."
