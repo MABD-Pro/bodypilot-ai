@@ -430,7 +430,7 @@ public struct TrainingPlanner: TrainingPlanning {
             guard position > 0 else { return exercise }
             var swapped = exercise
             swapped.name = exercise.alternatives[position - 1]
-            return swapped
+            return swapped.keepingWaveOnlyAtTheBarbell()
         }
         return result
     }
@@ -447,7 +447,7 @@ public struct TrainingPlanner: TrainingPlanning {
             safer.isHighImpact = false
             // La variante de sécurité ne se remplace pas : elle seule épargne le genou.
             safer.alternatives = []
-            return safer
+            return safer.keepingWaveOnlyAtTheBarbell()
         }
         return result
     }
@@ -510,5 +510,21 @@ public struct TrainingPlanner: TrainingPlanning {
             }
         }
         return result
+    }
+}
+
+extension WorkoutExercise {
+    /// Le 5/3/1 ne vaut qu'à la barre : une variante aux haltères, à la machine ou au poids du
+    /// corps (remplacement, genou) repasse en séries simples, à la charge de la première série
+    /// de la vague, en séries de 5 au moins.
+    func keepingWaveOnlyAtTheBarbell() -> WorkoutExercise {
+        guard let first = wave.first, !StrengthCalibration.isBarbell(name) else { return self }
+        var plain = self
+        plain.sets = wave.count
+        plain.volume = .reps(max(StrengthCycle.backoffReps, first.reps))
+        plain.percentOfMax = first.percentOfMax
+        plain.wave = []
+        plain.backoffSets = 0
+        return plain
     }
 }

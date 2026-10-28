@@ -24,6 +24,9 @@ public struct GuidedWorkout: Sendable, Equatable {
     }
 
     public var title: String
+    /// Séance avec de la force : enregistrée comme renforcement dans Santé ; sinon comme cardio,
+    /// pour ne pas bloquer la force du lendemain (48 h).
+    public var hasStrength: Bool
     public var warmupSeconds: Int?
     public var blocks: [Block]
     public var cooldownSeconds: Int?
@@ -33,14 +36,9 @@ extension Workout {
     public var guided: GuidedWorkout {
         GuidedWorkout(
             title: title,
+            hasStrength: hasStrength,
             warmupSeconds: warmupMinutes > 0 ? warmupMinutes * 60 : nil,
-            blocks: exercises.map { exercise in
-                var steps = [GuidedWorkout.Step(isWork: true, goal: exercise.guidedGoal, label: exercise.guidedLabel)]
-                if exercise.restSeconds > 0 {
-                    steps.append(GuidedWorkout.Step(isWork: false, goal: .seconds(exercise.restSeconds), label: "Repos"))
-                }
-                return GuidedWorkout.Block(steps: steps, iterations: exercise.sets)
-            },
+            blocks: exercises.flatMap(\.guidedBlocks),
             cooldownSeconds: cooldownMinutes > 0 ? cooldownMinutes * 60 : nil
         )
     }
@@ -55,6 +53,29 @@ extension TrainingDay {
 }
 
 extension WorkoutExercise {
+    /// Un bloc répété `sets` fois ; en 5/3/1, une étape par série de la vague (5, 3, 1+),
+    /// puis les séries « First Set Last ».
+    var guidedBlocks: [GuidedWorkout.Block] {
+        guard !wave.isEmpty else {
+            return [block(label: guidedLabel, rest: restSeconds, iterations: sets)]
+        }
+        var blocks = wave.map { set in
+            block(label: "\(name) · \(set.reps)\(set.isPlus ? "+" : "") rép.", rest: restSeconds, iterations: 1)
+        }
+        if backoffSets > 0 {
+            blocks.append(block(label: "\(name) · \(StrengthCycle.backoffReps) rép.", rest: StrengthCycle.backoffRestSeconds, iterations: backoffSets))
+        }
+        return blocks
+    }
+
+    private func block(label: String, rest: Int, iterations: Int) -> GuidedWorkout.Block {
+        var steps = [GuidedWorkout.Step(isWork: true, goal: guidedGoal, label: label)]
+        if rest > 0 {
+            steps.append(GuidedWorkout.Step(isWork: false, goal: .seconds(rest), label: "Repos"))
+        }
+        return GuidedWorkout.Block(steps: steps, iterations: iterations)
+    }
+
     var guidedGoal: GuidedWorkout.StepGoal {
         switch volume {
         case .reps: .open
