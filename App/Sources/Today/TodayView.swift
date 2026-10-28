@@ -467,6 +467,10 @@ struct TodayView: View {
                 if adjustment == .eatingOut { log.eatingOutSlot = nil }
             } else {
                 current.insert(adjustment)
+                // Le repas visé est fixé maintenant : il ne bascule plus au dîner à 15 h.
+                if adjustment == .eatingOut, log.eatingOutSlot == nil {
+                    log.eatingOutSlot = MealConstraints.nextMainMeal(at: .now, calendar: calendar)
+                }
             }
             log.adjustments = current
         }

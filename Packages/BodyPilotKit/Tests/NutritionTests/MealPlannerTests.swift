@@ -45,6 +45,27 @@ private let planner = MealPlanner(calculator: EnergyCalculator(calendar: utc))
     #expect(!plan.notes.isEmpty)
 }
 
+@Test func restaurantMealHasCarbsAndFat() throws {
+    let targets = planner.targets(for: makeProfile(), currentWeightKg: 90, on: day(2026, 10, 27))
+    let plan = planner.mealPlan(for: targets, profile: makeProfile(), on: day(2026, 10, 27), constraints: MealConstraints(eatingOut: .dinner))
+    let dinner = try #require(plan.meals.last)
+    #expect(dinner.macros.carbsG > 0 && dinner.macros.fatG > 0)
+    let rebuilt = dinner.macros.proteinG * 4 + dinner.macros.carbsG * 4 + dinner.macros.fatG * 9
+    #expect(abs(rebuilt - dinner.macros.kcal) < 1)
+}
+
+@Test func eatenSnackStaysWhenEatingOutLater() throws {
+    let targets = planner.targets(for: makeProfile(), currentWeightKg: 90, on: day(2026, 10, 27))
+    let plan = planner.mealPlan(
+        for: targets, profile: makeProfile(), on: day(2026, 10, 27),
+        constraints: MealConstraints(eatingOut: .dinner, eaten: [.snack: .asPlanned])
+    )
+    #expect(plan.meals.map(\.slot) == MealSlot.allCases)
+    let snack = try #require(plan.meals.first { $0.slot == .snack })
+    #expect(snack.macros.kcal > 0)
+    #expect(!plan.notes.contains { $0.contains("collation est supprimée") })
+}
+
 @Test func lowAppetiteShrinksPortionsAboveSafetyFloor() {
     let profile = makeProfile()
     let targets = planner.targets(for: profile, currentWeightKg: 90, on: day(2026, 10, 27))

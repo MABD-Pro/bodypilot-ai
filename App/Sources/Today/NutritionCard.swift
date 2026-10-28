@@ -169,7 +169,8 @@ private struct MealRow: View {
 
             if isExpanded {
                 VStack(alignment: .leading, spacing: 6) {
-                    ForEach(meal.items, id: \.name) { item in
+                    // Par position : un repas décrit peut citer deux fois le même aliment.
+                    ForEach(Array(meal.items.enumerated()), id: \.offset) { _, item in
                         HStack {
                             Text(item.name)
                             Spacer()

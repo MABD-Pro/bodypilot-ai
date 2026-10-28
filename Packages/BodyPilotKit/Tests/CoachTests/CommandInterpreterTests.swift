@@ -33,6 +33,12 @@ func understandsCommonPhrases(text: String, expected: QuickAdjustment) {
     #expect(result?.tier == .deterministic)
 }
 
+@Test func durationsOutsideFiveToTwoHoursAreNotShortOnTime() {
+    #expect(!parse("j'ai 150 minutes").contains(.shortOnTime))
+    #expect(!parse("j'ai 3 min").contains(.shortOnTime))
+    #expect(interpreter.interpret("j'ai 45 min")?.availableMinutes == 45)
+}
+
 @Test func ignoresUnrelatedOrAmbiguousPhrases() {
     #expect(parse("Quelle belle journée").isEmpty)
     #expect(parse("Je suis en train de cuisiner") == [])

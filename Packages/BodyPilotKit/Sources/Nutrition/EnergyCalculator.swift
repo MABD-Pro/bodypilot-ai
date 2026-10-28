@@ -106,12 +106,12 @@ public struct EnergyCalculator: Sendable {
         return min(max(gap / 10 * SafetyLimits.deficitRatio, 0.05), SafetyLimits.deficitRatio)
     }
 
-    /// Au-delà d'un IMC de 30, les protéines se calculent sur le poids correspondant à un IMC de 27,
-    /// pour éviter des apports excessifs et irréalistes.
-    private func proteinReferenceWeight(weightKg: Double, heightCm: Double) -> Double {
+    /// Au-delà d'un IMC de 30, les protéines se calculent sur le poids correspondant à un IMC de 30,
+    /// pour éviter des apports excessifs et irréalistes. Le plafond est continu : un kilo de plus
+    /// ne fait jamais baisser l'objectif.
+    func proteinReferenceWeight(weightKg: Double, heightCm: Double) -> Double {
         let heightM = heightCm / 100
-        let bmi = weightKg / (heightM * heightM)
-        return bmi > 30 ? 27 * heightM * heightM : weightKg
+        return min(weightKg, 30 * heightM * heightM)
     }
 }
 
