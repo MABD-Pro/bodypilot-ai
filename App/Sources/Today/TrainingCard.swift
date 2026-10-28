@@ -139,8 +139,8 @@ struct TrainingCard: View {
             if workout.isCardioTest {
                 cardioTestResult
             }
-            if workout.title == CycleConditioning.benchmarkTitle {
-                benchmarkResult
+            if workout.isCycleBenchmark {
+                benchmarkResult(isHyrox: workout.title == HyroxCycle.benchmarkTitle)
             }
 
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -223,8 +223,8 @@ struct TrainingCard: View {
         .sensoryFeedback(.success, trigger: cardioTestToday?.vo2max)
     }
 
-    /// WOD de référence : noter son temps, et le comparer à la fois précédente.
-    private var benchmarkResult: some View {
+    /// WOD de référence ou test Hyrox : noter son temps, et le comparer à la fois précédente.
+    private func benchmarkResult(isHyrox: Bool) -> some View {
         Button {
             isLoggingBenchmark = true
         } label: {
@@ -243,7 +243,7 @@ struct TrainingCard: View {
                     } else {
                         Text("Noter mon temps")
                             .font(.subheadline.weight(.semibold))
-                        Text(previousBenchmark.map { "La dernière fois : \(Self.clock($0))." } ?? "Du premier coup de rame au dernier rowing.")
+                        Text(previousBenchmark.map { "La dernière fois : \(Self.clock($0))." } ?? (isHyrox ? "Du départ du premier kilomètre à l'arrivée du second." : "Du premier coup de rame au dernier rowing."))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -259,7 +259,11 @@ struct TrainingCard: View {
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $isLoggingBenchmark) {
-            BenchmarkTimeSheet(initial: benchmarkToday ?? previousBenchmark ?? 15 * 60, save: logBenchmark)
+            BenchmarkTimeSheet(
+                title: isHyrox ? HyroxCycle.benchmarkTitle : CycleConditioning.benchmarkTitle,
+                detail: isHyrox ? "Ton temps pour 1 km, 50 wall balls et 1 km." : "Ton temps pour les 3 tours.",
+                initial: benchmarkToday ?? previousBenchmark ?? 15 * 60, save: logBenchmark
+            )
         }
         .sensoryFeedback(.success, trigger: benchmarkToday)
     }
@@ -1269,13 +1273,17 @@ private struct CardioTestSheet: View {
 
 /// Temps du WOD de référence, lu sur le chrono.
 private struct BenchmarkTimeSheet: View {
+    let title: String
+    let detail: String
     let save: (Int) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var minutes: Int
     @State private var seconds: Int
 
-    init(initial: Int, save: @escaping (Int) -> Void) {
+    init(title: String, detail: String, initial: Int, save: @escaping (Int) -> Void) {
+        self.title = title
+        self.detail = detail
         self.save = save
         _minutes = State(initialValue: min(max(initial / 60, 5), 60))
         _seconds = State(initialValue: initial % 60 / 5 * 5)
@@ -1284,9 +1292,9 @@ private struct BenchmarkTimeSheet: View {
     var body: some View {
         VStack(spacing: Theme.Spacing.xl) {
             VStack(spacing: Theme.Spacing.xs) {
-                Text(CycleConditioning.benchmarkTitle)
+                Text(title)
                     .font(.display(24))
-                Text("Ton temps pour les 3 tours.")
+                Text(detail)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

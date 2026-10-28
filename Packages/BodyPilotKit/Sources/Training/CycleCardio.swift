@@ -53,7 +53,7 @@ public enum CycleCardio {
     /// courbatures, ni nuit courte (moins de 6 h).
     static func intervalsDue(_ week: CycleWeek, equipment: Equipment, constraints: DayConstraints) -> Bool {
         // À 2 séances dans la semaine, le fractionné se fait en fin de force.
-        if constraints.cyclePlan?.hard == 0 { return false }
+        if constraints.cyclePlan?.hard == 0 || week.program == .hyrox { return false }
         let available = intervals(for: week) != nil || (benchmarkWeeks.contains(week.number) && equipment == .gym)
         let done = constraints.cycleWorkoutsThisWeek.contains { $0 == intervalsTitle || $0 == CycleConditioning.benchmarkTitle }
         return available && !done

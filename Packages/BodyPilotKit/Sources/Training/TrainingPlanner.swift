@@ -64,7 +64,9 @@ public struct TrainingPlanner: TrainingPlanning {
         let hasCardioTest = cardioTest(budget: budget, constraints: constraints) != nil
         let recommendation = recommend(on: date, constraints: constraints, strengthOK: strengthOK, isTest: test != nil, cardioTest: hasCardioTest)
         var reason = recommendation.reason
-        if recommendation.choice == .conditioning, !hasCardioTest, let week = constraints.cycleWeek,
+        if recommendation.choice == .conditioning, !hasCardioTest, let week = constraints.cycleWeek, week.program == .hyrox {
+            reason = HyroxCycle.reason(HyroxCycle.session(for: week, constraints: constraints), week: week, strengthOK: strengthOK) ?? reason
+        } else if recommendation.choice == .conditioning, !hasCardioTest, let week = constraints.cycleWeek,
            CycleCardio.intervalsDue(week, equipment: profile.equipment, constraints: constraints) {
             // Force possible mais celles de la semaine sont faites (séances prévues) : autre entrée en matière.
             let lead = strengthOK ? "Force de la semaine faite" : "Force faite hier"
@@ -147,8 +149,11 @@ public struct TrainingPlanner: TrainingPlanning {
         guard let plan = constraints.cyclePlan, constraints.cycleWeek != nil else { return nil }
         let done = constraints.cycleWorkoutsThisWeek
         let strengthDone = done.filter(Self.isStrengthSession).count
-        let hardDone = done.filter { $0 == CycleCardio.intervalsTitle || $0 == CycleConditioning.benchmarkTitle }.count
-        let cardioLeft = plan.hard - hardDone > 0 || plan.aerobic - (done.count - strengthDone - hardDone) > 0
+        let hardTitles = [CycleCardio.intervalsTitle, CycleConditioning.benchmarkTitle, HyroxCycle.qualityTitle, HyroxCycle.benchmarkTitle]
+        let hardDone = done.filter(hardTitles.contains).count
+        let fundamentalsDone = done.filter { $0 == HyroxCycle.fundamentalsTitle }.count
+        let cardioLeft = plan.hard > hardDone || plan.fundamentals > fundamentalsDone
+            || plan.aerobic > done.count - strengthDone - hardDone - fundamentalsDone
         if done.count >= plan.sessions {
             return (.rest, "Tes \(plan.sessions) séances de la semaine sont faites : repos, ou une marche tranquille si tu as envie de bouger.")
         }
@@ -212,7 +217,10 @@ public struct TrainingPlanner: TrainingPlanning {
                     ? CycleCardio.intervals(for: week).map { CycleCardio.intervalsExercise($0, equipment: profile.equipment) }
                     : nil
             }
-            if let week = constraints.cycleWeek, profile.equipment == .gym {
+            if let week = constraints.cycleWeek, week.program == .hyrox, profile.equipment == .gym {
+                // Hyrox : traîneau après la force, ateliers si la semaine n'a pas de fondamentaux.
+                composed = HyroxCycle.compose(strength, week: week, stationsAfter: constraints.cyclePlan?.stationsAfterStrength ?? false)
+            } else if let week = constraints.cycleWeek, profile.equipment == .gym {
                 // Cycle en salle : technique après la B, conditioning court après la A et la C.
                 composed = CycleConditioning.compose(strength, week: week, intervals: intervals)
             } else if let intervals {
@@ -243,6 +251,12 @@ public struct TrainingPlanner: TrainingPlanning {
                 return TrainingDay(kind: .workout(test), estimatedMinutes: test.estimatedMinutes, notes: [
                     "Test de cardio : ton temps et ton pouls à l'arrivée donnent ta forme cardio (VO2max) et ta zone de cardio modéré. La Watch les affiche ; à refaire toutes les 8 semaines.",
                 ])
+            }
+            if let week = constraints.cycleWeek, week.program == .hyrox {
+                let session = HyroxCycle.session(for: week, constraints: constraints)
+                var day = adapt(HyroxCycle.workout(session, week: week, budget: budget, zone: constraints.cardio.moderateHeartRate), budget: budget, constraints: constraints)
+                day.notes.insert(week.label, at: 0)
+                return day
             }
             if let week = constraints.cycleWeek {
                 let dayIndex = calendar.ordinality(of: .day, in: .era, for: date) ?? 0
@@ -395,7 +409,10 @@ public struct TrainingPlanner: TrainingPlanning {
     /// La séance de force qui suit la dernière faite (A puis B, ou A, B, C pendant un cycle
     /// en salle) ; sans historique, la A.
     func nextWorkout(after title: String?, for profile: UserProfile, on date: Date, cycleWeek: CycleWeek? = nil) -> Workout {
-        let sessions = cycleWeek.flatMap { profile.equipment == .gym ? WorkoutCatalog.cycleSessions(phase: $0.phase) : nil }
+        // Hyrox : 2 séances de force par semaine au plus, rotation A / B.
+        let sessions = cycleWeek.flatMap { week in
+            profile.equipment == .gym && week.program == .crossfit ? WorkoutCatalog.cycleSessions(phase: week.phase) : nil
+        }
             ?? WorkoutCatalog.sessions(for: profile.equipment)
         guard let title, let index = sessions.firstIndex(where: { $0.title == title }) else { return sessions[0] }
         return sessions[(index + 1) % sessions.count]

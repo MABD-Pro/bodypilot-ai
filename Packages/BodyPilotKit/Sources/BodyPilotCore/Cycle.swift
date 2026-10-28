@@ -4,10 +4,13 @@ import Foundation
 public enum CycleProgram: String, Sendable, Codable, CaseIterable {
     /// Montée en puissance vers le CrossFit (docs/COACH_RULES.md, « Cycle de 12 semaines »).
     case crossfit
+    /// Vers un premier Hyrox : la course au premier plan (docs/COACH_RULES.md, « Cycle Hyrox »).
+    case hyrox
 
     public var title: String {
         switch self {
         case .crossfit: "Cycle CrossFit"
+        case .hyrox: "Cycle Hyrox"
         }
     }
 }
@@ -30,10 +33,13 @@ public struct CycleWeek: Sendable, Equatable {
     public var isDeload: Bool { weekInPhase == TrainingCycle.weeksPerPhase }
 
     public var phaseTitle: String {
-        switch phase {
-        case 1: "base"
-        case 2: "puissance"
-        default: "conditioning"
+        switch (program, phase) {
+        case (.crossfit, 1): "base"
+        case (.crossfit, 2): "puissance"
+        case (.crossfit, _): "conditioning"
+        case (.hyrox, 1): "courir-marcher"
+        case (.hyrox, 2): "courir en continu"
+        case (.hyrox, _): "courir fatigué"
         }
     }
 
@@ -79,24 +85,46 @@ public struct TrainingCycle: Sendable, Equatable, Codable {
 }
 
 /// Séances prévues dans la semaine du cycle et leur répartition (docs/COACH_RULES.md) : la force
-/// d'abord, puis le fractionné, puis l'aérobie. À 2 séances, le fractionné se fait en fin de force.
+/// d'abord, puis la séance dure (fractionné, ou course de qualité pour l'Hyrox), puis les
+/// fondamentaux (Hyrox), puis l'aérobie (course facile pour l'Hyrox). CrossFit à 2 séances : le
+/// fractionné se fait en fin de force ; Hyrox sans séance de fondamentaux : 10 minutes d'ateliers
+/// en fin de force.
 public struct CycleSessionPlan: Sendable, Equatable {
     public static let range = 2...6
     /// Sans réponse ni historique.
     public static let defaultSessions = 4
 
     public var sessions: Int
+    public var program: CycleProgram
 
-    public init(sessions: Int) {
+    public init(sessions: Int, program: CycleProgram = .crossfit) {
         self.sessions = min(max(sessions, Self.range.lowerBound), Self.range.upperBound)
+        self.program = program
     }
 
-    /// 2 séances de force jusqu'à 3 séances, 3 au-delà (une par 48 h, rotation A / B / C).
-    public var strength: Int { sessions <= 3 ? 2 : 3 }
-    /// Le fractionné (ou le WOD de référence) de la semaine, en séance à part dès 3 séances.
-    public var hard: Int { sessions >= 3 ? 1 : 0 }
-    public var aerobic: Int { sessions - strength - hard }
-    public var intervalsAfterStrength: Bool { hard == 0 }
+    /// CrossFit : 2 séances de force jusqu'à 3 séances, 3 au-delà (rotation A / B / C).
+    /// Hyrox : 1 jusqu'à 3 séances, 2 au-delà (A / B) ; la course passe d'abord.
+    public var strength: Int {
+        switch program {
+        case .crossfit: sessions <= 3 ? 2 : 3
+        case .hyrox: sessions <= 3 ? 1 : 2
+        }
+    }
+    /// CrossFit : le fractionné (ou le WOD de référence), en séance à part dès 3 séances.
+    /// Hyrox : la course de qualité (ou le test), toujours.
+    public var hard: Int {
+        switch program {
+        case .crossfit: sessions >= 3 ? 1 : 0
+        case .hyrox: 1
+        }
+    }
+    /// Hyrox : technique et endurance de force des ateliers, à 3, 5 et 6 séances.
+    public var fundamentals: Int {
+        program == .hyrox && (sessions == 3 || sessions >= 5) ? 1 : 0
+    }
+    public var aerobic: Int { sessions - strength - hard - fundamentals }
+    public var intervalsAfterStrength: Bool { program == .crossfit && hard == 0 }
+    public var stationsAfterStrength: Bool { program == .hyrox && fundamentals == 0 }
 
     /// Moyenne des séances faites par semaine sur les semaines pleines avant ce jour, arrondie,
     /// dans les bornes ; `nil` sans au moins une semaine d'historique.

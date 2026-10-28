@@ -9,6 +9,7 @@ struct CycleSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @State private var program: CycleProgram = LaunchOptions.demoHyrox ? .hyrox : .crossfit
     private let calendar = Calendar.current
 
     var body: some View {
@@ -36,20 +37,28 @@ struct CycleSheet: View {
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-            Text("Vers le CrossFit")
+            Picker("Objectif", selection: $program.animation(.snappy)) {
+                Text("CrossFit").tag(CycleProgram.crossfit)
+                Text("Hyrox").tag(CycleProgram.hyrox)
+            }
+            .pickerStyle(.segmented)
+            Text(program == .hyrox ? "Vers un premier Hyrox" : "Vers le CrossFit")
                 .font(.display(28))
-            Text("Trois phases de 4 semaines : base, puissance, conditioning. Dans chaque phase, la force monte 3 semaines en 5/3/1, puis une semaine allégée laisse retomber la fatigue.")
+            Text(program == .hyrox
+                ? "8 km de course entre 8 ateliers : la course passe au premier plan, avec une progression prudente. Phase 1 : courir-marcher ; phase 2 : courir en continu ; phase 3 : courir fatigué, entre les ateliers. La force reste, en 2 séances au plus, au service des ateliers."
+                : "Trois phases de 4 semaines : base, puissance, conditioning. Dans chaque phase, la force monte 3 semaines en 5/3/1, puis une semaine allégée laisse retomber la fatigue.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            weekTable
-            phases
+                .contentTransition(.opacity)
+            weekTable(program)
+            phases(program)
             Text("Mouvements à la barre en 5/3/1 : 3 séries qui montent, la dernière au maximum de répétitions propres (1 en réserve), puis 5 × 5 à la charge de la première. Les pourcentages portent sur un max d'entraînement à 90 % de ton max, recalculé à chaque série notée. Le coach du jour garde la main : fatigue, nuit courte ou genou sensible allègent la séance.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Button {
-                profile.cycle = TrainingCycle(program: .crossfit, startDate: calendar.startOfDay(for: .now))
+                profile.cycle = TrainingCycle(program: program, startDate: calendar.startOfDay(for: .now))
                 try? context.save()
                 dismiss()
             } label: {
@@ -77,8 +86,8 @@ struct CycleSheet: View {
             Text("Cette semaine, à la barre : \(Self.waveText(week)) du max d'entraînement\(week.isDeload ? ", rien au maximum." : ", la dernière série au maximum, puis 5 × 5.")")
                 .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
-            weekTable
-            phases
+            weekTable(week.program)
+            phases(week.program)
             Button("Arrêter le cycle", role: .destructive) {
                 profile.cycle = nil
                 try? context.save()
@@ -89,10 +98,10 @@ struct CycleSheet: View {
     }
 
     /// Les 4 semaines d'une phase, identiques d'une phase à l'autre.
-    private var weekTable: some View {
+    private func weekTable(_ program: CycleProgram) -> some View {
         VStack(spacing: Theme.Spacing.s) {
             ForEach(1...TrainingCycle.weeksPerPhase, id: \.self) { number in
-                let week = CycleWeek(program: .crossfit, number: number)
+                let week = CycleWeek(program: program, number: number)
                 HStack {
                     Text(week.isDeload ? "Semaine \(number), allégée" : "Semaine \(number)")
                         .font(.subheadline)
@@ -115,8 +124,10 @@ struct CycleSheet: View {
     }
 
     /// Les 3 phases, qui reprennent ces 4 semaines avec des charges recalculées.
-    private var phases: some View {
-        Text("Phase 1, base : semaines 1 à 4 · phase 2, puissance : 5 à 8 · phase 3, conditioning : 9 à 12. Chaque phase reprend ces 4 semaines, avec des charges recalculées sur ton max.")
+    private func phases(_ program: CycleProgram) -> some View {
+        Text(program == .hyrox
+            ? "Force : ces 4 semaines dans chaque phase. Course facile, séance de qualité (rameur, puis 1 km à allure Hyrox, puis course enchaînée) et fondamentaux des ateliers montent de semaine en semaine. Test 1 km + 50 wall balls + 1 km en semaines 1 et 11."
+            : "Phase 1, base : semaines 1 à 4 · phase 2, puissance : 5 à 8 · phase 3, conditioning : 9 à 12. Chaque phase reprend ces 4 semaines, avec des charges recalculées sur ton max.")
             .font(.footnote)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)

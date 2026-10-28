@@ -48,6 +48,8 @@ enum LaunchOptions {
     static var demoSleepHours: Double? { defaults.object(forKey: "demoSleep") == nil ? nil : defaults.double(forKey: "demoSleep") }
     /// `-demoCycle 4` : cycle CrossFit en cours, aujourd'hui dans cette semaine (1 à 12).
     static var demoCycleWeek: Int? { defaults.object(forKey: "demoCycle") == nil ? nil : defaults.integer(forKey: "demoCycle") }
+    /// `-demoHyrox` : le cycle de démonstration (et le choix proposé) est l'Hyrox.
+    static var demoHyrox: Bool { defaults.bool(forKey: "demoHyrox") }
     /// `-demoLifts YES` : profil en salle et séries notées les semaines passées, record du jour sur le premier exercice.
     static var demoLifts: Bool { defaults.bool(forKey: "demoLifts") }
     /// `-demoCalibration YES` : profil en salle sans charge notée, la séance du jour est le premier test de force.
@@ -173,7 +175,7 @@ enum DemoData {
         )
         let profileRecord = ProfileRecord(profile)
         if let week = LaunchOptions.demoCycleWeek, let start = calendar.date(byAdding: .day, value: -7 * (week - 1), to: now) {
-            profileRecord.cycle = TrainingCycle(program: .crossfit, startDate: start)
+            profileRecord.cycle = TrainingCycle(program: LaunchOptions.demoHyrox ? .hyrox : .crossfit, startDate: start)
         }
         context.insert(profileRecord)
 
