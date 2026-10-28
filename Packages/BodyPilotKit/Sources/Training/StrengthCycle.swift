@@ -27,6 +27,13 @@ public enum StrengthCycle {
         }
     }
 
+    /// Charges de la vague sans max noté : le max s'estime depuis la charge d'essai prudente
+    /// (prévue pour `reps` répétitions, Epley), arrondi au 2,5 kg inférieur (barre).
+    public static func waveLoads(_ wave: [WaveSet], startingKg: Double, reps: Int) -> [Double] {
+        let estimatedMax = startingKg * (1 + Double(reps) / 30)
+        return wave.map { max(2.5, (estimatedMax * $0.percentOfMax / 2.5).rounded(.down) * 2.5) }
+    }
+
     /// Mouvement mené en 5/3/1 : principal, aux répétitions, à la barre et avec des charges.
     static func usesWave(_ exercise: WorkoutExercise, usesLoads: Bool) -> Bool {
         guard usesLoads, exercise.priority == 1, case .reps = exercise.volume else { return false }
@@ -84,7 +91,7 @@ public enum StrengthCycle {
         if result.exercises.contains(where: { !$0.wave.isEmpty }) {
             result.intensityCue = week.isDeload
                 ? "Mouvements à la barre en 5/3/1, semaine allégée : 3 séries de 5 légères, rien au maximum."
-                : "Mouvements à la barre en 5/3/1 : 3 séries qui montent, la dernière au maximum de répétitions propres en gardant 1 répétition en réserve, puis 5 × 5 à la charge de la première série."
+                : "Mouvements à la barre en 5/3/1 : 3 séries qui montent, la dernière au maximum de répétitions propres en gardant 1 répétition en réserve, puis des séries de 5 à la charge de la première."
             return result
         }
         let load = usesLoads ? " à environ \(Int((plan.percentOfMax * 100).rounded())) % de ton max" : ""

@@ -361,11 +361,15 @@ struct TrainingCard: View {
         )
         // Test refait : le premier essai part des dernières charges plutôt que de la charge d'essai.
         let firstAttemptKg = target?.kg ?? startingKg
-        let wave: [RampStep] = exercise.wave.compactMap { set in
+        var wave: [RampStep] = exercise.wave.compactMap { set in
             StrengthProgress.target(
                 for: exercise.name, plannedReps: set.reps, percentOfMax: set.percentOfMax, history: earlier,
                 lastStrengthDay: lastStrengthDay, on: .now, calendar: calendar
             )?.kg.map { RampStep(reps: set.reps, kg: $0) }
+        }
+        // Sans max noté : la vague part de la charge d'essai prudente (prévue pour 6 répétitions).
+        if !exercise.wave.isEmpty, wave.count != exercise.wave.count, let startingKg {
+            wave = zip(exercise.wave, StrengthCycle.waveLoads(exercise.wave, startingKg: startingKg, reps: 6)).map { RampStep(reps: $0.reps, kg: $1) }
         }
         return LiftToLog(
             exercise: exercise.name,
@@ -405,6 +409,9 @@ struct TrainingCard: View {
                 symbol: target.isIncrease ? "arrow.up.right" : "scope",
                 tint: target.isIncrease ? Theme.training : .secondary
             )
+        }
+        if let top = item.wave.last {
+            return .init(text: "Essai : \(StrengthProgress.label(kg: top.kg, reps: top.reps))\(item.waveEndsWithMax ? "+" : "")", symbol: "scope", tint: .secondary)
         }
         if let start = item.startingKg {
             return .init(text: "Essai : \(StrengthProgress.label(kg: start, reps: item.plannedReps))", symbol: "scope", tint: .secondary)
@@ -882,7 +889,7 @@ private struct LiftEntrySheet: View {
         self.item = item
         self.save = save
         let start = item.today.map { LiftTarget(kg: $0.kg, reps: $0.reps, isIncrease: false) } ?? item.target
-        let kg = start?.kg ?? (start == nil && item.usesLoads ? item.startingKg ?? 20 : nil)
+        let kg = start?.kg ?? (start == nil && item.usesLoads ? item.wave.last?.kg ?? item.startingKg ?? 20 : nil)
         _withLoad = State(initialValue: kg != nil)
         _kg = State(initialValue: kg ?? 10)
         _reps = State(initialValue: start?.reps ?? item.plannedReps)
@@ -917,7 +924,7 @@ private struct LiftEntrySheet: View {
                     .multilineTextAlignment(.center)
                 Text(item.isTest
                     ? "Note ta série de 5 la plus lourde faite proprement : elle fixe tes charges de travail."
-                    : "Ta meilleure série du jour. Prévu : \(item.plannedReps) répétitions.")
+                    : "Ta meilleure série du jour. Prévu : \(item.plannedReps) répétition\(item.plannedReps > 1 ? "s" : "")\(item.waveEndsWithMax ? " ou plus" : "").")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -1160,7 +1167,7 @@ extension WorkoutExercise {
             let steps = wave.map { "\($0.reps)" }.joined(separator: "-") + (wave.last?.isPlus == true ? "+" : "")
             return backoffSets > 0 ? "\(steps) · \(backoffSets) × \(StrengthCycle.backoffReps)" : steps
         }
-        switch volume {
+        return switch volume {
         case .reps(let reps): "\(sets) × \(reps)"
         // Effort continu (marche inclinée, cardio tempo) : en minutes.
         case .seconds(let seconds) where sets == 1 && seconds >= 120: "\(Int((Double(seconds) / 60).rounded())) min"
