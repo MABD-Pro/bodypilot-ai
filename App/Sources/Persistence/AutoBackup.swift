@@ -92,7 +92,7 @@ enum AutoBackup {
 
     /// « BodyPilot-2026-10-28.json » : le nom trié suit l'ordre des dates.
     static func isCopy(_ name: String) -> Bool {
-        name.count == 25 && name.hasPrefix("BodyPilot-") && name.hasSuffix(".json")
+        name.wholeMatch(of: /BodyPilot-\d{4}-\d{2}-\d{2}\.json/) != nil
     }
 
     private static func coordinate(_ url: URL, options: NSFileCoordinator.WritingOptions, _ body: (URL) throws -> Void) throws {

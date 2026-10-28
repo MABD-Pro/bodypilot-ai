@@ -102,9 +102,12 @@ struct DataBackupSheet: View {
             Text("Sauvegarde automatique")
                 .font(.headline)
             if let autoFolder {
-                Text("Chaque jour, une copie dans « \(autoFolder) ». Les \(AutoBackup.keptCopies) plus récentes sont gardées.")
-                    .font(.subheadline)
-                    .fixedSize(horizontal: false, vertical: true)
+                // Dossier introuvable : la note orange le dit, pas de nom de repli trompeur.
+                if autoError == nil {
+                    Text("Chaque jour où tu ouvres l'app, une copie dans « \(autoFolder) ». Les \(AutoBackup.keptCopies) plus récentes sont gardées.")
+                        .font(.subheadline)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let lastAuto {
                     Text("Dernière copie : \(lastAuto.formatted(.dateTime.weekday(.wide).day().month(.wide).hour().minute().locale(Theme.locale)))")
                         .font(.caption)
@@ -120,7 +123,7 @@ struct DataBackupSheet: View {
                     .buttonStyle(.glass)
                 }
             } else {
-                Text("Choisis un dossier une fois, par exemple dans Fichiers ou sur un disque : BodyPilot y écrira une copie chaque jour et gardera les \(AutoBackup.keptCopies) plus récentes. Tu peux l'arrêter quand tu veux.")
+                Text("Choisis un dossier une fois, par exemple dans Fichiers ou sur un disque : BodyPilot y écrira une copie chaque jour où tu ouvres l'app et gardera les \(AutoBackup.keptCopies) plus récentes. Tu peux l'arrêter quand tu veux.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
