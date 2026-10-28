@@ -45,7 +45,8 @@ extension DayConstraints {
         choice: TrainingChoice? = nil,
         cardio: CardioStatus = CardioStatus(),
         cycleWeek: CycleWeek? = nil,
-        cycleWorkoutsThisWeek: [String] = []
+        cycleWorkoutsThisWeek: [String] = [],
+        cyclePlan: CycleSessionPlan? = nil
     ) {
         self.init(
             availableMinutes: today.contains(.shortOnTime) ? (availableMinutes ?? QuickAdjustment.shortOnTimeMinutes) : nil,
@@ -64,7 +65,8 @@ extension DayConstraints {
             choice: choice,
             cardio: cardio,
             cycleWeek: cycleWeek,
-            cycleWorkoutsThisWeek: cycleWorkoutsThisWeek
+            cycleWorkoutsThisWeek: cycleWorkoutsThisWeek,
+            cyclePlan: cyclePlan
         )
     }
 }

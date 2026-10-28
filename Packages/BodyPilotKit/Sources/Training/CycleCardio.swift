@@ -52,6 +52,8 @@ public enum CycleCardio {
     /// La séance dure de la semaine reste à faire, et le jour s'y prête : ni fatigue, ni
     /// courbatures, ni nuit courte (moins de 6 h).
     static func intervalsDue(_ week: CycleWeek, equipment: Equipment, constraints: DayConstraints) -> Bool {
+        // À 2 séances dans la semaine, le fractionné se fait en fin de force.
+        if constraints.cyclePlan?.hard == 0 { return false }
         let available = intervals(for: week) != nil || (benchmarkWeeks.contains(week.number) && equipment == .gym)
         let done = constraints.cycleWorkoutsThisWeek.contains { $0 == intervalsTitle || $0 == CycleConditioning.benchmarkTitle }
         return available && !done
@@ -64,12 +66,7 @@ public enum CycleCardio {
 
     /// Fractionné de la semaine (rameur ou vélo, sans impact), resserré si le temps manque.
     static func intervalsWorkout(_ intervals: Intervals, week: CycleWeek, budget: Int, equipment: Equipment) -> Workout {
-        let gym = equipment == .gym
-        var exercise = WorkoutExercise(
-            name: gym ? "Rameur fractionné" : "Boxe dans le vide fractionnée",
-            sets: intervals.rounds, volume: .seconds(intervals.workSeconds), restSeconds: intervals.restSeconds, priority: 4,
-            alternatives: gym ? ["Vélo fractionné", "SkiErg fractionné"] : ["Mountain climbers", "Pas chassés"]
-        )
+        var exercise = intervalsExercise(intervals, equipment: equipment)
         var workout = Workout(
             title: intervalsTitle, warmupMinutes: warmupMinutes, cooldownMinutes: cooldownMinutes, exercises: [exercise],
             intensityCue: intervals.workSeconds >= 120
@@ -81,6 +78,15 @@ public enum CycleCardio {
             workout.exercises = [exercise]
         }
         return workout
+    }
+
+    static func intervalsExercise(_ intervals: Intervals, equipment: Equipment) -> WorkoutExercise {
+        let gym = equipment == .gym
+        return WorkoutExercise(
+            name: gym ? "Rameur fractionné" : "Boxe dans le vide fractionnée",
+            sets: intervals.rounds, volume: .seconds(intervals.workSeconds), restSeconds: intervals.restSeconds, priority: 4,
+            alternatives: gym ? ["Vélo fractionné", "SkiErg fractionné"] : ["Mountain climbers", "Pas chassés"]
+        )
     }
 
     /// Aérobie continue : allure où l'on peut parler, durée de la semaine dans la limite du temps du jour.

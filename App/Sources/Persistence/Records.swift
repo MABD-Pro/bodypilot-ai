@@ -31,6 +31,10 @@ final class ProfileRecord {
     /// Cycle de 12 semaines en cours ; `nil` : séances au jour le jour, sans cycle.
     var cycleProgramRaw: String?
     var cycleStartDate: Date?
+    /// Séances prévues par semaine du cycle (2 à 6) ; 0 : jamais répondu.
+    var cycleSessionsPerWeek: Int = 0
+    /// Premier jour de la semaine du cycle où ce nombre a été confirmé.
+    var cycleSessionsWeekStart: Date?
 
     init(_ profile: UserProfile) {
         entityID = profile.id.rawValue
@@ -60,6 +64,22 @@ final class ProfileRecord {
             cycleProgramRaw = newValue?.program.rawValue
             cycleStartDate = newValue?.startDate
         }
+    }
+
+    /// Séances prévues cette semaine du cycle : le nombre confirmé pour cette semaine, sinon
+    /// une proposition (moyenne récente, puis dernier nombre choisi, puis 4) à confirmer.
+    func cycleSessions(on date: Date, recentAverage: Int?, calendar: Calendar = .current) -> (sessions: Int, confirmed: Bool)? {
+        guard let cycle, let weekStart = cycle.weekStart(on: date, calendar: calendar) else { return nil }
+        if let cycleSessionsWeekStart, calendar.isDate(cycleSessionsWeekStart, inSameDayAs: weekStart), cycleSessionsPerWeek > 0 {
+            return (cycleSessionsPerWeek, true)
+        }
+        let suggested = recentAverage ?? (cycleSessionsPerWeek > 0 ? cycleSessionsPerWeek : CycleSessionPlan.defaultSessions)
+        return (CycleSessionPlan(sessions: suggested).sessions, false)
+    }
+
+    func confirmCycleSessions(_ sessions: Int, on date: Date, calendar: Calendar = .current) {
+        cycleSessionsPerWeek = CycleSessionPlan(sessions: sessions).sessions
+        cycleSessionsWeekStart = cycle?.weekStart(on: date, calendar: calendar)
     }
 
     /// Le bilan revient au plus une fois par semaine.

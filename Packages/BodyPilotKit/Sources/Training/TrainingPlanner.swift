@@ -66,9 +66,11 @@ public struct TrainingPlanner: TrainingPlanning {
         var reason = recommendation.reason
         if recommendation.choice == .conditioning, !hasCardioTest, let week = constraints.cycleWeek,
            CycleCardio.intervalsDue(week, equipment: profile.equipment, constraints: constraints) {
+            // Force possible mais celles de la semaine sont faites (séances prévues) : autre entrée en matière.
+            let lead = strengthOK ? "Force de la semaine faite" : "Force faite hier"
             reason = CycleCardio.benchmarkWeeks.contains(week.number) && profile.equipment == .gym
-                ? "Force faite hier : c'est le jour du WOD de référence de la semaine \(week.number). Note ton temps pour mesurer ta progression."
-                : "Force faite hier : c'est le jour du fractionné de la semaine \(week.number), sans impact. Les jambes récupèrent pendant que le cœur travaille."
+                ? "\(lead) : c'est le jour du WOD de référence de la semaine \(week.number). Note ton temps pour mesurer ta progression."
+                : "\(lead) : c'est le jour du fractionné de la semaine \(week.number), sans impact. Les jambes récupèrent pendant que le cœur travaille."
         }
         return TrainingOptions(
             options: choices.map { TrainingOption(choice: $0, day: day(for: $0, profile: profile, budget: budget, test: test, on: date, constraints: constraints)) },
@@ -116,6 +118,9 @@ public struct TrainingPlanner: TrainingPlanning {
         if constraints.sore {
             return (.conditioning, "Courbatures : un cardio modéré et de la marche les soulagent mieux que le repos complet.")
         }
+        if let planned = cycleRecommendation(constraints: constraints, strengthOK: strengthOK, cardioTest: cardioTest) {
+            return planned
+        }
         if strengthOK {
             if isTest {
                 return (.strength, "Pas encore de charge notée sur tes mouvements de base : test de force pour trouver les tiennes.")
@@ -133,6 +138,29 @@ public struct TrainingPlanner: TrainingPlanning {
             return (.conditioning, "Force faite hier et pas encore de mesure de ta forme cardio : test de marche de 1,6 km aujourd'hui, il fixe ta zone de cardio.")
         }
         return (.conditioning, "Force faite hier : cardio modéré et marche aujourd'hui, les muscles récupèrent 48 h avant la prochaine séance lourde.")
+    }
+
+    /// Semaine du cycle avec un nombre de séances prévu : la force tant qu'il en manque, puis
+    /// le fractionné et l'aérobie, puis le repos une fois les séances faites. `nil` : la règle
+    /// habituelle (force dès 48 h) s'applique.
+    func cycleRecommendation(constraints: DayConstraints, strengthOK: Bool, cardioTest: Bool) -> (choice: TrainingChoice, reason: String)? {
+        guard let plan = constraints.cyclePlan, constraints.cycleWeek != nil else { return nil }
+        let done = constraints.cycleWorkoutsThisWeek
+        let strengthDone = done.filter(Self.isStrengthSession).count
+        let hardDone = done.filter { $0 == CycleCardio.intervalsTitle || $0 == CycleConditioning.benchmarkTitle }.count
+        let cardioLeft = plan.hard - hardDone > 0 || plan.aerobic - (done.count - strengthDone - hardDone) > 0
+        if done.count >= plan.sessions {
+            return (.rest, "Tes \(plan.sessions) séances de la semaine sont faites : repos, ou une marche tranquille si tu as envie de bouger.")
+        }
+        if strengthDone >= plan.strength {
+            return (.conditioning, cardioTest
+                ? "Pas encore de mesure de ta forme cardio : test de marche de 1,6 km aujourd'hui, il fixe ta zone de cardio."
+                : "Tes \(plan.strength) séances de force de la semaine sont faites : cardio aujourd'hui.")
+        }
+        if !strengthOK, !cardioLeft {
+            return (.light, "Force faite hier et ton cardio de la semaine est fait : une marche tranquille, la force revient dès demain.")
+        }
+        return nil
     }
 
     /// Jours d'activité consécutifs juste avant ce jour.
@@ -178,9 +206,19 @@ public struct TrainingPlanner: TrainingPlanning {
                 ? max(Int(Double(budget) * StrengthCycle.deloadTimeShare), min(budget, Self.threeAxisMinutes))
                 : budget
             let composed: Workout
+            // À 2 séances dans la semaine du cycle, le fractionné se fait en fin de force.
+            let intervals = constraints.cycleWeek.flatMap { week in
+                constraints.cyclePlan?.intervalsAfterStrength == true
+                    ? CycleCardio.intervals(for: week).map { CycleCardio.intervalsExercise($0, equipment: profile.equipment) }
+                    : nil
+            }
             if let week = constraints.cycleWeek, profile.equipment == .gym {
                 // Cycle en salle : technique après la B, conditioning court après la A et la C.
-                composed = CycleConditioning.compose(strength, week: week)
+                composed = CycleConditioning.compose(strength, week: week, intervals: intervals)
+            } else if let intervals {
+                var withIntervals = strength
+                withIntervals.exercises.append(intervals)
+                composed = withIntervals
             } else {
                 composed = sessionBudget >= Self.threeAxisMinutes ? withConditioning(strength, budget: sessionBudget, equipment: profile.equipment, on: date) : strength
             }
@@ -192,6 +230,9 @@ public struct TrainingPlanner: TrainingPlanning {
                let pause = calendar.dateComponents([.day], from: calendar.startOfDay(for: last), to: calendar.startOfDay(for: date)).day,
                let comeback = StrengthProgress.comebackNote(pauseDays: pause) {
                 day.notes.insert(comeback, at: 0)
+            }
+            if let intervals, case .workout(let workout) = day.kind, workout.exercises.contains(where: { $0.key == intervals.key }) {
+                day.notes.insert("2 séances cette semaine : le fractionné se fait en fin de séance, pour garder force et cardio.", at: 0)
             }
             if let week = constraints.cycleWeek {
                 day.notes.insert(StrengthCycle.note(for: week), at: 0)

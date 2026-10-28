@@ -46,6 +46,7 @@ enum DayLogEditor {
         let lifts = (try? context.fetch(FetchDescriptor<LiftRecord>(predicate: #Predicate { $0.day < start }))) ?? []
         let cardioTests = (try? context.fetch(FetchDescriptor<CardioTestRecord>())) ?? []
         let last = lastStrength(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar)
+        let active = activeDays(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar)
         return CoachFactory.coach.plan(
             for: profile.profile,
             weights: weights.map(\.entry),
@@ -59,7 +60,7 @@ enum DayLogEditor {
             lastWorkoutTitle: last.title,
             lastStrengthDay: last.day,
             calibratedLifts: calibratedLifts(lifts.map(\.entry), before: now, since: profile.strengthTestResetAt, lastStrengthDay: last.day, calendar: calendar),
-            activeDays: activeDays(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar),
+            activeDays: active,
             trainingChoice: today?.trainingChoice,
             cardio: cardioStatus(for: profile.profile, measures: cardioTests.map(\.measure), restingHeartRate: nil, on: now, calendar: calendar),
             exerciseKcalPerDay: ExerciseEnergy.dailyAverage(
@@ -68,6 +69,9 @@ enum DayLogEditor {
             ),
             cycle: profile.cycle,
             cycleWorkoutsThisWeek: profile.cycle?.workoutsThisWeek(done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, on: now, calendar: calendar) ?? [],
+            cycleSessionsPerWeek: profile.cycleSessions(
+                on: now, recentAverage: CycleSessionPlan.recentAverage(doneDays: Array(active), before: now, calendar: calendar), calendar: calendar
+            )?.sessions,
             on: now
         )
     }
