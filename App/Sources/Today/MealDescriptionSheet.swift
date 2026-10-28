@@ -181,7 +181,54 @@ struct MealDescriptionSheet: View {
                 Text("Une estimation, pas une pesée : la suite de ta journée s'ajuste à ce total.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                suggestions(for: meal)
             }
+        }
+    }
+
+    /// « Plus léger » ou « plus de protéines » : une touche remplace le repas estimé.
+    @ViewBuilder
+    private func suggestions(for meal: DescribedMeal) -> some View {
+        let suggestions = MealImprover.suggestions(for: meal, slot: slot)
+        if !suggestions.isEmpty {
+            VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                Text("Pour la prochaine fois, ou si tu n'as pas encore mangé")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                ForEach(suggestions) { suggestion in
+                    Button {
+                        withAnimation(Theme.springy) {
+                            parse = MealParse(text: suggestion.meal.text, foods: suggestion.meal.foods)
+                            portions = [:]
+                            removed = []
+                        }
+                    } label: {
+                        HStack(spacing: Theme.Spacing.m) {
+                            Image(systemName: suggestion.goal == .lighter ? "leaf.fill" : "bolt.heart.fill")
+                                .foregroundStyle(suggestion.goal == .lighter ? Theme.progress : Theme.protein)
+                                .frame(width: 22)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(suggestion.title)
+                                    .font(.subheadline.weight(.semibold))
+                                    .multilineTextAlignment(.leading)
+                                Text(suggestion.effect)
+                                    .font(.caption.weight(.semibold))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: Theme.Spacing.s)
+                            Text("Appliquer")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(slot.tint)
+                        }
+                        .padding(Theme.Spacing.m)
+                        .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.top, Theme.Spacing.s)
         }
     }
 

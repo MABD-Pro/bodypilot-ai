@@ -1,4 +1,5 @@
 import BodyPilotCore
+import Nutrition
 import SwiftUI
 
 /// « Que dois-je manger aujourd'hui ? »
@@ -8,6 +9,9 @@ struct NutritionCard: View {
     var logIntake: (MealSlot, MealIntake?) -> Void = { _, _ in }
     /// Ouvre la saisie en texte de ce qui a vraiment été mangé.
     var describe: (MealSlot) -> Void = { _ in }
+    /// Repas décrits ces 7 derniers jours, à reprendre d'une touche.
+    var recent: (MealSlot) -> [RecentMeal] = { _ in [] }
+    var reuse: (MealSlot, DescribedMeal) -> Void = { _, _ in }
 
     @State private var expanded: MealSlot?
     @State private var showsRationale = false
@@ -67,7 +71,9 @@ struct NutritionCard: View {
                             }
                         },
                         log: { logIntake(meal.slot, $0) },
-                        describe: { describe(meal.slot) }
+                        describe: { describe(meal.slot) },
+                        recent: recent(meal.slot),
+                        reuse: { reuse(meal.slot, $0) }
                     )
                 }
             }
@@ -95,6 +101,8 @@ private struct MealRow: View {
     /// Repas pris : une touche pour « comme prévu », le détail dans la vue dépliée.
     let log: (MealIntake?) -> Void
     let describe: () -> Void
+    let recent: [RecentMeal]
+    let reuse: (DescribedMeal) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
@@ -166,6 +174,23 @@ private struct MealRow: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(meal.slot.tint)
+                    if !recent.isEmpty {
+                        Menu {
+                            ForEach(recent, id: \.meal.title) { item in
+                                Button {
+                                    reuse(item.meal)
+                                } label: {
+                                    Text(item.meal.title)
+                                    Text("\(Self.dayLabel(item.day)), \(item.slot.title.lowercased()) · \(item.meal.macros.kcal.frenchInteger) kcal")
+                                }
+                            }
+                        } label: {
+                            Label("Reprendre", systemImage: "arrow.counterclockwise")
+                                .font(.caption.weight(.semibold))
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(meal.slot.tint)
+                    }
                     Menu {
                         ForEach([MealIntake.skipped, .light, .hearty, .veryHearty], id: \.self) { intake in
                             Button(intake.label) { log(intake) }
@@ -204,6 +229,14 @@ private struct MealRow: View {
         }
         .padding(Theme.Spacing.m)
         .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+    }
+}
+
+extension MealRow {
+    /// « Hier », « Lundi » : le jour d'un repas récent.
+    static func dayLabel(_ day: Date, calendar: Calendar = .current) -> String {
+        if calendar.isDateInYesterday(day) { return "Hier" }
+        return day.formatted(.dateTime.weekday(.wide).locale(Locale(identifier: "fr_FR"))).capitalized
     }
 }
 

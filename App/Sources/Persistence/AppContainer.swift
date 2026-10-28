@@ -158,6 +158,13 @@ enum DemoData {
         }
     }
 
+    /// Repas décrits en démo, par jour passé (1 = hier).
+    static let demoRecentMeals: [Int: [MealSlot: String]] = [
+        1: [.breakfast: "flocons d'avoine et un skyr", .lunch: "un burger, des frites et un coca"],
+        2: [.lunch: "150 g de poulet, du riz et des haricots verts"],
+        3: [.dinner: "une pizza et une bière"],
+    ]
+
     @MainActor
     static func seed(_ context: ModelContext, now: Date = .now, calendar: Calendar = .current) {
         let birthDate = calendar.date(byAdding: .year, value: -34, to: now) ?? now
@@ -211,6 +218,11 @@ enum DemoData {
                 strengthCount += 1
             } else {
                 log.doneWorkoutTitle = conditioningTitle
+            }
+            // Quelques repas décrits ces derniers jours, à reprendre d'une touche.
+            let described = Self.demoRecentMeals[offset] ?? [:]
+            if !described.isEmpty {
+                log.describedMeals = described.mapValues { MealTextParser.parse($0).meal }
             }
             context.insert(log)
         }

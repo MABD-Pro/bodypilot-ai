@@ -113,6 +113,10 @@ struct TodayView: View {
                         AdjustmentBar(active: todayAdjustments, toggle: toggle)
                         NutritionCard(targets: plan.targets, meals: plan.meals, logIntake: logIntake, describe: { slot in
                             describing = MealToDescribe(slot: slot, current: todayLog?.describedMeals[slot])
+                        }, recent: { slot in
+                            RecentMeals.list(for: slot, history: recentMealHistory(now: now), today: now, calendar: calendar)
+                        }, reuse: { slot, meal in
+                            saveDescribed(meal, for: slot)
                         })
                             .id("nutrition")
                         TrainingCard(
@@ -467,6 +471,14 @@ struct TodayView: View {
             log.mealIntakes[slot] = intake
             if intake == nil { log.describedMeals[slot] = nil }
         }
+    }
+
+    /// Repas décrits des 7 derniers jours (seuls ces journaux sont décodés).
+    private func recentMealHistory(now: Date) -> [(day: Date, meals: [MealSlot: DescribedMeal])] {
+        guard let since = calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: now)) else { return [] }
+        return dayLogs
+            .filter { $0.day >= since && $0.describedMealsData != nil }
+            .map { (day: $0.day, meals: $0.describedMeals) }
     }
 
     /// Repas décrit en texte : il remplace la saisie d'une touche pour ce repas.
