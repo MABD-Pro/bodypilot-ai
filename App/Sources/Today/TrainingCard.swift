@@ -1034,6 +1034,7 @@ private struct CardioTestSheet: View {
             .tint(Theme.training)
         }
         .padding(Theme.Spacing.xxl)
-        .presentationDetents([.large])
+        .frame(maxHeight: .infinity, alignment: .top)
+        .presentationDetents([.height(600), .large])
     }
 }
