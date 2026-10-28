@@ -1275,7 +1275,7 @@ private struct LiftEntrySheet: View {
             }
 
             Button {
-                save(LiftEntry(exercise: item.exercise, date: Calendar.current.startOfDay(for: .now), kg: withLoad && kg > 0 ? kg : nil, reps: reps, isTest: item.isTest))
+                save(LiftEntry(exercise: item.exercise, date: Calendar.current.storedDay(for: .now), kg: withLoad && kg > 0 ? kg : nil, reps: reps, isTest: item.isTest))
                 dismiss()
             } label: {
                 Text("Enregistrer")

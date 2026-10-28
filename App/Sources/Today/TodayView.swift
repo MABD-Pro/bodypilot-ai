@@ -366,7 +366,7 @@ struct TodayView: View {
                 existing.heartRate = heartRate
                 existing.vo2max = vo2max
             } else {
-                context.insert(CardioTestRecord(day: calendar.startOfDay(for: .now), minutes: minutes, heartRate: heartRate, vo2max: vo2max))
+                context.insert(CardioTestRecord(day: calendar.storedDay(for: .now), minutes: minutes, heartRate: heartRate, vo2max: vo2max))
             }
         }
         try? context.save()
@@ -452,7 +452,7 @@ struct TodayView: View {
 
     private func todayLog() -> DayLogRecord {
         if let existing = log(on: .now) { return existing }
-        let created = DayLogRecord(day: calendar.startOfDay(for: .now))
+        let created = DayLogRecord(day: calendar.storedDay(for: .now))
         context.insert(created)
         return created
     }
