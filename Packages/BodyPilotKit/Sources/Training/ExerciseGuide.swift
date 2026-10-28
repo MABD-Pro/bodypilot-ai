@@ -22,7 +22,14 @@ public struct ExerciseGuide: Sendable, Equatable {
     }
 
     public static func guide(for exercise: String) -> ExerciseGuide? {
-        catalog[exercise]
+        catalog[exercise] ?? catalog[baseName(exercise)]
+    }
+
+    /// Nom sans la distance : « SkiErg (250 m) » → « SkiErg ». Les ateliers Hyrox partagent
+    /// une fiche et une vidéo quelle que soit la distance prescrite.
+    static func baseName(_ exercise: String) -> String {
+        guard exercise.hasSuffix(")"), let open = exercise.range(of: " (", options: .backwards) else { return exercise }
+        return String(exercise[..<open.lowerBound])
     }
 
     /// Charge d'essai pour une première séance, volontairement prudente : la première série
@@ -244,6 +251,35 @@ public struct ExerciseGuide: Sendable, Equatable {
         "Hip thrust une jambe": ExerciseGuide(
             muscles: "Fessiers, ischio-jambiers",
             cues: ["Haut du dos sur un canapé, un pied au sol.", "Monte le bassin en serrant le fessier.", "Tibia vertical en haut du mouvement.", "Compte les répétitions par jambe."]
+        ),
+        // Ateliers Hyrox : technique d'abord, la charge est celle de la course.
+        "SkiErg": ExerciseGuide(
+            muscles: "Grand dorsal, triceps, gainage, jambes",
+            cues: ["Bras tendus au-dessus de la tête, poignées en main, pieds largeur de hanches.", "Tire en fléchissant les hanches et les genoux, comme une charnière : le buste descend avec les bras.", "Poignées jusqu'aux cuisses, puis remonte en déroulant, bras d'abord.", "Garde un rythme régulier : la puissance vient des hanches, pas seulement des bras."]
+        ),
+        "Poussée de traîneau": ExerciseGuide(
+            muscles: "Quadriceps, fessiers, mollets, gainage",
+            cues: ["Mains sur les poteaux, bras tendus ou fléchis, buste incliné à environ 45°.", "Petits pas rapides sur l'avant du pied, genoux qui avancent.", "Dos plat, regard vers le sol un peu devant.", "Ne t'arrête pas : relancer un traîneau à l'arrêt coûte bien plus cher."]
+        ),
+        "Tirage de traîneau": ExerciseGuide(
+            muscles: "Dos, biceps, fessiers, ischio-jambiers",
+            cues: ["Pieds écartés, genoux fléchis, assis en arrière comme sur une chaise.", "Tire la corde main sur main en gardant les bras proches du corps.", "Les jambes et les hanches participent : pousse dans le sol à chaque traction.", "Range la corde derrière toi pour ne pas t'y prendre les pieds."]
+        ),
+        "Burpees sautés en longueur": ExerciseGuide(
+            muscles: "Corps entier : jambes, pectoraux, épaules, gainage",
+            cues: ["Poitrine au sol, puis remonte en ramenant les pieds sous les hanches.", "Saut vers l'avant à deux pieds, bras qui balancent.", "Réception souple, genoux dans l'axe, puis enchaîne.", "Sauts courts et réguliers plutôt que longs et épuisants."]
+        ),
+        "Marche du fermier": ExerciseGuide(
+            muscles: "Avant-bras (prise), trapèzes, gainage, jambes",
+            cues: ["Ramasse les charges comme un soulevé de terre, dos plat.", "Épaules basses et en arrière, buste droit, bras le long du corps.", "Petits pas rapides, sans balancer les charges.", "Pose-les volontairement avant que la prise ne lâche, pas au dernier moment."]
+        ),
+        "Fentes avec sac lesté": ExerciseGuide(
+            muscles: "Quadriceps, fessiers, gainage",
+            cues: ["Sac sur les épaules, derrière la nuque, tenu des deux mains.", "Grand pas en avant, genou arrière qui frôle le sol.", "Genou avant dans l'axe du pied, buste droit.", "Pousse sur le talon avant pour enchaîner la fente suivante."]
+        ),
+        "Rameur": ExerciseGuide(
+            muscles: "Jambes, dos, bras",
+            cues: ["Ordre de la poussée : jambes, puis buste qui bascule légèrement en arrière, puis bras.", "Retour dans l'ordre inverse : bras, buste, puis jambes.", "Poignée jusqu'au bas des côtes, coudes près du corps.", "Environ 1 temps de tirage pour 2 temps de retour : la vitesse vient de la poussée des jambes."]
         ),
         "Good morning sans charge": ExerciseGuide(
             muscles: "Ischio-jambiers, lombaires",
