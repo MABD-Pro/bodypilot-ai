@@ -107,10 +107,13 @@ final class WeightRecord {
 final class WaistRecord {
     var date: Date = Date.now
     var cm: Double = 0
+    /// Mesure estimée au LiDAR (expérimental) : affichée à côté du ruban, jamais dans la tendance.
+    var isScan: Bool = false
 
-    init(date: Date, cm: Double) {
+    init(date: Date, cm: Double, isScan: Bool = false) {
         self.date = date
         self.cm = cm
+        self.isScan = isScan
     }
 
     var entry: WaistEntry { WaistEntry(date: date, cm: cm) }

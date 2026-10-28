@@ -73,6 +73,7 @@ struct WaistEntrySheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @State private var cm: Double
+    @State private var isScanning = false
 
     init(initialCm: Double) {
         // Dernière mesure exacte : enregistrer sans toucher ne crée pas de variation fictive.
@@ -116,10 +117,24 @@ struct WaistEntrySheet: View {
             }
             .buttonStyle(.glassProminent)
             .tint(Theme.progress)
+
+            if WaistScanView.isSupported {
+                Button("Scanner au LiDAR (expérimental)", systemImage: "camera.metering.matrix") {
+                    isScanning = true
+                }
+                .font(.subheadline.weight(.semibold))
+                .buttonStyle(.glass)
+            }
         }
         .padding(Theme.Spacing.xxl)
-        .presentationDetents([.height(340)])
+        .presentationDetents([.height(WaistScanView.isSupported ? 400 : 340)])
         .sensoryFeedback(.increase, trigger: cm)
+        .fullScreenCover(isPresented: $isScanning) {
+            WaistScanView {
+                isScanning = false
+                dismiss()
+            }
+        }
     }
 
     private func step(_ delta: Double, symbol: String) -> some View {

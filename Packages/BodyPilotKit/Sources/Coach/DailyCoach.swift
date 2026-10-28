@@ -163,12 +163,14 @@ public struct DailyCoach: Sendable {
             signs.append("ta taille a perdu \(abs(waistChange).frenchOneDecimal) cm")
         }
         if let fatChange, fatChange <= Self.meaningfulFatDropPoints {
-            signs.append("ton taux de gras a perdu \(abs(fatChange).frenchOneDecimal) point\(abs(fatChange) >= 2 ? "s" : "")")
+            // « ta taille a perdu 1,8 cm et ton taux de gras 0,9 point » : un seul verbe quand les deux baissent.
+            let verb = signs.isEmpty ? "a perdu " : ""
+            signs.append("ton taux de gras \(verb)\(abs(fatChange).frenchOneDecimal) point\(abs(fatChange) >= 2 ? "s" : "")")
         }
         if goal == .recomposition, weightFlat, !signs.isEmpty {
             let progress = signs.joined(separator: " et ")
             return trend.status == .onTrack
-                ? "Oui, sur les deux plans : le poids baisse au bon rythme et \(progress) en 4 semaines."
+                ? "Oui : le poids baisse au bon rythme, \(progress) en 4 semaines."
                 : "Oui : \(progress) en 4 semaines alors que ton poids bouge peu. Tu perds du gras et gagnes du muscle, c'est la recomposition."
         }
         guard let weekly = trend.weeklyChangeKg else {

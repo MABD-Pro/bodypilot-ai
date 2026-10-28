@@ -16,7 +16,7 @@ struct TodayView: View {
     @AppStorage("healthWeightSync") private var healthSync = false
     @Query(sort: \WeightRecord.date) private var weights: [WeightRecord]
     @Query private var dayLogs: [DayLogRecord]
-    @Query(sort: \WaistRecord.date) private var waists: [WaistRecord]
+    @Query(filter: #Predicate<WaistRecord> { !$0.isScan }, sort: \WaistRecord.date) private var waists: [WaistRecord]
     @Query(sort: \LiftRecord.day) private var liftRecords: [LiftRecord]
     @Query(sort: \CardioTestRecord.day) private var cardioTests: [CardioTestRecord]
     @State private var isAddingWaist = false

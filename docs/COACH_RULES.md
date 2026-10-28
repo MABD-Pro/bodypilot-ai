@@ -94,6 +94,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Vitesse : régression linéaire sur 21 jours, au moins 3 pesées sur 7 jours.
 - En bonne voie entre −0,1 % et −1 % du poids par semaine ; au-delà de −1 %, le coach suggère +150 kcal. Le coach suggère, l'utilisateur décide.
 - Tour de taille : saisi à la main, au plus une fois par semaine suffit. Variation sur 4 semaines, avec deux mesures espacées d'au moins 10 jours. Une baisse d'au moins 1 cm montre que le gras part, même si le poids ne bouge pas : le coach ne parle pas de stagnation.
+- Scan LiDAR du tour de taille (expérimental, iPhone Pro) : une personne tient l'iPhone et place la ligne centrale sur le nombril, de face puis de profil, bras croisés. Pour chaque vue, 15 images : largeur du corps sur la ligne (pixels dont la profondeur est à moins de 30 cm de celle du nombril, × distance / focale), médiane, puis périmètre d'une ellipse (Ramanujan). Le scan est enregistré à part (`WaistRecord.isScan`) : il n'entre ni dans la tendance ni dans le bilan. L'historique affiche l'écart moyen avec le ruban du même jour ; il ne remplacera le ruban que si l'écart reste sous 1 cm pendant deux semaines (choix BodyPilot).
 
 ## Régularité
 

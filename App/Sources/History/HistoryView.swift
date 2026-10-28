@@ -36,12 +36,16 @@ struct HistoryView: View {
                 }
                 .pickerStyle(.segmented)
 
-                switch section {
-                case .measures: measures
-                case .strength: strength
-                case .sessions: sessions
-                case .meals: meals
+                Group {
+                    switch section {
+                    case .measures: measures
+                    case .strength: strength
+                    case .sessions: sessions
+                    case .meals: meals
+                    }
                 }
+                .id(section)
+                .transition(.opacity)
             }
             .padding(.horizontal, Theme.Spacing.l)
             .padding(.bottom, Theme.Spacing.xxl)
@@ -54,10 +58,13 @@ struct HistoryView: View {
 
     // MARK: - Mesures
 
+    private var scans: [WaistRecord] { waists.filter(\.isScan) }
+
     private struct MeasureDay {
         var day: Date
         var kg: Double?
         var waistCm: Double?
+        var scanCm: Double?
         var fat: Double?
     }
 
@@ -71,7 +78,8 @@ struct HistoryView: View {
             byDay[day] = value
         }
         for weight in weights { update(weight.date) { if $0.kg == nil { $0.kg = weight.kg } } }
-        for waist in waists { update(waist.date) { if $0.waistCm == nil { $0.waistCm = waist.cm } } }
+        for waist in waists where !waist.isScan { update(waist.date) { if $0.waistCm == nil { $0.waistCm = waist.cm } } }
+        for scan in scans { update(scan.date) { if $0.scanCm == nil { $0.scanCm = scan.cm } } }
         for entry in compositions {
             guard let fat = entry.fatPercent else { continue }
             update(entry.date) { $0.fat = fat }
@@ -96,15 +104,31 @@ struct HistoryView: View {
                     .frame(height: 140)
                 }
             }
+            if !scans.isEmpty { scanComparison }
             historyCard(title: "Jour par jour", symbol: "calendar", tint: Theme.progress) {
                 ForEach(days, id: \.day) { day in
                     row(date: day.day, value: [
                         day.kg.map { "\($0.frenchOneDecimal) kg" },
                         day.waistCm.map { "taille \($0.frenchOneDecimal) cm" },
+                        day.scanCm.map { "scan \($0.frenchOneDecimal) cm" },
                         day.fat.map { "gras \($0.frenchOneDecimal) %" },
                     ].compactMap { $0 }.joined(separator: " · "))
                 }
             }
+        }
+    }
+
+    /// Scan LiDAR (expérimental) comparé au ruban du même jour.
+    private var scanComparison: some View {
+        let tape = waists.filter { !$0.isScan }.map { (date: $0.date, cm: $0.cm) }
+        let gap = WaistScan.meanGapCm(scans: scans.map { (date: $0.date, cm: $0.cm) }, tape: tape, calendar: calendar)
+        return historyCard(title: "Scan LiDAR (expérimental)", symbol: "camera.metering.matrix", tint: Theme.progress) {
+            Text(gap.map { "Écart moyen avec le ruban : \($0.frenchOneDecimal) cm." } ?? "Mesure aussi au ruban le jour du scan pour comparer.")
+                .font(.headline)
+            Text("Le scan remplacera le ruban seulement si l'écart reste sous \(WaistScan.adoptionThresholdCm.frenchOneDecimal) cm pendant deux semaines. En attendant, ta tendance utilise le ruban.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
