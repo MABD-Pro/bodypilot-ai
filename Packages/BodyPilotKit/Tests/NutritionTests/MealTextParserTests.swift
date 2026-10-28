@@ -146,6 +146,9 @@ private struct FakeMealModel: MealLanguageModel {
     #expect(pizza.quantityLabel == "¾ pizza")
     #expect(try #require(MealTextParser.parse("un tiers de pizza").foods.first).grams < 120)
     #expect(try #require(MealTextParser.parse("douze sushis").foods.first).grams == 360)
+    let halfLitre = try #require(MealTextParser.parse("un demi-litre de coca").foods.first)
+    #expect(halfLitre.grams == 500 && halfLitre.quantityLabel == "½ l")
+    #expect(try #require(MealTextParser.parse("un demi litre de coca").foods.first).grams == 500)
 }
 
 @Test func neighbouringFoodsAreAllKept() {

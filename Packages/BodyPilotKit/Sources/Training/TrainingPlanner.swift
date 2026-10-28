@@ -447,7 +447,8 @@ public struct TrainingPlanner: TrainingPlanning {
             safer.isHighImpact = false
             // La variante de sécurité ne se remplace pas : elle seule épargne le genou.
             safer.alternatives = []
-            return safer.keepingWaveOnlyAtTheBarbell()
+            // Genou douloureux : pas de série au maximum, même sur une variante à la barre.
+            return safer.withoutWave()
         }
         return result
     }
@@ -518,7 +519,12 @@ extension WorkoutExercise {
     /// corps (remplacement, genou) repasse en séries simples, à la charge de la première série
     /// de la vague, en séries de 5 au moins.
     func keepingWaveOnlyAtTheBarbell() -> WorkoutExercise {
-        guard let first = wave.first, !StrengthCalibration.isBarbell(name) else { return self }
+        StrengthCalibration.isBarbell(name) ? self : withoutWave()
+    }
+
+    /// Séries simples à la charge de la première série de la vague, en séries de 5 au moins.
+    func withoutWave() -> WorkoutExercise {
+        guard let first = wave.first else { return self }
         var plain = self
         plain.sets = wave.count
         plain.volume = .reps(max(StrengthCycle.backoffReps, first.reps))

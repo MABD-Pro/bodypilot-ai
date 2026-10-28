@@ -140,3 +140,14 @@ private func lift(_ kg: Double?, _ reps: Int, on dayOfMonth: Int, _ exercise: St
     squat.name = "Squat à la barre"
     #expect(squat.keepingWaveOnlyAtTheBarbell() == squat)
 }
+
+@Test func kneeVariantNeverKeepsTheWave() {
+    var squat = WorkoutExercise(name: "Squat à la barre", sets: 3, volume: .reps(1), restSeconds: 180, priority: 1)
+    squat.wave = StrengthCycle.wave(for: CycleWeek(program: .crossfit, number: 3))
+    squat.backoffSets = 5
+    var hipThrust = squat
+    hipThrust.name = "Hip thrust"
+    // À la barre : un remplacement choisi garde la vague, la variante de sécurité du genou non.
+    #expect(!hipThrust.keepingWaveOnlyAtTheBarbell().wave.isEmpty)
+    #expect(hipThrust.withoutWave().wave.isEmpty)
+}

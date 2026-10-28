@@ -83,9 +83,11 @@ public enum MealTextParser {
         }.filter { !$0.normalized.isEmpty }
     }
 
-    /// « 1,5 » → « 1.5 », « 1/2 » → « 0.5 ».
+    /// « 1,5 » → « 1.5 », « 1/2 » → « 0.5 », « un demi-litre » → « 0.5 litre ».
     static func numbersRead(in text: String) -> String {
-        let decimals = text.replacing(#/(\d),(\d)/#) { "\($0.1).\($0.2)" }
+        // « un demi-litre », « un demi kilo » : une quantité, pas une demi-portion.
+        let halves = text.replacing(#/(?i)(une?\s+)?demi[- ]?(litre|kilo)/#) { "0.5 \($0.2)" }
+        let decimals = halves.replacing(#/(\d),(\d)/#) { "\($0.1).\($0.2)" }
         return decimals.replacing(#/(\d+)\s?\/\s?(\d+)/#) { match in
             guard let numerator = Double(match.1), let denominator = Double(match.2), denominator > 0 else { return String(match.0) }
             let value = numerator / denominator
