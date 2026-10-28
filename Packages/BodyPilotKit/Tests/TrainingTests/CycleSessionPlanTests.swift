@@ -25,8 +25,10 @@ private func options(sessions: Int, done: [String], lastStrength: Date? = nil, o
 
 @Test func recentAverageCountsDoneDaysOverFullWeeks() {
     let done = (1...21).filter { $0 % 3 == 0 }.map { day(2026, 10, $0) } + [day(2026, 10, 22)]
-    // Du 1er au 21 octobre : 7 séances en 3 semaines, arrondi à 2.
-    #expect(CycleSessionPlan.recentAverage(doneDays: done, before: day(2026, 10, 22), calendar: utc) == 2)
+    // Historique depuis le 3 : 2 semaines pleines (du 8 au 21), 5 séances, 2,5 arrondi à 3.
+    #expect(CycleSessionPlan.recentAverage(doneDays: done, before: day(2026, 10, 22), calendar: utc) == 3)
+    // Avec le 1er : 3 semaines pleines, 8 séances, 2,7 arrondi à 3 ; sur 2 semaines seulement, la même chose.
+    #expect(CycleSessionPlan.recentAverage(doneDays: done + [day(2026, 10, 1)], before: day(2026, 10, 22), calendar: utc) == 3)
     #expect(CycleSessionPlan.recentAverage(doneDays: [day(2026, 10, 20)], before: day(2026, 10, 22), calendar: utc) == nil)
 }
 
