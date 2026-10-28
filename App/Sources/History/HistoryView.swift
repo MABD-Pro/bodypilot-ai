@@ -204,13 +204,21 @@ struct HistoryView: View {
                 if let last = points.last {
                     historyCard(title: measure.rawValue, symbol: measure.symbol, tint: Theme.progress) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text("\(last.value.frenchOneDecimal) \(measure.unit)")
-                                .font(.display(28))
-                                .monospacedDigit()
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(last.value.frenchOneDecimal) \(measure.unit)")
+                                    .font(.display(28))
+                                    .monospacedDigit()
+                                // Mesure brute du jour : Progresser montre une tendance lissée, qui peut différer.
+                                Text("Dernière mesure, \(dayLabel(last.date).lowercased())")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                             Spacer()
                             if let first = points.first, points.count >= 2 {
                                 let change = last.value - first.value
-                                Text("\(change.frenchSignedOneDecimal) \(measure.unit) depuis le \(first.date.formatted(.dateTime.day().month(.abbreviated).locale(Theme.locale)))")
+                                // Un taux varie en points, pas en pour cent.
+                                let unit = measure == .fat ? (abs(change) >= 2 ? "points" : "point") : measure.unit
+                                Text("\(change.frenchSignedOneDecimal) \(unit) depuis le \(first.date.formatted(.dateTime.day().month(.abbreviated).locale(Theme.locale)))")
                                     .font(.footnote.weight(.semibold))
                                     .foregroundStyle(.secondary)
                                     .multilineTextAlignment(.trailing)
@@ -232,13 +240,14 @@ struct HistoryView: View {
             if !scans.isEmpty { scanComparison }
             historyCard(title: "Jour par jour", symbol: "calendar", tint: Theme.progress) {
                 ForEach(days, id: \.day) { day in
+                    // Espaces insécables : une ligne trop longue passe à la ligne entre deux valeurs, pas au milieu.
                     row(date: day.day, value: [
-                        day.kg.map { "\($0.frenchOneDecimal) kg" },
-                        day.waistCm.map { "taille \($0.frenchOneDecimal) cm" },
-                        day.scanCm.map { "scan \($0.frenchOneDecimal) cm" },
-                        day.fat.map { "gras \($0.frenchOneDecimal) %" },
-                        day.leanKg.map { "maigre \($0.frenchOneDecimal) kg" },
-                    ].compactMap { $0 }.joined(separator: " · "))
+                        day.kg.map { "\($0.frenchOneDecimal)\u{00A0}kg" },
+                        day.waistCm.map { "taille\u{00A0}\($0.frenchOneDecimal)\u{00A0}cm" },
+                        day.scanCm.map { "scan\u{00A0}\($0.frenchOneDecimal)\u{00A0}cm" },
+                        day.fat.map { "gras\u{00A0}\($0.frenchOneDecimal)\u{00A0}%" },
+                        day.leanKg.map { "maigre\u{00A0}\($0.frenchOneDecimal)\u{00A0}kg" },
+                    ].compactMap { $0 }.joined(separator: "\u{00A0}· "))
                 }
             }
         }
