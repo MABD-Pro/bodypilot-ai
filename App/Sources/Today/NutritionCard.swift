@@ -4,6 +4,7 @@ import SwiftUI
 
 /// « Que dois-je manger aujourd'hui ? »
 struct NutritionCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let targets: NutritionTargets
     let meals: DayMealPlan
     var logIntake: (MealSlot, MealIntake?) -> Void = { _, _ in }
@@ -50,7 +51,11 @@ struct NutritionCard: View {
                 .foregroundStyle(.secondary)
                 .contentTransition(.numericText(value: eaten.kcal))
 
-            HStack(spacing: Theme.Spacing.l) {
+            // Aux tailles de texte d'accessibilité, les trois jauges s'empilent au lieu de déborder.
+            let gauges = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Spacing.m))
+                : AnyLayout(HStackLayout(spacing: Theme.Spacing.l))
+            gauges {
                 MacroGauge(label: "Protéines", eaten: eaten.proteinG, target: targets.macros.proteinG, tint: Theme.protein)
                 MacroGauge(label: "Glucides", eaten: eaten.carbsG, target: targets.macros.carbsG, tint: Theme.carbs)
                 MacroGauge(label: "Lipides", eaten: eaten.fatG, target: targets.macros.fatG, tint: Theme.fat)
@@ -95,6 +100,7 @@ struct NutritionCard: View {
 }
 
 private struct MealRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let meal: PlannedMeal
     let isExpanded: Bool
     let toggle: () -> Void
@@ -158,13 +164,15 @@ private struct MealRow: View {
                         .foregroundStyle(.secondary)
                 } else {
                     // Sur un écran étroit, « Décrire » et « Reprendre » passent en icônes.
+                    // Très grand texte : les actions s'empilent plutôt que d'élargir tout l'écran.
                     ViewThatFits(in: .horizontal) {
                         pendingActions(iconOnly: false)
                         pendingActions(iconOnly: true)
+                        pendingActions(iconOnly: false, stacked: true)
                     }
                 }
             }
-            .padding(.leading, 50)
+            .padding(.leading, dynamicTypeSize.isAccessibilitySize ? 0 : 50)
             .sensoryFeedback(.success, trigger: meal.isEaten) { _, new in new }
 
             if isExpanded {
@@ -185,7 +193,7 @@ private struct MealRow: View {
                         .foregroundStyle(Theme.protein)
                         .padding(.top, 2)
                 }
-                .padding(.leading, 50)
+                .padding(.leading, dynamicTypeSize.isAccessibilitySize ? 0 : 50)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
@@ -196,29 +204,32 @@ private struct MealRow: View {
 
 extension MealRow {
     /// Repas pas encore noté : comme prévu, décrit, repris d'un jour récent ou autrement.
-    func pendingActions(iconOnly: Bool) -> some View {
-        HStack(spacing: Theme.Spacing.m) {
+    func pendingActions(iconOnly: Bool, stacked: Bool = false) -> some View {
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Spacing.m))
+            : AnyLayout(HStackLayout(spacing: Theme.Spacing.m))
+        return layout {
             Button {
                 log(.asPlanned)
             } label: {
                 Label("Comme prévu", systemImage: "checkmark.circle")
                     .font(.caption.weight(.semibold))
-                    .lineLimit(1)
+                    .lineLimit(stacked ? nil : 1)
             }
             .buttonStyle(.plain)
             .foregroundStyle(meal.slot.tint)
-            .fixedSize()
-            Spacer(minLength: 0)
+            .fixedSize(horizontal: !stacked, vertical: true)
+            if !stacked { Spacer(minLength: 0) }
             Button(action: describe) {
                 Label("Décrire", systemImage: "square.and.pencil")
                     .font(.caption.weight(.semibold))
-                    .lineLimit(1)
+                    .lineLimit(stacked ? nil : 1)
                     .labelStyle(CompactLabelStyle(iconOnly: iconOnly))
             }
             .buttonStyle(.plain)
             .foregroundStyle(meal.slot.tint)
             .accessibilityLabel("Décrire ce que j'ai mangé")
-            .fixedSize()
+            .fixedSize(horizontal: !stacked, vertical: true)
             if !recent.isEmpty {
                 Menu {
                     ForEach(recent, id: \.meal.title) { item in
@@ -232,12 +243,12 @@ extension MealRow {
                 } label: {
                     Label("Reprendre", systemImage: "arrow.counterclockwise")
                         .font(.caption.weight(.semibold))
-                        .lineLimit(1)
+                        .lineLimit(stacked ? nil : 1)
                         .labelStyle(CompactLabelStyle(iconOnly: iconOnly))
                 }
                 .foregroundStyle(meal.slot.tint)
                 .accessibilityLabel("Reprendre un repas récent")
-                .fixedSize()
+                .fixedSize(horizontal: !stacked, vertical: true)
             }
             Menu {
                 ForEach([MealIntake.skipped, .light, .hearty, .veryHearty], id: \.self) { intake in
