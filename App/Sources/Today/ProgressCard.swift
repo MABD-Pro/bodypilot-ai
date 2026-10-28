@@ -38,7 +38,8 @@ struct ProgressCard: View {
     let dismissCheckIn: () -> Void
     let connectHealth: () -> Void
     let disconnectHealth: () -> Void
-    let showHistory: () -> Void
+    /// Historique, ouvert sur ce qui a été touché : le poids, le tour de taille, un record…
+    let showHistory: (HistoryView.Focus) -> Void
 
     var body: some View {
         CoachCard(eyebrow: "Progresser", symbol: "chart.line.downtrend.xyaxis", tint: Theme.progress) {
@@ -48,16 +49,20 @@ struct ProgressCard: View {
                 : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
             header {
                 if let current = trend.currentTrendKg {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(current.frenchOneDecimal)
-                            .font(.display(44))
-                            .monospacedDigit()
-                            .lineLimit(1)
-                            .contentTransition(.numericText(value: current))
-                        Text("kg")
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                    Button { showHistory(.measure(.weight)) } label: {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(current.frenchOneDecimal)
+                                .font(.display(44))
+                                .monospacedDigit()
+                                .lineLimit(1)
+                                .contentTransition(.numericText(value: current))
+                            Text("kg")
+                                .font(.title3.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Voir l'historique des pesées")
                 } else {
                     Text("Première pesée")
                         .font(.display(28))
@@ -97,7 +102,7 @@ struct ProgressCard: View {
 
             healthRow
 
-            Button(action: showHistory) {
+            Button { showHistory(.section(.measures)) } label: {
                 Label("Historique : mesures, force, séances, repas", systemImage: "clock.arrow.circlepath")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -164,29 +169,36 @@ struct ProgressCard: View {
     /// Tour de taille : en recomposition, c'est lui qui montre que le gras part quand le poids stagne.
     private var waistRow: some View {
         HStack(spacing: Theme.Spacing.m) {
-            IconBadge(symbol: "ruler", tint: Theme.progress, size: 36)
-            VStack(alignment: .leading, spacing: 2) {
-                if let waistCm {
-                    Text("Tour de taille \(waistCm.frenchOneDecimal) cm")
-                        .font(.subheadline.weight(.semibold))
-                    if let waistChange {
-                        Text("\(waistChange > 0 ? "+" : "")\(waistChange.frenchOneDecimal) cm en 4 semaines")
-                            .font(.footnote)
-                            .foregroundStyle(waistChange < 0 ? Theme.progress : .secondary)
-                    } else {
-                        Text("Une mesure par semaine suffit.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+            // Sans mesure, la rangée ouvre la saisie ; ensuite, l'historique du tour de taille.
+            Button { waistCm == nil ? addWaist() : showHistory(.measure(.waist)) } label: {
+                HStack(spacing: Theme.Spacing.m) {
+                    IconBadge(symbol: "ruler", tint: Theme.progress, size: 36)
+                    VStack(alignment: .leading, spacing: 2) {
+                        if let waistCm {
+                            Text("Tour de taille \(waistCm.frenchOneDecimal) cm")
+                                .font(.subheadline.weight(.semibold))
+                            if let waistChange {
+                                Text("\(waistChange > 0 ? "+" : "")\(waistChange.frenchOneDecimal) cm en 4 semaines")
+                                    .font(.footnote)
+                                    .foregroundStyle(waistChange < 0 ? Theme.progress : .secondary)
+                            } else {
+                                Text("Une mesure par semaine suffit.")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } else {
+                            Text("Mesure ton tour de taille")
+                                .font(.subheadline.weight(.semibold))
+                            Text("Au nombril, le matin. Il montre le gras perdu quand le poids bouge peu.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
-                } else {
-                    Text("Mesure ton tour de taille")
-                        .font(.subheadline.weight(.semibold))
-                    Text("Au nombril, le matin. Il montre le gras perdu quand le poids bouge peu.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .contentShape(.rect)
             }
+            .buttonStyle(.plain)
             Spacer(minLength: 0)
             Button(action: addWaist) {
                 Image(systemName: "plus")
@@ -229,6 +241,10 @@ struct ProgressCard: View {
         }
         .padding(Theme.Spacing.m)
         .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+        .contentShape(.rect)
+        .onTapGesture { showHistory(.measure(.fat)) }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Voir l'historique du taux de gras")
     }
 
     private func compositionLine(title: String, change: String?, good: Bool) -> some View {
@@ -249,16 +265,23 @@ struct ProgressCard: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Theme.carbs)
             ForEach(records.prefix(4), id: \.entry.exercise) { record in
-                HStack {
-                    Text(record.entry.exercise)
-                        .font(.subheadline)
-                    Spacer(minLength: Theme.Spacing.s)
-                    Text(StrengthProgress.label(record.entry))
-                        .font(.subheadline.weight(.semibold))
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .fixedSize()
+                Button { showHistory(.exercise(record.entry.exercise)) } label: {
+                    HStack {
+                        Text(record.entry.exercise)
+                            .font(.subheadline)
+                        Spacer(minLength: Theme.Spacing.s)
+                        Text(StrengthProgress.label(record.entry))
+                            .font(.subheadline.weight(.semibold))
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .fixedSize()
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(.rect)
                 }
+                .buttonStyle(.plain)
             }
         }
         .padding(Theme.Spacing.m)

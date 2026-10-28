@@ -52,6 +52,7 @@ struct TrainingCard: View {
     /// Séance retouchée pour la journée.
     var edits = SessionEdits()
     var editSession: (SessionEdits) -> Void = { _ in }
+    var showHistory: (() -> Void)?
 
     @State private var isPreviewingWatch = false
     @State private var isLoggingCardioTest = false
@@ -59,6 +60,7 @@ struct TrainingCard: View {
     @State private var logging: LiftToLog?
     /// Fiche d'un atelier ou d'un exercice sans série à noter (traîneau, SkiErg…).
     @State private var station: StationItem?
+    @State private var warmup: WarmupItem?
     @State private var celebration: String?
     /// Mode retouche : une touche sur un exercice ouvre ses séries, « Ajouter » en propose d'autres.
     @State private var isEditing = false
@@ -67,7 +69,7 @@ struct TrainingCard: View {
     private let calendar = Calendar.current
 
     var body: some View {
-        CoachCard(eyebrow: "Bouger", symbol: "figure.strengthtraining.functional", tint: Theme.training) {
+        CoachCard(eyebrow: "Bouger", symbol: "figure.strengthtraining.functional", tint: Theme.training, history: showHistory) {
             if cycleWeek != nil || canStartCycle {
                 cycleRow
             }
@@ -128,7 +130,12 @@ struct TrainingCard: View {
 
             VStack(spacing: 0) {
                 if workout.warmupMinutes > 0 {
-                    ExerciseRow(index: 0, name: "Échauffement", detail: "\(workout.warmupMinutes) min", isWarmup: true)
+                    ExerciseRow(
+                        index: 0, name: "Échauffement", detail: "\(workout.warmupMinutes) min", isWarmup: true,
+                        caption: ExerciseRow.Caption(text: "Voir les étapes", symbol: "list.bullet", tint: .secondary),
+                        log: { warmup = WarmupItem(title: "Échauffement", minutes: workout.warmupMinutes, plan: warmupPlan(workout)) },
+                        logHint: "Voir l'échauffement"
+                    )
                 }
                 ForEach(Array(workout.exercises.enumerated()), id: \.offset) { index, exercise in
                     let toLog = liftToLog(exercise, isTest: workout.isStrengthTest)
@@ -152,7 +159,18 @@ struct TrainingCard: View {
                     addExerciseMenu(workout)
                 }
                 if workout.cooldownMinutes >= 5 {
-                    ExerciseRow(index: workout.exercises.count + 1, name: "Retour au calme", detail: "\(workout.cooldownMinutes) min", isWarmup: true, warmupSymbol: "wind")
+                    ExerciseRow(
+                        index: workout.exercises.count + 1, name: "Retour au calme", detail: "\(workout.cooldownMinutes) min", isWarmup: true,
+                        caption: ExerciseRow.Caption(text: "Voir les étapes", symbol: "list.bullet", tint: .secondary),
+                        log: {
+                            warmup = WarmupItem(
+                                title: "Retour au calme", minutes: workout.cooldownMinutes,
+                                plan: WarmupPlanner.cooldown(for: workout, atGym: usesLoads)
+                            )
+                        },
+                        logHint: "Voir le retour au calme",
+                        warmupSymbol: "wind"
+                    )
                 }
             }
             .sheet(item: $logging) { item in
@@ -176,6 +194,10 @@ struct TrainingCard: View {
                         editSession(next)
                     }
                 )
+            }
+            .sheet(item: $warmup) { item in
+                WarmupSheet(item: item)
+                    .id(item.id)
             }
             .sheet(item: $station) { item in
                 StationSheet(exercise: item.id)
@@ -445,6 +467,18 @@ struct TrainingCard: View {
         .foregroundStyle(Theme.training)
     }
 
+    /// Échauffement de la séance : les séries de montée visent la première charge du premier exercice lourd.
+    private func warmupPlan(_ workout: Workout) -> WarmupPlan {
+        let firstLift: (name: String, kg: Double)? = usesLoads
+            ? workout.exercises.lazy.compactMap { exercise -> (name: String, kg: Double)? in
+                guard let item = liftToLog(exercise, isTest: false),
+                      let kg = item.wave.first?.kg ?? item.target?.kg ?? item.startingKg else { return nil }
+                return (exercise.name, kg)
+            }.first
+            : nil
+        return WarmupPlanner.warmup(for: workout, atGym: usesLoads, firstLift: firstLift)
+    }
+
     /// Ouvre la fiche quand l'exercice en a une (ateliers Hyrox, traîneau…).
     private func stationAction(_ name: String) -> (() -> Void)? {
         guard ExerciseGuide.guide(for: name) != nil else { return nil }
@@ -493,7 +527,8 @@ struct TrainingCard: View {
             waveEndsWithMax: exercise.wave.last?.isPlus == true,
             backoffSets: exercise.backoffSets,
             loadShift: shift,
-            shiftStep: guide?.barbell == true ? 2.5 : StrengthProgress.loadStep(for: wave.last?.kg ?? target?.kg ?? startingKg ?? 20)
+            shiftStep: guide?.barbell == true ? 2.5 : StrengthProgress.loadStep(for: wave.last?.kg ?? target?.kg ?? startingKg ?? 20),
+            history: lifts.filter { $0.exercise == exercise.name }.sorted { $0.date > $1.date }
         )
     }
 
@@ -1009,6 +1044,73 @@ private struct StationSheet: View {
     }
 }
 
+struct WarmupItem: Identifiable {
+    let title: String
+    let minutes: Int
+    let plan: WarmupPlan
+    var id: String { title }
+}
+
+/// Échauffement ou retour au calme, étape par étape.
+private struct WarmupSheet: View {
+    let item: WarmupItem
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.Spacing.l) {
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                    Text(item.title)
+                        .font(.display(28))
+                    Text("Environ \(item.minutes) min")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(Array(item.plan.blocks.enumerated()), id: \.element.id) { index, block in
+                    VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                        Text("\(index + 1). \(block.title)")
+                            .font(.footnote.weight(.semibold))
+                            .textCase(.uppercase)
+                            .kerning(0.6)
+                            .foregroundStyle(Theme.carbs)
+                        ForEach(block.steps) { step in
+                            HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.m) {
+                                Image(systemName: symbol(step.kind))
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(Theme.carbs)
+                                    .frame(width: 20)
+                                Text(step.title)
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer(minLength: Theme.Spacing.s)
+                                Text(step.detail)
+                                    .font(.subheadline.weight(.semibold))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.trailing)
+                            }
+                            .padding(Theme.Spacing.m)
+                            .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+                        }
+                    }
+                }
+                ForEach(item.plan.notes, id: \.self) { note in
+                    CoachNote(text: note, tint: Theme.carbs)
+                }
+            }
+            .padding(Theme.Spacing.xxl)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .presentationDetents([.medium, .large])
+    }
+
+    private func symbol(_ kind: WarmupStep.Kind) -> String {
+        switch kind {
+        case .pulse: "heart.fill"
+        case .mobility: "figure.flexibility"
+        case .ramp: "scalemass.fill"
+        }
+    }
+}
+
 /// Exercices à ajouter à la séance : la force, puis les ateliers, avec une recherche.
 private struct AddExerciseSheet: View {
     /// Déjà dans la séance : pas proposés.
@@ -1173,13 +1275,15 @@ struct LiftToLog: Identifiable {
     /// Décalage des paliers déjà appliqué aujourd'hui, et le pas d'un réglage.
     var loadShift = 0.0
     var shiftStep = 2.5
+    /// Séries déjà notées pour cet exercice, de la plus récente à la plus ancienne.
+    var history: [LiftEntry] = []
     var id: String { exercise }
 }
 
 /// Meilleure série en deux touches : charge et répétitions partent de l'objectif du jour.
 /// Onglets de la fiche d'un exercice : la série à noter, la technique, la démonstration.
 enum ExerciseTab: Hashable {
-    case log, technique, video
+    case log, technique, video, history
 }
 
 private struct LiftEntrySheet: View {
@@ -1240,6 +1344,7 @@ private struct LiftEntrySheet: View {
                     Text("Technique").tag(ExerciseTab.technique)
                 }
                 Text("Vidéo").tag(ExerciseTab.video)
+                Text("Historique").tag(ExerciseTab.history)
             }
             .pickerStyle(.segmented)
 
@@ -1252,9 +1357,43 @@ private struct LiftEntrySheet: View {
                 }
             case .video:
                 ExerciseSheetParts.video(for: item.exercise)
+            case .history:
+                historyTab
             }
         }
         .padding(Theme.Spacing.xxl)
+    }
+
+    /// Toutes les séries notées de l'exercice : le record en tête, puis séance par séance.
+    @ViewBuilder
+    private var historyTab: some View {
+        if item.history.isEmpty {
+            Text("Aucune série notée pour l'instant. Note ta meilleure série du jour dans « Série » : elle apparaîtra ici.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        } else {
+            let record = StrengthProgress.record(for: item.exercise, in: item.history)
+            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                if let record {
+                    Label("Record : \(StrengthProgress.label(record.entry))", systemImage: "trophy.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.carbs)
+                }
+                ForEach(item.history, id: \.date) { entry in
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(entry.date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).locale(Theme.locale)))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Spacer(minLength: Theme.Spacing.s)
+                        Text(StrengthProgress.label(entry) + (entry.isTest ? " · test" : ""))
+                            .font(.subheadline.weight(.semibold))
+                            .monospacedDigit()
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     private var logTab: some View {

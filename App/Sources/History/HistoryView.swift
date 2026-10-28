@@ -15,41 +15,132 @@ struct HistoryView: View {
         var id: String { rawValue }
     }
 
+    /// Une mesure de la page « Mesures » : toutes sont sur la même page, l'historique
+    /// s'ouvre sur celle qui a été touchée.
+    enum Measure: String, CaseIterable, Identifiable {
+        case weight = "Poids"
+        case waist = "Tour de taille"
+        case fat = "Taux de gras"
+        case lean = "Masse maigre"
+        var id: String { rawValue }
+
+        var unit: String {
+            switch self {
+            case .weight, .lean: "kg"
+            case .waist: "cm"
+            case .fat: "%"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .weight: "scalemass.fill"
+            case .waist: "ruler"
+            case .fat: "drop.fill"
+            case .lean: "figure.strengthtraining.traditional"
+            }
+        }
+    }
+
+    /// Ce que l'historique montre en s'ouvrant : une partie, ou un seul élément (une mesure,
+    /// un exercice, un repas) touché sur l'écran Aujourd'hui.
+    enum Focus: Equatable {
+        case section(Section)
+        case measure(Measure)
+        case exercise(String)
+        case meal(MealSlot)
+
+        var section: Section {
+            switch self {
+            case .section(let section): section
+            case .measure: .measures
+            case .exercise: .strength
+            case .meal: .meals
+            }
+        }
+    }
+
     /// Entraînements et composition corporelle lus dans Santé par l'écran Aujourd'hui.
     var healthActivities: [ActivitySample] = []
     var compositions: [BodyCompositionEntry] = []
+    /// Partie et élément ouverts au départ : ceux touchés sur l'écran Aujourd'hui.
+    var focus: Focus = .section(.measures)
 
     @Query(sort: \WeightRecord.date, order: .reverse) private var weights: [WeightRecord]
     @Query(sort: \WaistRecord.date, order: .reverse) private var waists: [WaistRecord]
     @Query(sort: \LiftRecord.day, order: .reverse) private var lifts: [LiftRecord]
     @Query(sort: \DayLogRecord.day, order: .reverse) private var dayLogs: [DayLogRecord]
-    @State private var section: Section = LaunchOptions.demoHistory.flatMap(Section.init(rawValue:)) ?? .measures
-    @State private var exercise: String?
+    /// `nil` tant que l'utilisateur n'a pas changé de partie.
+    @State private var chosenSection: Section?
+    @State private var chosenExercise: String?
+    /// `nil` dans le menu : tous les repas.
+    @State private var chosenSlot: MealSlot??
 
     private let calendar = Calendar.current
 
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                Picker("Historique", selection: $section) {
-                    ForEach(Section.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
+    private var section: Section {
+        chosenSection ?? LaunchOptions.demoHistory.flatMap(Section.init(rawValue:)) ?? focus.section
+    }
 
-                Group {
-                    switch section {
-                    case .measures: measures
-                    case .strength: strength
-                    case .sessions: sessions
-                    case .meals: meals
-                    }
+    private var exercise: String? {
+        if let chosenExercise { return chosenExercise }
+        if case .exercise(let name) = focus { return name }
+        return nil
+    }
+
+    private var slot: MealSlot? {
+        if let chosenSlot { return chosenSlot }
+        if case .meal(let slot) = focus { return slot }
+        return nil
+    }
+
+    /// Menu de filtre d'une partie, dans la couleur de la partie.
+    private func filterMenu<Value: Hashable>(
+        _ title: String, selection: Value, options: [(value: Value, label: String)], tint: Color, choose: @escaping @MainActor (Value) -> Void
+    ) -> some View {
+        Menu {
+            Picker(title, selection: Binding(get: { selection }, set: choose)) {
+                ForEach(options.indices, id: \.self) { index in
+                    Text(options[index].label).tag(options[index].value)
                 }
-                .id(section)
-                .transition(.opacity)
             }
-            .padding(.horizontal, Theme.Spacing.l)
-            .padding(.bottom, Theme.Spacing.xxl)
-            .animation(Theme.springy, value: section)
+        } label: {
+            Label(options.first { $0.value == selection }?.label ?? title, systemImage: "chevron.up.chevron.down")
+                .font(.headline)
+                .foregroundStyle(tint)
+        }
+    }
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                    Picker("Historique", selection: Binding(get: { section }, set: { chosenSection = $0 })) {
+                        ForEach(Section.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Group {
+                        switch section {
+                        case .measures: measures
+                        case .strength: strength
+                        case .sessions: sessions
+                        case .meals: meals
+                        }
+                    }
+                    .id(section)
+                    .transition(.opacity)
+                }
+                .padding(.horizontal, Theme.Spacing.l)
+                .padding(.bottom, Theme.Spacing.xxl)
+                .animation(Theme.springy, value: section)
+            }
+            .task {
+                // Ouvert depuis une mesure : la page défile jusqu'à sa courbe.
+                guard case .measure(let measure) = focus else { return }
+                try? await Task.sleep(for: .milliseconds(250))
+                withAnimation(Theme.springy) { proxy.scrollTo(measure, anchor: .top) }
+            }
         }
         .background { AppBackground() }
         .navigationTitle("Historique")
@@ -66,6 +157,7 @@ struct HistoryView: View {
         var waistCm: Double?
         var scanCm: Double?
         var fat: Double?
+        var leanKg: Double?
     }
 
     /// Pesées, tour de taille et composition, regroupés par jour.
@@ -81,38 +173,81 @@ struct HistoryView: View {
         for waist in waists where !waist.isScan { update(waist.date) { if $0.waistCm == nil { $0.waistCm = waist.cm } } }
         for scan in scans { update(scan.date) { if $0.scanCm == nil { $0.scanCm = scan.cm } } }
         for entry in compositions {
-            guard let fat = entry.fatPercent else { continue }
-            update(entry.date) { $0.fat = fat }
+            update(entry.date) {
+                if let fat = entry.fatPercent { $0.fat = fat }
+                if let lean = entry.leanKg { $0.leanKg = lean }
+            }
         }
-        return byDay.values.sorted { $0.day > $1.day }
+        return byDay.values
+            .filter { $0.kg != nil || $0.waistCm != nil || $0.scanCm != nil || $0.fat != nil || $0.leanKg != nil }
+            .sorted { $0.day > $1.day }
+    }
+
+    /// Une courbe par mesure, sur la même page : poids, tour de taille, taux de gras, masse maigre.
+    private func measureSeries(_ measure: Measure) -> [(date: Date, value: Double)] {
+        switch measure {
+        case .weight: weights.map { (date: $0.date, value: $0.kg) }
+        case .waist: waists.filter { !$0.isScan }.map { (date: $0.date, value: $0.cm) }
+        case .fat: compositions.compactMap { entry in entry.fatPercent.map { (date: entry.date, value: $0) } }
+        case .lean: compositions.compactMap { entry in entry.leanKg.map { (date: entry.date, value: $0) } }
+        }
     }
 
     @ViewBuilder
     private var measures: some View {
         let days = measureDays
         if days.isEmpty {
-            empty("Aucune mesure pour l'instant", detail: "Tes pesées, ton tour de taille et ton taux de gras apparaîtront ici.")
+            empty("Aucune mesure pour l'instant", detail: "Tes pesées, ton tour de taille et ta composition (Santé) apparaîtront ici.")
         } else {
-            if weights.count >= 2 {
-                historyCard(title: "Poids", symbol: "scalemass.fill", tint: Theme.progress) {
-                    Chart(weights, id: \.date) { weight in
-                        LineMark(x: .value("Jour", weight.date), y: .value("Poids", weight.kg))
-                            .interpolationMethod(.catmullRom)
-                            .foregroundStyle(Theme.progress)
+            ForEach(Measure.allCases) { measure in
+                let points = measureSeries(measure).sorted { $0.date < $1.date }
+                if let last = points.last {
+                    historyCard(title: measure.rawValue, symbol: measure.symbol, tint: Theme.progress) {
+                        HStack(alignment: .firstTextBaseline) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(last.value.frenchOneDecimal) \(measure.unit)")
+                                    .font(.display(28))
+                                    .monospacedDigit()
+                                // Mesure brute du jour : Progresser montre une tendance lissée, qui peut différer.
+                                Text("Dernière mesure, \(dayLabel(last.date).lowercased())")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if let first = points.first, points.count >= 2 {
+                                let change = last.value - first.value
+                                // Un taux varie en points, pas en pour cent.
+                                let unit = measure == .fat ? (abs(change) >= 2 ? "points" : "point") : measure.unit
+                                Text("\(change.frenchSignedOneDecimal) \(unit) depuis le \(first.date.formatted(.dateTime.day().month(.abbreviated).locale(Theme.locale)))")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.trailing)
+                            }
+                        }
+                        if points.count >= 2 {
+                            Chart(points, id: \.date) { point in
+                                LineMark(x: .value("Jour", point.date), y: .value(measure.rawValue, point.value))
+                                    .interpolationMethod(.catmullRom)
+                                    .foregroundStyle(Theme.progress)
+                            }
+                            .chartYScale(domain: .automatic(includesZero: false))
+                            .frame(height: 120)
+                        }
                     }
-                    .chartYScale(domain: .automatic(includesZero: false))
-                    .frame(height: 140)
+                    .id(measure)
                 }
             }
             if !scans.isEmpty { scanComparison }
             historyCard(title: "Jour par jour", symbol: "calendar", tint: Theme.progress) {
                 ForEach(days, id: \.day) { day in
+                    // Espaces insécables : une ligne trop longue passe à la ligne entre deux valeurs, pas au milieu.
                     row(date: day.day, value: [
-                        day.kg.map { "\($0.frenchOneDecimal) kg" },
-                        day.waistCm.map { "taille \($0.frenchOneDecimal) cm" },
-                        day.scanCm.map { "scan \($0.frenchOneDecimal) cm" },
-                        day.fat.map { "gras \($0.frenchOneDecimal) %" },
-                    ].compactMap { $0 }.joined(separator: " · "))
+                        day.kg.map { "\($0.frenchOneDecimal)\u{00A0}kg" },
+                        day.waistCm.map { "taille\u{00A0}\($0.frenchOneDecimal)\u{00A0}cm" },
+                        day.scanCm.map { "scan\u{00A0}\($0.frenchOneDecimal)\u{00A0}cm" },
+                        day.fat.map { "gras\u{00A0}\($0.frenchOneDecimal)\u{00A0}%" },
+                        day.leanKg.map { "maigre\u{00A0}\($0.frenchOneDecimal)\u{00A0}kg" },
+                    ].compactMap { $0 }.joined(separator: "\u{00A0}· "))
                 }
             }
         }
@@ -148,14 +283,8 @@ struct HistoryView: View {
         } else {
             let selected = exercise.flatMap { names.contains($0) ? $0 : nil } ?? names[0]
             let sets = lifts.filter { $0.exercise == selected }
-            Menu {
-                Picker("Exercice", selection: Binding(get: { selected }, set: { exercise = $0 })) {
-                    ForEach(names, id: \.self) { Text($0).tag($0) }
-                }
-            } label: {
-                Label(selected, systemImage: "chevron.up.chevron.down")
-                    .font(.headline)
-                    .foregroundStyle(Theme.training)
+            filterMenu("Exercice", selection: selected, options: names.map { (value: $0, label: $0) }, tint: Theme.training) {
+                chosenExercise = $0
             }
             let weighted = sets.filter { ($0.kg ?? 0) > 0 }
             if weighted.count >= 2 {
@@ -228,7 +357,11 @@ struct HistoryView: View {
 
     @ViewBuilder
     private var meals: some View {
-        let days = dayLogs.filter { !$0.mealIntakes.isEmpty || !$0.describedMeals.isEmpty }
+        let slots = slot.map { [$0] } ?? MealSlot.allCases
+        let days = dayLogs.filter { log in slots.contains { mealText(log, $0) != nil } }
+        let options: [(value: MealSlot?, label: String)] = [(value: nil, label: "Tous les repas")]
+            + MealSlot.allCases.map { (value: Optional($0), label: $0.title) }
+        filterMenu("Repas", selection: slot, options: options, tint: Theme.nutrition) { chosenSlot = .some($0) }
         if days.isEmpty {
             empty("Aucun repas noté", detail: "Les repas pris d'une touche ou décrits apparaîtront ici.")
         } else {
@@ -238,7 +371,7 @@ struct HistoryView: View {
                         Text(dayLabel(log.day))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
-                        ForEach(MealSlot.allCases, id: \.self) { slot in
+                        ForEach(slots, id: \.self) { slot in
                             if let text = mealText(log, slot) {
                                 HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
                                     Image(systemName: slot.symbol)

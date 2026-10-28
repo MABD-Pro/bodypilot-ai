@@ -13,12 +13,14 @@ struct NutritionCard: View {
     /// Repas décrits ces 7 derniers jours, à reprendre d'une touche.
     var recent: (MealSlot) -> [RecentMeal] = { _ in [] }
     var reuse: (MealSlot, DescribedMeal) -> Void = { _, _ in }
+    /// Historique des repas : tous (`nil`), ou ceux d'un moment de la journée.
+    var showHistory: ((MealSlot?) -> Void)?
 
     @State private var expanded: MealSlot?
     @State private var showsRationale = false
 
     var body: some View {
-        CoachCard(eyebrow: "Manger", symbol: "fork.knife", tint: Theme.nutrition) {
+        CoachCard(eyebrow: "Manger", symbol: "fork.knife", tint: Theme.nutrition, history: showHistory.map { show in { show(nil) } }) {
             HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.xs) {
                 Text(targets.macros.kcal.frenchInteger)
                     .font(.display(44))
@@ -78,7 +80,8 @@ struct NutritionCard: View {
                         log: { logIntake(meal.slot, $0) },
                         describe: { describe(meal.slot) },
                         recent: recent(meal.slot),
-                        reuse: { reuse(meal.slot, $0) }
+                        reuse: { reuse(meal.slot, $0) },
+                        showHistory: showHistory.map { show in { show(meal.slot) } }
                     )
                 }
             }
@@ -109,6 +112,7 @@ private struct MealRow: View {
     let describe: () -> Void
     let recent: [RecentMeal]
     let reuse: (DescribedMeal) -> Void
+    var showHistory: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
@@ -195,6 +199,15 @@ private struct MealRow: View {
                         .padding(.top, 2)
                     if let described = meal.described {
                         improvements(for: described)
+                    }
+                    if let showHistory {
+                        Button(action: showHistory) {
+                            Label("Historique : \(meal.slot.title.lowercased())", systemImage: "clock.arrow.circlepath")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(meal.slot.tint)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 2)
                     }
                 }
                 .padding(.leading, dynamicTypeSize.isAccessibilitySize ? 0 : 50)
