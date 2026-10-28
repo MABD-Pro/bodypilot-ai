@@ -39,6 +39,14 @@ private func workout(_ day: TrainingDay) -> Workout? {
     #expect(notes.first?.hasPrefix("Cycle CrossFit · semaine 8 sur 12 (allégée)") == true)
 }
 
+@Test func deloadWeekIsShorterNotMoreCardio() {
+    let profile = makeProfile(sessionMinutes: 45, equipment: .gym)
+    let normal = planner.trainingDay(for: profile, on: monday, constraints: DayConstraints(cycleWeek: CycleWeek(program: .crossfit, number: 3)))
+    let deload = planner.trainingDay(for: profile, on: monday, constraints: DayConstraints(cycleWeek: CycleWeek(program: .crossfit, number: 4)))
+    #expect(deload.estimatedMinutes <= 31)
+    #expect(deload.estimatedMinutes < normal.estimatedMinutes)
+}
+
 @Test func cycleWithoutLoadsKeepsBodyweightTargets() throws {
     let week = DayConstraints(cycleWeek: CycleWeek(program: .crossfit, number: 1))
     let session = try #require(workout(planner.trainingDay(for: makeProfile(sessionMinutes: 120), on: monday, constraints: week)))

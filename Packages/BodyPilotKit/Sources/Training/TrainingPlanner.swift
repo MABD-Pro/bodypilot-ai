@@ -164,8 +164,12 @@ public struct TrainingPlanner: TrainingPlanning {
             if let week = constraints.cycleWeek {
                 strength = StrengthCycle.apply(week, to: strength, usesLoads: profile.equipment == .gym)
             }
-            let composed = budget >= Self.threeAxisMinutes ? withConditioning(strength, budget: budget, equipment: profile.equipment, on: date) : strength
-            var day = adapt(composed, budget: budget, constraints: constraints)
+            // Semaine allégée du cycle : séance plus courte, plutôt que plus de cardio.
+            let sessionBudget = constraints.cycleWeek?.isDeload == true
+                ? max(Int(Double(budget) * StrengthCycle.deloadTimeShare), min(budget, Self.threeAxisMinutes))
+                : budget
+            let composed = sessionBudget >= Self.threeAxisMinutes ? withConditioning(strength, budget: sessionBudget, equipment: profile.equipment, on: date) : strength
+            var day = adapt(composed, budget: sessionBudget, constraints: constraints)
             if let postponed = postponedTest(for: profile, constraints: constraints) {
                 day.notes.insert(postponed, at: 0)
             }

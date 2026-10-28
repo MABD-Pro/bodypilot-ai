@@ -43,6 +43,7 @@ struct CycleSheet: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             weekTable
+            phases
             Text("Le coach du jour garde la main : fatigue, nuit courte ou genou sensible allègent la séance. Les charges partent de ton max, recalculé à chaque série notée.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -74,10 +75,11 @@ struct CycleSheet: View {
             }
             ProgressView(value: Double(week.number), total: Double(TrainingCycle.weeks))
                 .tint(Theme.training)
-            Text("Cette semaine : \(plan.sets) × \(plan.reps) à environ \(Int((plan.percentOfMax * 100).rounded())) % de ton max sur les mouvements principaux, \(plan.repsInReserve) répétitions en réserve.")
+            Text("Cette semaine : \(plan.sets) × \(plan.reps) à environ \(Int((plan.percentOfMax * 100).rounded())) % de ton max sur les mouvements principaux, \(plan.repsInReserve) répétition\(plan.repsInReserve > 1 ? "s" : "") en réserve.")
                 .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
             weekTable
+            phases
             Button("Arrêter le cycle", role: .destructive) {
                 profile.cycle = nil
                 try? context.save()
@@ -105,5 +107,13 @@ struct CycleSheet: View {
         }
         .padding(Theme.Spacing.m)
         .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+            }
+
+    /// Les 3 phases, qui reprennent ces 4 semaines avec des charges recalculées.
+    private var phases: some View {
+        Text("Phase 1, base : semaines 1 à 4 · phase 2, puissance : 5 à 8 · phase 3, conditioning : 9 à 12. Chaque phase reprend ces 4 semaines, avec des charges recalculées sur ton max.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }

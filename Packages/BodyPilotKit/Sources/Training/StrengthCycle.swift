@@ -22,6 +22,8 @@ public enum StrengthCycle {
 
     /// Exercices secondaires : 3 séries, une de moins en semaine allégée.
     static let accessorySets = 3
+    /// Semaine allégée : la séance raccourcit, le temps gagné ne part pas en cardio.
+    public static let deloadTimeShare = 0.7
 
     /// Séries, répétitions et charge des mouvements principaux selon la semaine ; avec des
     /// charges (salle), la charge visée devient un pourcentage du max estimé.
@@ -37,11 +39,13 @@ public enum StrengthCycle {
                 adjusted.percentOfMax = usesLoads ? plan.percentOfMax : nil
             } else {
                 adjusted.sets = week.isDeload ? accessorySets - 1 : accessorySets
+                // Semaine allégée : les secondaires s'allègent aussi, à la même part du max.
+                if week.isDeload, usesLoads { adjusted.percentOfMax = plan.percentOfMax }
             }
             return adjusted
         }
         let load = usesLoads ? " à environ \(Int((plan.percentOfMax * 100).rounded())) % de ton max" : ""
-        result.intensityCue = "Mouvements principaux : \(plan.sets) × \(plan.reps)\(load), \(plan.repsInReserve) répétitions en réserve."
+        result.intensityCue = "Mouvements principaux : \(plan.sets) × \(plan.reps)\(load), \(plan.repsInReserve) répétition\(plan.repsInReserve > 1 ? "s" : "") en réserve."
         return result
     }
 
