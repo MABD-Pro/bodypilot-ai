@@ -23,6 +23,7 @@ struct TodayView: View {
     @State private var describing: MealToDescribe?
     @State private var isAddingWeight = false
     @State private var isEditingProfile = false
+    @State private var isManagingData = false
     @State private var isManagingCycle = false
     @State private var isShowingHistory = LaunchOptions.demoHistory != nil
     /// Ce que l'historique montre en s'ouvrant : la partie ou l'élément touché.
@@ -211,8 +212,9 @@ struct TodayView: View {
             .background { AppBackground() }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Mon profil", systemImage: "person.crop.circle") {
-                        isEditingProfile = true
+                    Menu("Mon profil", systemImage: "person.crop.circle") {
+                        Button("Mon profil", systemImage: "person") { isEditingProfile = true }
+                        Button("Mes données", systemImage: "externaldrive") { isManagingData = true }
                     }
                 }
             }
@@ -253,6 +255,9 @@ struct TodayView: View {
             }
             .sheet(isPresented: $isManagingCycle) {
                 CycleSheet(profile: profileRecord)
+            }
+            .sheet(isPresented: $isManagingData) {
+                DataBackupSheet()
             }
             .sheet(isPresented: $isEditingProfile) {
                 OnboardingView(editing: profileRecord, currentWeightKg: weights.last?.kg)

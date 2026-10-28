@@ -42,6 +42,11 @@ final class ProfileRecord {
         update(from: profile)
     }
 
+    /// Profil relu d'une sauvegarde : ses champs sont remplis un à un.
+    init(entityID: UUID) {
+        self.entityID = entityID
+    }
+
     func update(from profile: UserProfile) {
         sexRaw = profile.sex.rawValue
         birthDate = profile.birthDate
