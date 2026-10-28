@@ -24,7 +24,9 @@ private let base = Workout(
     #expect(edited.exercises[1].sets == 4 && edited.exercises[1].volume == .seconds(90))
     #expect(edited.exercises[2].volume == .reps(10))
     #expect(edited.exercises[3].volume == .seconds(60) && edited.exercises[3].priority == 4)
-    #expect(edited.estimatedMinutes != base.estimatedMinutes)
+    // Deux séries de squat de plus (repos 3 min) allongent la séance.
+    let longer = SessionEdits(volumes: ["Squat à la barre": .init(sets: 6, reps: 6)]).apply(to: base)
+    #expect(longer.estimatedMinutes > base.estimatedMinutes)
 }
 
 @Test func waveKeepsItsSetsAndOnlyBackoffChanges() {
