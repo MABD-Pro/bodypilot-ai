@@ -1055,8 +1055,9 @@ extension WorkoutExercise {
         case .seconds(let seconds) where sets == 1 && seconds >= 120: "\(Int((Double(seconds) / 60).rounded())) min"
         // Fractionné : effort puis récupération.
         case .seconds(let seconds) where isConditioning && restSeconds > 0: "\(sets) × \(Self.duration(seconds)) / \(Self.duration(restSeconds))"
-        // Tours enchaînés sans pause (WOD au chrono) : la durée totale n'est qu'un ordre d'idée.
-        case .seconds(let seconds) where isConditioning && sets > 1: "\(sets) tours, environ \(Self.duration(sets * seconds))"
+        // Tours enchaînés sans pause (WOD au chrono) : la durée n'est qu'un ordre d'idée, déjà
+        // dans la durée de la séance ; un volume court laisse la place au contenu du tour.
+        case .seconds where isConditioning && sets > 1: "\(sets) tours"
         case .seconds(let seconds): "\(sets) × \(Self.duration(seconds))"
         }
     }
