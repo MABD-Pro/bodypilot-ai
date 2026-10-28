@@ -15,13 +15,31 @@ struct HistoryView: View {
         var id: String { rawValue }
     }
 
-    /// Mesure affichée dans « Mesures ».
+    /// Une mesure de la page « Mesures » : toutes sont sur la même page, l'historique
+    /// s'ouvre sur celle qui a été touchée.
     enum Measure: String, CaseIterable, Identifiable {
-        case all = "Toutes les mesures"
         case weight = "Poids"
         case waist = "Tour de taille"
         case fat = "Taux de gras"
+        case lean = "Masse maigre"
         var id: String { rawValue }
+
+        var unit: String {
+            switch self {
+            case .weight, .lean: "kg"
+            case .waist: "cm"
+            case .fat: "%"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .weight: "scalemass.fill"
+            case .waist: "ruler"
+            case .fat: "drop.fill"
+            case .lean: "figure.strengthtraining.traditional"
+            }
+        }
     }
 
     /// Ce que l'historique montre en s'ouvrant : une partie, ou un seul élément (une mesure,
@@ -55,7 +73,6 @@ struct HistoryView: View {
     /// `nil` tant que l'utilisateur n'a pas changé de partie.
     @State private var chosenSection: Section?
     @State private var chosenExercise: String?
-    @State private var chosenMeasure: Measure?
     /// `nil` dans le menu : tous les repas.
     @State private var chosenSlot: MealSlot??
 
@@ -69,12 +86,6 @@ struct HistoryView: View {
         if let chosenExercise { return chosenExercise }
         if case .exercise(let name) = focus { return name }
         return nil
-    }
-
-    private var measure: Measure {
-        if let chosenMeasure { return chosenMeasure }
-        if case .measure(let measure) = focus { return measure }
-        return .all
     }
 
     private var slot: MealSlot? {
@@ -101,27 +112,35 @@ struct HistoryView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                Picker("Historique", selection: Binding(get: { section }, set: { chosenSection = $0 })) {
-                    ForEach(Section.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-
-                Group {
-                    switch section {
-                    case .measures: measures
-                    case .strength: strength
-                    case .sessions: sessions
-                    case .meals: meals
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                    Picker("Historique", selection: Binding(get: { section }, set: { chosenSection = $0 })) {
+                        ForEach(Section.allCases) { Text($0.rawValue).tag($0) }
                     }
+                    .pickerStyle(.segmented)
+
+                    Group {
+                        switch section {
+                        case .measures: measures
+                        case .strength: strength
+                        case .sessions: sessions
+                        case .meals: meals
+                        }
+                    }
+                    .id(section)
+                    .transition(.opacity)
                 }
-                .id(section)
-                .transition(.opacity)
+                .padding(.horizontal, Theme.Spacing.l)
+                .padding(.bottom, Theme.Spacing.xxl)
+                .animation(Theme.springy, value: section)
             }
-            .padding(.horizontal, Theme.Spacing.l)
-            .padding(.bottom, Theme.Spacing.xxl)
-            .animation(Theme.springy, value: section)
+            .task {
+                // Ouvert depuis une mesure : la page défile jusqu'à sa courbe.
+                guard case .measure(let measure) = focus else { return }
+                try? await Task.sleep(for: .milliseconds(250))
+                withAnimation(Theme.springy) { proxy.scrollTo(measure, anchor: .top) }
+            }
         }
         .background { AppBackground() }
         .navigationTitle("Historique")
@@ -138,9 +157,10 @@ struct HistoryView: View {
         var waistCm: Double?
         var scanCm: Double?
         var fat: Double?
+        var leanKg: Double?
     }
 
-    /// Pesées, tour de taille et composition, regroupés par jour ; seulement la mesure choisie.
+    /// Pesées, tour de taille et composition, regroupés par jour.
     private var measureDays: [MeasureDay] {
         var byDay: [Date: MeasureDay] = [:]
         func update(_ date: Date, _ change: (inout MeasureDay) -> Void) {
@@ -153,64 +173,63 @@ struct HistoryView: View {
         for waist in waists where !waist.isScan { update(waist.date) { if $0.waistCm == nil { $0.waistCm = waist.cm } } }
         for scan in scans { update(scan.date) { if $0.scanCm == nil { $0.scanCm = scan.cm } } }
         for entry in compositions {
-            guard let fat = entry.fatPercent else { continue }
-            update(entry.date) { $0.fat = fat }
+            update(entry.date) {
+                if let fat = entry.fatPercent { $0.fat = fat }
+                if let lean = entry.leanKg { $0.leanKg = lean }
+            }
         }
         return byDay.values
-            .map { day in
-                var day = day
-                if measure != .all && measure != .weight { day.kg = nil }
-                if measure != .all && measure != .waist { day.waistCm = nil; day.scanCm = nil }
-                if measure != .all && measure != .fat { day.fat = nil }
-                return day
-            }
-            .filter { $0.kg != nil || $0.waistCm != nil || $0.scanCm != nil || $0.fat != nil }
+            .filter { $0.kg != nil || $0.waistCm != nil || $0.scanCm != nil || $0.fat != nil || $0.leanKg != nil }
             .sorted { $0.day > $1.day }
+    }
+
+    /// Une courbe par mesure, sur la même page : poids, tour de taille, taux de gras, masse maigre.
+    private func measureSeries(_ measure: Measure) -> [(date: Date, value: Double)] {
+        switch measure {
+        case .weight: weights.map { (date: $0.date, value: $0.kg) }
+        case .waist: waists.filter { !$0.isScan }.map { (date: $0.date, value: $0.cm) }
+        case .fat: compositions.compactMap { entry in entry.fatPercent.map { (date: entry.date, value: $0) } }
+        case .lean: compositions.compactMap { entry in entry.leanKg.map { (date: entry.date, value: $0) } }
+        }
     }
 
     @ViewBuilder
     private var measures: some View {
         let days = measureDays
-        filterMenu("Mesure", selection: measure, options: Measure.allCases.map { (value: $0, label: $0.rawValue) }, tint: Theme.progress) {
-            chosenMeasure = $0
-        }
         if days.isEmpty {
-            empty("Aucune mesure pour l'instant", detail: "Tes pesées, ton tour de taille et ton taux de gras apparaîtront ici.")
+            empty("Aucune mesure pour l'instant", detail: "Tes pesées, ton tour de taille et ta composition (Santé) apparaîtront ici.")
         } else {
-            if measure == .waist, waists.filter({ !$0.isScan }).count >= 2 {
-                historyCard(title: "Tour de taille", symbol: "ruler", tint: Theme.progress) {
-                    Chart(waists.filter { !$0.isScan }, id: \.date) { waist in
-                        LineMark(x: .value("Jour", waist.date), y: .value("Tour de taille", waist.cm))
-                            .interpolationMethod(.catmullRom)
-                            .foregroundStyle(Theme.progress)
+            ForEach(Measure.allCases) { measure in
+                let points = measureSeries(measure).sorted { $0.date < $1.date }
+                if let last = points.last {
+                    historyCard(title: measure.rawValue, symbol: measure.symbol, tint: Theme.progress) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("\(last.value.frenchOneDecimal) \(measure.unit)")
+                                .font(.display(28))
+                                .monospacedDigit()
+                            Spacer()
+                            if let first = points.first, points.count >= 2 {
+                                let change = last.value - first.value
+                                Text("\(change.frenchSignedOneDecimal) \(measure.unit) depuis le \(first.date.formatted(.dateTime.day().month(.abbreviated).locale(Theme.locale)))")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.trailing)
+                            }
+                        }
+                        if points.count >= 2 {
+                            Chart(points, id: \.date) { point in
+                                LineMark(x: .value("Jour", point.date), y: .value(measure.rawValue, point.value))
+                                    .interpolationMethod(.catmullRom)
+                                    .foregroundStyle(Theme.progress)
+                            }
+                            .chartYScale(domain: .automatic(includesZero: false))
+                            .frame(height: 120)
+                        }
                     }
-                    .chartYScale(domain: .automatic(includesZero: false))
-                    .frame(height: 140)
+                    .id(measure)
                 }
             }
-            if measure == .fat, compositions.filter({ $0.fatPercent != nil }).count >= 2 {
-                historyCard(title: "Taux de gras", symbol: "figure.arms.open", tint: Theme.progress) {
-                    Chart(compositions.filter { $0.fatPercent != nil }, id: \.date) { entry in
-                        LineMark(x: .value("Jour", entry.date), y: .value("Taux de gras", entry.fatPercent ?? 0))
-                            .interpolationMethod(.catmullRom)
-                            .foregroundStyle(Theme.progress)
-                    }
-                    .chartYScale(domain: .automatic(includesZero: false))
-                    .frame(height: 140)
-                }
-            }
-            if (measure == .all || measure == .weight), weights.count >= 2 {
-                historyCard(title: "Poids", symbol: "scalemass.fill", tint: Theme.progress) {
-                    Chart(weights, id: \.date) { weight in
-                        LineMark(x: .value("Jour", weight.date), y: .value("Poids", weight.kg))
-                            .interpolationMethod(.catmullRom)
-                            .foregroundStyle(Theme.progress)
-                    }
-                    .chartYScale(domain: .automatic(includesZero: false))
-                    .frame(height: 140)
-                }
-            }
-            if !scans.isEmpty, measure == .all || measure == .waist { scanComparison }
+            if !scans.isEmpty { scanComparison }
             historyCard(title: "Jour par jour", symbol: "calendar", tint: Theme.progress) {
                 ForEach(days, id: \.day) { day in
                     row(date: day.day, value: [
@@ -218,6 +237,7 @@ struct HistoryView: View {
                         day.waistCm.map { "taille \($0.frenchOneDecimal) cm" },
                         day.scanCm.map { "scan \($0.frenchOneDecimal) cm" },
                         day.fat.map { "gras \($0.frenchOneDecimal) %" },
+                        day.leanKg.map { "maigre \($0.frenchOneDecimal) kg" },
                     ].compactMap { $0 }.joined(separator: " · "))
                 }
             }
