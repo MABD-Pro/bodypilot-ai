@@ -15,7 +15,9 @@ struct DemonstrationPlayer: UIViewRepresentable {
         configuration.mediaTypesRequiringUserActionForPlayback = .all
         let view = WKWebView(frame: .zero, configuration: configuration)
         view.isOpaque = false
-        view.backgroundColor = .black
+        // Transparent tant que la vidéo charge : l'indicateur de chargement reste visible derrière.
+        view.backgroundColor = .clear
+        view.scrollView.backgroundColor = .clear
         view.scrollView.isScrollEnabled = false
         return view
     }
@@ -35,7 +37,7 @@ struct DemonstrationPlayer: UIViewRepresentable {
     private static func page(for url: URL) -> String {
         """
         <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-        <style>html,body{margin:0;height:100%;background:#000}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style>
+        <style>html,body{margin:0;height:100%;background:transparent}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style>
         </head><body><iframe src="\(url.absoluteString)" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></body></html>
         """
     }

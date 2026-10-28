@@ -824,6 +824,13 @@ private struct LiftEntrySheet: View {
         VStack(alignment: .trailing, spacing: Theme.Spacing.s) {
             DemonstrationPlayer(embedURL: embed)
                 .aspectRatio(16 / 9, contentMode: .fit)
+                .background {
+                    ZStack {
+                        Color.black
+                        ProgressView()
+                            .tint(.white)
+                    }
+                }
                 .clipShape(.rect(cornerRadius: Theme.Radius.inner))
             Link(destination: ExerciseDemonstration.url(for: item.exercise)) {
                 Label("Ouvrir dans YouTube", systemImage: "arrow.up.right.square")
