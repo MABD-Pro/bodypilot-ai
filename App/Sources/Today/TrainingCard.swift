@@ -527,7 +527,8 @@ struct TrainingCard: View {
             waveEndsWithMax: exercise.wave.last?.isPlus == true,
             backoffSets: exercise.backoffSets,
             loadShift: shift,
-            shiftStep: guide?.barbell == true ? 2.5 : StrengthProgress.loadStep(for: wave.last?.kg ?? target?.kg ?? startingKg ?? 20)
+            shiftStep: guide?.barbell == true ? 2.5 : StrengthProgress.loadStep(for: wave.last?.kg ?? target?.kg ?? startingKg ?? 20),
+            history: lifts.filter { $0.exercise == exercise.name }.sorted { $0.date > $1.date }
         )
     }
 
@@ -1274,13 +1275,15 @@ struct LiftToLog: Identifiable {
     /// Décalage des paliers déjà appliqué aujourd'hui, et le pas d'un réglage.
     var loadShift = 0.0
     var shiftStep = 2.5
+    /// Séries déjà notées pour cet exercice, de la plus récente à la plus ancienne.
+    var history: [LiftEntry] = []
     var id: String { exercise }
 }
 
 /// Meilleure série en deux touches : charge et répétitions partent de l'objectif du jour.
 /// Onglets de la fiche d'un exercice : la série à noter, la technique, la démonstration.
 enum ExerciseTab: Hashable {
-    case log, technique, video
+    case log, technique, video, history
 }
 
 private struct LiftEntrySheet: View {
@@ -1341,6 +1344,7 @@ private struct LiftEntrySheet: View {
                     Text("Technique").tag(ExerciseTab.technique)
                 }
                 Text("Vidéo").tag(ExerciseTab.video)
+                Text("Historique").tag(ExerciseTab.history)
             }
             .pickerStyle(.segmented)
 
@@ -1353,9 +1357,43 @@ private struct LiftEntrySheet: View {
                 }
             case .video:
                 ExerciseSheetParts.video(for: item.exercise)
+            case .history:
+                historyTab
             }
         }
         .padding(Theme.Spacing.xxl)
+    }
+
+    /// Toutes les séries notées de l'exercice : le record en tête, puis séance par séance.
+    @ViewBuilder
+    private var historyTab: some View {
+        if item.history.isEmpty {
+            Text("Aucune série notée pour l'instant. Note ta meilleure série du jour dans « Série » : elle apparaîtra ici.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        } else {
+            let record = StrengthProgress.record(for: item.exercise, in: item.history)
+            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                if let record {
+                    Label("Record : \(StrengthProgress.label(record.entry))", systemImage: "trophy.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.carbs)
+                }
+                ForEach(item.history, id: \.date) { entry in
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(entry.date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).locale(Theme.locale)))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Spacer(minLength: Theme.Spacing.s)
+                        Text(StrengthProgress.label(entry) + (entry.isTest ? " · test" : ""))
+                            .font(.subheadline.weight(.semibold))
+                            .monospacedDigit()
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     private var logTab: some View {

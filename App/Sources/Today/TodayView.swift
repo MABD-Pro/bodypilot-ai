@@ -25,8 +25,8 @@ struct TodayView: View {
     @State private var isEditingProfile = false
     @State private var isManagingCycle = false
     @State private var isShowingHistory = LaunchOptions.demoHistory != nil
-    /// Partie de l'historique ouverte : celle de la carte touchée.
-    @State private var historySection = HistoryView.Section.measures
+    /// Ce que l'historique montre en s'ouvrant : la partie ou l'élément touché.
+    @State private var historyFocus = HistoryView.Focus.section(.measures)
     /// Entraînements lus dans Santé (Watch, autres apps), pour la semaine et la régularité.
     @State private var healthActivities: [ActivitySample] = []
     /// Sommeil de la nuit passée, lu dans Santé.
@@ -119,7 +119,7 @@ struct TodayView: View {
                             RecentMeals.list(for: slot, history: recentMealHistory(now: now), today: now, calendar: calendar)
                         }, reuse: { slot, meal in
                             saveDescribed(meal, for: slot)
-                        }, showHistory: { showHistory(.meals) })
+                        }, showHistory: { slot in showHistory(slot.map { .meal($0) } ?? .section(.meals)) })
                             .id("nutrition")
                         TrainingCard(
                             training: (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training),
@@ -164,7 +164,7 @@ struct TodayView: View {
                                 withAnimation(Theme.springy) { log.sessionEdits = edits }
                                 try? context.save()
                             },
-                            showHistory: { showHistory(.sessions) }
+                            showHistory: { showHistory(.section(.sessions)) }
                         )
                             .id("training")
                         ProgressCard(
@@ -186,7 +186,7 @@ struct TodayView: View {
                             dismissCheckIn: { withAnimation(Theme.springy) { profileRecord.lastCheckInAt = .now } },
                             connectHealth: { Task { await connectHealth() } },
                             disconnectHealth: { healthSync = false },
-                            showHistory: { showHistory(.measures) }
+                            showHistory: showHistory
                         )
                         .id("progress")
                     }
@@ -238,7 +238,7 @@ struct TodayView: View {
                 await exportMeals(plan.meals, on: now)
             }
             .navigationDestination(isPresented: $isShowingHistory) {
-                HistoryView(healthActivities: healthActivities, compositions: bodyCompositions, initialSection: historySection)
+                HistoryView(healthActivities: healthActivities, compositions: bodyCompositions, focus: historyFocus)
             }
             .sheet(isPresented: $isAddingWeight) {
                 WeightEntrySheet(initialKg: weights.last?.kg ?? profileRecord.startWeightKg)
@@ -480,8 +480,8 @@ struct TodayView: View {
     }
 
     /// Repas décrits des 7 derniers jours (seuls ces journaux sont décodés).
-    private func showHistory(_ section: HistoryView.Section) {
-        historySection = section
+    private func showHistory(_ focus: HistoryView.Focus) {
+        historyFocus = focus
         isShowingHistory = true
     }
 
