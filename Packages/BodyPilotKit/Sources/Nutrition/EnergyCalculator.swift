@@ -1,7 +1,8 @@
 import BodyPilotCore
 import Foundation
 
-/// Calcul déterministe des besoins : Mifflin-St Jeor, facteur d'activité, ajustement à l'objectif.
+/// Calcul déterministe des besoins : Mifflin-St Jeor, facteur d'activité (pas mesurés, sinon
+/// niveau déclaré), ajustement à l'objectif.
 public struct EnergyCalculator: Sendable {
     public var calendar: Calendar
 
@@ -20,10 +21,31 @@ public struct EnergyCalculator: Sendable {
         let age = profile.age(on: date, calendar: calendar)
         let bmr = basalMetabolicRate(sex: profile.sex, weightKg: currentWeightKg, heightCm: profile.heightCm, age: age)
         let exercise = max(exerciseKcalPerDay, 0)
-        let maintenance = bmr * profile.activity.factor + exercise
-        let spent = exercise >= 1
-            ? "Dépense estimée \(maintenance.frenchInteger) kcal, dont \(exercise.frenchInteger) kcal pour tes séances (moyenne de 14 jours)"
-            : "Dépense estimée \(maintenance.frenchInteger) kcal"
+        let estimated = bmr * profile.dailyActivity.factor + exercise
+        // Dépense mesurée sur les repas et les pesées : elle prend le pas sur l'équation au fil des jours.
+        let measured = profile.measuredExpenditure
+        let confidence = measured?.confidence ?? 0
+        let maintenance = measured.map { measured in
+            let bounded = min(max(measured.kcal, estimated * (1 - MeasuredExpenditure.maxDeviation)), estimated * (1 + MeasuredExpenditure.maxDeviation))
+            return estimated * (1 - confidence) + bounded * confidence
+        } ?? estimated
+        // Les pas, quand Santé les donne, expliquent la vie quotidienne juste après la dépense.
+        let daily = profile.averageDailySteps.map { "vie quotidienne d'après tes pas, environ \(StepActivity.displayed($0).frenchInteger) par jour sur 14 jours" }
+        let spent: String
+        switch (measured, daily, exercise >= 1) {
+        case let (measured?, daily, _):
+            // Mesure encore partielle : l'estimation par les pas compte toujours un peu.
+            let steps = confidence < 1 ? daily.map { ", et ta \($0)" } ?? "" : ""
+            spent = "Dépense mesurée \(maintenance.frenchInteger) kcal, d'après tes repas notés et tes pesées sur \(measured.days) jours\(steps)"
+        case let (nil, daily?, true):
+            spent = "Dépense estimée \(maintenance.frenchInteger) kcal : \(daily), plus \(exercise.frenchInteger) kcal pour tes séances (moyenne de 14 jours)"
+        case let (nil, daily?, false):
+            spent = "Dépense estimée \(maintenance.frenchInteger) kcal (\(daily))"
+        case (nil, nil, true):
+            spent = "Dépense estimée \(maintenance.frenchInteger) kcal, dont \(exercise.frenchInteger) kcal pour tes séances (moyenne de 14 jours)"
+        case (nil, nil, false):
+            spent = "Dépense estimée \(maintenance.frenchInteger) kcal"
+        }
 
         var kcal: Double
         var explanation: String
@@ -61,8 +83,11 @@ public struct EnergyCalculator: Sendable {
             kcal = maintenance + surplus
             explanation = "\(spent), plus \(surplus.frenchInteger) kcal pour construire du muscle en limitant le gras."
         }
-        if profile.calorieAdjustmentKcal != 0 {
-            let adjusted = clampAdjusted(kcal + profile.calorieAdjustmentKcal, planned: kcal, bmr: bmr, maintenance: maintenance, profile: profile, on: date)
+        // Les corrections des bilans s'effacent à mesure que la dépense est mesurée : elles
+        // compensaient l'erreur de l'équation, que la mesure corrige déjà.
+        let adjustment = profile.calorieAdjustmentKcal * (1 - confidence)
+        if abs(adjustment) >= 1 {
+            let adjusted = clampAdjusted(kcal + adjustment, planned: kcal, bmr: bmr, maintenance: maintenance, profile: profile, on: date)
             let applied = adjusted - kcal
             if abs(applied) >= 1 {
                 explanation += " Ajusté de \(applied > 0 ? "+" : "")\(applied.frenchInteger) kcal après tes bilans de la semaine."
@@ -95,14 +120,10 @@ public struct EnergyCalculator: Sendable {
         return min(max(kcal, floor), ceiling)
     }
 
-    private func proteinPerKg(for goal: Goal) -> Double {
-        switch goal {
-        case .loseFat: 2.0
-        case .maintain: 1.6
-        case .buildMuscle: 1.8
-        case .recomposition: 2.0
-        }
-    }
+    /// 2,0 g/kg quelle que soit la phase : au-dessus du plateau de 1,6 g/kg (Morton et al., 2018),
+    /// dans la fourchette conseillée en déficit (Helms et al., 2014). Le coach change de phase
+    /// sans faire varier les protéines.
+    private func proteinPerKg(for goal: Goal) -> Double { 2.0 }
 
     /// Recomposition : 20 % de déficit à 10 kg ou plus du poids visé, de moins en moins en
     /// s'en approchant (5 % au minimum), plus rien une fois arrivé. Sans poids visé : 10 %.

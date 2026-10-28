@@ -65,12 +65,18 @@ enum LaunchOptions {
     static var demoScreening: String? { defaults.string(forKey: "demoScreening") }
     /// `-demoOnboardingStep 1` : l'accueil s'ouvre sur cette étape (0 à 3).
     static var demoOnboardingStep: Int? { defaults.object(forKey: "demoOnboardingStep") == nil ? nil : defaults.integer(forKey: "demoOnboardingStep") }
+    /// `-demoIntake YES` : les 3 dernières semaines ont leurs quatre repas notés (dépense mesurée).
+    static var demoIntake: Bool { defaults.bool(forKey: "demoIntake") }
+    /// `-demoSteps YES` : deux semaines de pas lus dans Santé (environ 6 500 par jour).
+    static var demoSteps: Bool { defaults.bool(forKey: "demoSteps") }
+    /// `-demoTarget 92` : poids visé de la démo (au-dessus du poids actuel : phase de légère prise).
+    static var demoTargetKg: Double? { defaults.object(forKey: "demoTarget") == nil ? nil : defaults.double(forKey: "demoTarget") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }
 
 enum AppContainer {
-    static let schema = Schema(versionedSchema: SchemaV2.self)
+    static let schema = Schema(versionedSchema: SchemaV3.self)
 
     /// Raison pour laquelle la base locale n'a pas pu s'ouvrir : l'app l'affiche au lieu de
     /// planter à chaque lancement (Siri compris), sans jamais effacer les données.
@@ -116,6 +122,15 @@ enum AppContainer {
 }
 
 enum DemoData {
+    /// Pas des 14 derniers jours et d'aujourd'hui (matinée) : environ 6 500 par jour.
+    static func steps(now: Date = .now, calendar: Calendar = .current) -> [DailySteps] {
+        let today = calendar.startOfDay(for: now)
+        let counts = [5_800, 7_200, 6_100, 8_400, 5_200, 6_900, 7_600, 4_800, 6_300, 7_100, 5_900, 6_700, 8_000, 5_400, 3_200]
+        return counts.enumerated().compactMap { index, steps in
+            calendar.date(byAdding: .day, value: index - (counts.count - 1), to: today).map { DailySteps(day: $0, steps: steps) }
+        }
+    }
+
     /// Balance à impédance sur 4 semaines : le gras baisse d'environ un point, la masse maigre monte un peu.
     static func compositions(now: Date = .now, calendar: Calendar = .current) -> [BodyCompositionEntry] {
         stride(from: 27, through: 0, by: -1).compactMap { daysAgo in
@@ -186,7 +201,7 @@ enum DemoData {
             birthDate: birthDate,
             heightCm: 178,
             startWeightKg: 88,
-            targetWeightKg: 80,
+            targetWeightKg: LaunchOptions.demoTargetKg ?? 80,
             activity: .moderate,
             goal: .recomposition,
             trainingDaysPerWeek: 3,
@@ -229,6 +244,7 @@ enum DemoData {
             guard let date = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
             let log = DayLogRecord(day: calendar.storedDay(for: date))
             log.workoutDone = true
+            if LaunchOptions.demoIntake { log.eatenKcal = 2_050 + Double((offset * 37) % 7 - 3) * 40 }
             if offset % 2 == (recovery ? 1 : 0) {
                 log.doneWorkoutTitle = strengthCount % 2 == 0 ? "Full body B" : "Full body A"
                 strengthCount += 1

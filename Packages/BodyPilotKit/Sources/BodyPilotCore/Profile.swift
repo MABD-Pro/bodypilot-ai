@@ -59,6 +59,17 @@ public struct UserProfile: Sendable, Equatable, Codable {
     public var calorieAdjustmentKcal: Double
     /// Questionnaire de santé : limite l'intensité ou le déficit si besoin.
     public var screening: HealthScreening
+    /// Moyenne de pas mesurée dans Santé (14 jours) ; remplace le niveau déclaré pour la vie
+    /// quotidienne. `nil` : pas assez de jours mesurés, ou Santé non relié.
+    public var averageDailySteps: Double?
+
+    /// Dépense réelle mesurée (repas notés et pesées) ; `nil` : pas assez de données.
+    public var measuredExpenditure: MeasuredExpenditure?
+
+    /// Niveau d'activité retenu : celui des pas mesurés, sinon celui déclaré.
+    public var dailyActivity: ActivityLevel {
+        averageDailySteps.map(ActivityLevel.init(averageSteps:)) ?? activity
+    }
 
     public init(
         id: EntityID = EntityID(),

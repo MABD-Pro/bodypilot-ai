@@ -17,7 +17,7 @@ struct BodyStep: View {
             SliderRow(title: "Taille", value: $draft.heightCm, range: 140...210, step: 1, unit: "cm", decimals: false)
             SliderRow(title: "Poids", value: $draft.weightKg, range: 40...180, step: 0.5, unit: "kg", decimals: true)
             SliderRow(title: "Poids visé", value: $draft.targetWeightKg, range: 40...180, step: 0.5, unit: "kg", decimals: true)
-            Text("Le déficit suit l'écart à ce poids et s'arrête une fois arrivé.")
+            Text("Le coach choisit la phase : déficit au-dessus de ce poids, équilibre une fois arrivé, légère prise en dessous.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -32,6 +32,9 @@ struct RhythmStep: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 Text("Au quotidien, hors sport").font(.headline)
+                Text("Santé reliée, tes pas le remplacent dès 7 jours mesurés.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 ForEach(ActivityLevel.allCases, id: \.self) { level in
                     ChoiceCard(title: level.title, subtitle: level.subtitle, symbol: level.symbol, tint: Theme.progress, isSelected: draft.activity == level, compact: true) {
                         withAnimation(Theme.springy) { draft.activity = level }

@@ -60,6 +60,9 @@ shoot 1-aujourdhui -demoData YES
 shoot 2-aujourdhui-repas -demoData YES -demoScrollTo nutrition
 shoot 2b-repas-pris -demoData YES -demoMeals breakfast=asPlanned,lunch=hearty -demoScrollTo nutrition
 shoot 2c-repas-decrit -demoData YES -demoMeals breakfast=asPlanned -demoDescribed "lunch=une grande assiette de pâtes carbo et un coca" -demoScrollTo nutrition
+shoot 2d-depense-mesuree -demoData YES -demoIntake YES -demoScrollTo nutrition
+shoot 2e-phase-prise -demoData YES -demoTarget 92 -demoScrollTo nutrition
+shoot 4f-phase-progresser -demoData YES -demoTarget 92 -demoScrollTo progress
 shoot 3-aujourdhui-seance -demoData YES -demoScrollTo training
 shoot 3b-seance-exercice-remplace -demoData YES -demoSwap YES -demoScrollTo training
 shoot 3c-ma-semaine -demoData YES -demoActivities YES -demoHealth YES -demoScrollTo week
@@ -70,6 +73,7 @@ shoot 3g-propositions-nuit-courte -demoData YES -demoSleep 5.5 -demoScrollTo tra
 shoot 4-aujourdhui-progression -demoData YES -demoScrollTo progress
 shoot 4c-bilan-semaine -demoData YES -demoCheckIn YES -demoScrollTo progress
 shoot 4b-progression-sante -demoData YES -demoHealth YES -demoScrollTo progress
+shoot 4e-pas -demoData YES -demoHealth YES -demoSteps YES -demoScrollTo progress
 shoot 4d-records-progression -demoData YES -demoLifts YES -demoScrollTo progress
 shoot 5-ajustement-20min-fatigue -demoData YES -demoAdjustments shortOnTime,tired -demoScrollTo training
 shoot 6a-phrase-resto-genou-repas -demoData YES -demoCommand "J'ai mal au genou et ce soir resto" -demoScrollTo nutrition

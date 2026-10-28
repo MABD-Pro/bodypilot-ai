@@ -124,3 +124,19 @@ private func compositions(from start: Double, to end: Double) -> [BodyCompositio
     profile.screening = HealthScreening(answeredAt: today, situations: [.eatingDisorder])
     #expect(coach.weeklyCheckIn(for: profile, weights: weights(start: 88, perDay: 0), on: today) == nil)
 }
+
+@Test func leanProfileGetsASmallSurplus() {
+    var profile = makeProfile(weightKg: 64, targetWeightKg: 70)
+    profile.goal = .recomposition
+    let plan = coach.plan(for: profile, weights: weights(start: 64, perDay: 0), on: today)
+    #expect(plan.phase == .leanGain)
+    #expect(plan.targets.macros.kcal > plan.targets.maintenanceKcal)
+    #expect(plan.targets.rationale.contains("légère prise"))
+}
+
+@Test func stalledLeanGainSuggestsEatingMore() throws {
+    var profile = makeProfile(weightKg: 64, targetWeightKg: 70)
+    profile.goal = .recomposition
+    let suggestion = try #require(coach.weeklyCheckIn(for: profile, weights: weights(start: 64, perDay: 0), on: today))
+    #expect(suggestion.deltaKcal == 150)
+}

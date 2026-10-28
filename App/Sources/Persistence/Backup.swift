@@ -78,6 +78,8 @@ struct BackupArchive: Codable {
         var benchmarkSeconds: Int?
         var sessionEditsData: Data?
         var loadShiftsData: Data?
+        /// Absent des sauvegardes plus anciennes.
+        var eatenKcal: Double?
     }
 
     struct Lift: Codable {
@@ -135,7 +137,8 @@ enum Backup {
                 day: $0.day, adjustmentsRaw: $0.adjustmentsRaw, availableMinutes: $0.availableMinutes, eatingOutSlotRaw: $0.eatingOutSlotRaw,
                 exerciseSwapsRaw: $0.exerciseSwapsRaw, workoutDone: $0.workoutDone, doneWorkoutTitle: $0.doneWorkoutTitle,
                 mealIntakesRaw: $0.mealIntakesRaw, describedMealsData: $0.describedMealsData, trainingChoiceRaw: $0.trainingChoiceRaw,
-                benchmarkSeconds: $0.benchmarkSeconds, sessionEditsData: $0.sessionEditsData, loadShiftsData: $0.loadShiftsData
+                benchmarkSeconds: $0.benchmarkSeconds, sessionEditsData: $0.sessionEditsData, loadShiftsData: $0.loadShiftsData,
+                eatenKcal: $0.eatenKcal
             )
         }
         archive.lifts = try context.fetch(FetchDescriptor<LiftRecord>(sortBy: [SortDescriptor(\.day)])).map {
@@ -244,6 +247,7 @@ enum Backup {
                 record.benchmarkSeconds = item.benchmarkSeconds
                 record.sessionEditsData = item.sessionEditsData
                 record.loadShiftsData = item.loadShiftsData
+                record.eatenKcal = item.eatenKcal
                 context.insert(record)
             }
             for item in archive.lifts {

@@ -122,3 +122,34 @@ private let today = day(2026, 10, 27)
     #expect(targets.macros.kcal == (targets.maintenanceKcal / 10).rounded() * 10)
     #expect(targets.rationale.contains("moins de 18 ans"))
 }
+
+@Test func measuredStepsReplaceDeclaredActivity() {
+    var profile = makeProfile()
+    profile.averageDailySteps = 4_200
+    let targets = calculator.targets(for: profile, currentWeightKg: 90, on: today)
+    // BMR 1855 × 1,2 (moins de 5 000 pas) au lieu de 1,4 déclaré.
+    #expect(targets.maintenanceKcal.rounded() == 2226)
+    #expect(targets.rationale.contains("4\u{202F}200"))
+}
+
+@Test func measuredExpenditureReplacesEquationAndFadesCheckIns() {
+    var profile = makeProfile()
+    profile.calorieAdjustmentKcal = -300
+    profile.measuredExpenditure = MeasuredExpenditure(kcal: 2_400, days: 21, weeklyChangeKg: -0.5)
+    let targets = calculator.targets(for: profile, currentWeightKg: 90, on: today)
+    // Mesure complète : 2 400 au lieu de 2 597, déficit de 20 % (480), correction du bilan effacée.
+    #expect(targets.maintenanceKcal.rounded() == 2400)
+    #expect(targets.macros.kcal == 1920)
+    #expect(targets.rationale.contains("mesurée"))
+    #expect(!targets.rationale.contains("bilans"))
+}
+
+@Test func measuredExpenditureIsBlendedAndBounded() {
+    var profile = makeProfile()
+    // 10 jours : moitié environ de la mesure, elle-même bornée à −25 % de l'équation (2 597 → 1 948).
+    profile.measuredExpenditure = MeasuredExpenditure(kcal: 1_000, days: 10, weeklyChangeKg: 0)
+    let targets = calculator.targets(for: profile, currentWeightKg: 90, on: today)
+    let estimated = 1855 * 1.4
+    let expected = estimated * (11.0 / 21) + estimated * 0.75 * (10.0 / 21)
+    #expect(abs(targets.maintenanceKcal - expected) < 1)
+}

@@ -12,6 +12,13 @@ enum HealthLink {
     case on
 }
 
+/// Pas du jour, objectif et moyenne des 14 jours précédents (Santé).
+struct StepsToday: Equatable {
+    let today: Int
+    let goal: Int
+    let average: Double?
+}
+
 /// « Est-ce que je progresse vers mon objectif ? »
 struct ProgressCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -32,6 +39,9 @@ struct ProgressCard: View {
     var cardioZone: ClosedRange<Int>?
     /// Sommeil de la nuit passée, lu dans Santé.
     var sleepHours: Double?
+    var steps: StepsToday?
+    /// Phase choisie par le coach : perte de gras, équilibre ou légère prise.
+    var phase: BodyPhase = .fatLoss
     let addWeight: () -> Void
     let addWaist: () -> Void
     let acceptCheckIn: () -> Void
@@ -115,10 +125,10 @@ struct ProgressCard: View {
             HStack {
                 if let target = profile.targetWeightKg {
                     Label {
-                        if let date = trend.estimatedTargetDate {
-                            Text("\(target.frenchOneDecimal) kg vers \(date.formatted(.dateTime.month(.wide).year().locale(Theme.locale)))")
+                        if phase != .maintenance, let date = trend.estimatedTargetDate {
+                            Text("\(phase.title) · \(target.frenchOneDecimal) kg vers \(date.formatted(.dateTime.month(.wide).year().locale(Theme.locale)))")
                         } else {
-                            Text("Objectif \(target.frenchOneDecimal) kg")
+                            Text("\(phase.title) · objectif \(target.frenchOneDecimal) kg")
                         }
                     } icon: {
                         Image(systemName: "flag.checkered")
@@ -361,12 +371,25 @@ struct ProgressCard: View {
                     if let sleepHours {
                         Label("Nuit dernière : \(Self.hours(sleepHours))", systemImage: "bed.double.fill")
                     }
+                    if let steps {
+                        Label(Self.stepsLine(steps), systemImage: steps.today >= steps.goal ? "checkmark.circle.fill" : "shoeprints.fill")
+                    }
                 }
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.leading)
             }
         }
+    }
+
+    /// « 4 200 pas sur 7 500 aujourd'hui (moyenne 6 500) »
+    static func stepsLine(_ steps: StepsToday) -> String {
+        let done = Double(steps.today).frenchInteger
+        let goal = Double(steps.goal).frenchInteger
+        let average = steps.average.map { " (moyenne \(StepActivity.displayed($0).frenchInteger))" } ?? ""
+        return steps.today >= steps.goal
+            ? "\(done) pas aujourd'hui, objectif de \(goal) atteint\(average)"
+            : "\(done) pas sur \(goal) aujourd'hui\(average)"
     }
 
     /// Un repère par semaine, sans le coller au bord droit où il serait tronqué.
