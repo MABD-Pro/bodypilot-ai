@@ -142,7 +142,10 @@ public enum StrengthProgress {
         calendar: Calendar = .current
     ) -> LiftTarget? {
         guard let last = history.filter({ $0.exercise == exercise }).max(by: { $0.date < $1.date }) else {
-            return StrengthCalibration.derivedLoad(for: exercise, plannedReps: plannedReps, history: history, lastStrengthDay: lastStrengthDay, on: date, calendar: calendar)
+            return StrengthCalibration.derivedLoad(
+                for: exercise, plannedReps: plannedReps, percentOfMax: percentOfMax, history: history,
+                lastStrengthDay: lastStrengthDay, on: date, calendar: calendar
+            )
                 .map { LiftTarget(kg: $0, reps: plannedReps, isIncrease: false) }
         }
         guard let kg = last.kg, kg > 0 else {
@@ -150,16 +153,17 @@ public enum StrengthProgress {
             return LiftTarget(kg: nil, reps: beat ? last.reps + 1 : plannedReps, isIncrease: beat)
         }
         let reference = referenceOneRepMax(for: exercise, history: history, lastStrengthDay: lastStrengthDay, on: date, calendar: calendar) ?? score(last)
+        let barbell = StrengthCalibration.isBarbell(exercise)
         if let percentOfMax {
-            let load = StrengthCalibration.roundDown(reference * percentOfMax)
+            let load = StrengthCalibration.roundDown(reference * percentOfMax, barbell: barbell)
             return LiftTarget(kg: load, reps: plannedReps, isIncrease: load > kg)
         }
-        let fromMax = StrengthCalibration.workingLoad(oneRepMax: reference, reps: plannedReps)
+        let fromMax = StrengthCalibration.workingLoad(oneRepMax: reference, reps: plannedReps, barbell: barbell)
         let pause = date.flatMap { pauseDays(history: history, lastStrengthDay: lastStrengthDay, on: $0, calendar: calendar) } ?? 0
         if last.isTest || retention(afterDays: pause) < 1 {
             return LiftTarget(kg: fromMax, reps: plannedReps, isIncrease: false)
         }
-        let progressed = last.reps > plannedReps ? kg + increment(from: kg) : kg
+        let progressed = last.reps > plannedReps ? kg + increment(from: kg, barbell: barbell) : kg
         let load = max(progressed, fromMax)
         return LiftTarget(kg: load, reps: plannedReps, isIncrease: load > kg)
     }
@@ -177,8 +181,8 @@ public enum StrengthProgress {
     }
 
     /// Environ 5 % de la charge, arrondi aux disques (2,5 kg) ou, sous 30 kg, aux haltères (1 kg).
-    public static func increment(from kg: Double) -> Double {
-        let step = loadStep(for: kg)
+    public static func increment(from kg: Double, barbell: Bool = false) -> Double {
+        let step = barbell ? 2.5 : loadStep(for: kg)
         return max(step, (kg * 0.05 / step).rounded() * step)
     }
 

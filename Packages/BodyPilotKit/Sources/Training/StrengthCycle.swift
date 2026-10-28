@@ -28,10 +28,10 @@ public enum StrengthCycle {
     }
 
     /// Charges de la vague sans max noté : le max s'estime depuis la charge d'essai prudente
-    /// (prévue pour `reps` répétitions, Epley), arrondi au 2,5 kg inférieur (barre).
+    /// (prévue pour `reps` répétitions, Epley), arrondi au 2,5 kg inférieur, jamais sous la barre vide.
     public static func waveLoads(_ wave: [WaveSet], startingKg: Double, reps: Int) -> [Double] {
         let estimatedMax = startingKg * (1 + Double(reps) / 30)
-        return wave.map { max(2.5, (estimatedMax * $0.percentOfMax / 2.5).rounded(.down) * 2.5) }
+        return wave.map { StrengthCalibration.roundDown(estimatedMax * $0.percentOfMax, barbell: true) }
     }
 
     /// Mouvement mené en 5/3/1 : principal, aux répétitions, à la barre et avec des charges.

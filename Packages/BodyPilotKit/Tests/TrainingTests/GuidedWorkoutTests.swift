@@ -32,3 +32,23 @@ import Testing
     #expect(!labels.isEmpty)
     #expect(!labels.contains { $0.hasPrefix("Squats") || $0.hasPrefix("Fentes") })
 }
+
+@Test func waveGoesToTheWatchSetBySetThenFirstSetLast() {
+    var squat = WorkoutExercise(name: "Squat à la barre", sets: 3, volume: .reps(1), restSeconds: 180, priority: 1)
+    squat.wave = StrengthCycle.wave(for: CycleWeek(program: .crossfit, number: 3))
+    squat.backoffSets = 5
+    let guided = Workout(title: "Full body A", warmupMinutes: 5, cooldownMinutes: 0, exercises: [squat], intensityCue: "").guided
+    #expect(guided.blocks.compactMap { $0.steps.first?.label } == [
+        "Squat à la barre · 5 rép.", "Squat à la barre · 3 rép.", "Squat à la barre · 1+ rép.", "Squat à la barre · 5 rép.",
+    ])
+    #expect(guided.blocks.map(\.iterations) == [1, 1, 1, 5])
+    #expect(guided.blocks[3].steps[1].goal == .seconds(90))
+    #expect(guided.hasStrength)
+}
+
+@Test func cardioOnlySessionIsNotStrength() {
+    let cardio = Workout(title: "Cardio et marche inclinée", warmupMinutes: 5, cooldownMinutes: 5, exercises: [
+        WorkoutExercise(name: "Vélo", sets: 1, volume: .seconds(1800), restSeconds: 0, priority: 4),
+    ], intensityCue: "")
+    #expect(!cardio.guided.hasStrength)
+}

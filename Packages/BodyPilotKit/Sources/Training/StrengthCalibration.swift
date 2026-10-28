@@ -100,15 +100,17 @@ public enum StrengthCalibration {
 
     /// Charge de travail pour `reps` répétitions en gardant 2 répétitions en réserve
     /// (Epley inversé sur reps + 2), arrondie vers le bas.
-    public static func workingLoad(oneRepMax: Double, reps: Int) -> Double {
+    public static func workingLoad(oneRepMax: Double, reps: Int, barbell: Bool = false) -> Double {
         let raw = oneRepMax / (1 + Double(reps + repsInReserve) / 30)
-        return roundDown(raw)
+        return roundDown(raw, barbell: barbell)
     }
 
     /// Charge proposée pour un exercice jamais noté, tirée du test de son mouvement de référence.
+    /// Dans un cycle, `percentOfMax` s'applique au max dérivé, comme pour un exercice déjà noté.
     public static func derivedLoad(
         for exercise: String,
         plannedReps: Int,
+        percentOfMax: Double? = nil,
         history: [LiftEntry],
         lastStrengthDay: Date? = nil,
         on date: Date? = nil,
@@ -118,7 +120,10 @@ public enum StrengthCalibration {
               let reference = StrengthProgress.referenceOneRepMax(
                   for: link.reference, history: history, lastStrengthDay: lastStrengthDay, on: date, calendar: calendar
               ) else { return nil }
-        let load = workingLoad(oneRepMax: reference * link.ratio, reps: plannedReps)
+        let barbell = isBarbell(exercise)
+        let derivedMax = reference * link.ratio
+        let load = percentOfMax.map { roundDown(derivedMax * $0, barbell: barbell) }
+            ?? workingLoad(oneRepMax: derivedMax, reps: plannedReps, barbell: barbell)
         return load > 0 ? load : nil
     }
 
@@ -134,5 +139,18 @@ public enum StrengthCalibration {
     static func roundDown(_ kg: Double) -> Double {
         let step = StrengthProgress.loadStep(for: kg)
         return (kg / step).rounded(.down) * step
+    }
+
+    /// Poids de la barre vide : rien de plus léger ne se charge sur une barre.
+    public static let barbellKg = 20.0
+
+    /// À la barre : par paires de disques (2,5 kg), jamais sous la barre vide.
+    static func roundDown(_ kg: Double, barbell: Bool) -> Double {
+        guard barbell else { return roundDown(kg) }
+        return max(barbellKg, (kg / 2.5).rounded(.down) * 2.5)
+    }
+
+    static func isBarbell(_ exercise: String) -> Bool {
+        ExerciseGuide.guide(for: exercise)?.barbell == true
     }
 }

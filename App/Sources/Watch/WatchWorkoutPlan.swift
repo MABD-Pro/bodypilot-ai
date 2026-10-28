@@ -7,7 +7,7 @@ import WorkoutKit
 /// Traduction de la séance guidée en plan WorkoutKit, que l'Apple Watch déroule étape par étape.
 extension GuidedWorkout {
     var watchPlan: WorkoutPlan? {
-        guard let activity = Self.watchActivity else { return nil }
+        guard let activity = Self.watchActivity(strength: hasStrength) else { return nil }
         let workout = CustomWorkout(
             activity: activity,
             location: .indoor,
@@ -26,10 +26,13 @@ extension GuidedWorkout {
         return WorkoutPlan(.custom(workout))
     }
 
-    /// Renforcement musculaire si la montre le gère en séance personnalisée, sinon la meilleure approche.
-    private static var watchActivity: HKWorkoutActivityType? {
-        [.traditionalStrengthTraining, .functionalStrengthTraining, .highIntensityIntervalTraining]
-            .first { CustomWorkout.supportsActivity($0) }
+    /// Renforcement musculaire pour une séance avec de la force ; cardio sinon, pour que Santé
+    /// ne la compte pas comme de la force (la règle des 48 h bloquerait la force du lendemain).
+    private static func watchActivity(strength: Bool) -> HKWorkoutActivityType? {
+        let candidates: [HKWorkoutActivityType] = strength
+            ? [.traditionalStrengthTraining, .functionalStrengthTraining, .highIntensityIntervalTraining]
+            : [.mixedCardio, .highIntensityIntervalTraining, .walking]
+        return candidates.first { CustomWorkout.supportsActivity($0) }
     }
 }
 

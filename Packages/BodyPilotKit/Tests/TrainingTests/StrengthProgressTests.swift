@@ -107,3 +107,47 @@ private func lift(_ kg: Double?, _ reps: Int, on dayOfMonth: Int, _ exercise: St
     #expect(StrengthProgress.pauseDays(history: [old], lastStrengthDay: day(2026, 10, 20), on: day(2026, 10, 27), calendar: utc) == 7)
     #expect(StrengthProgress.pauseDays(history: [old], lastStrengthDay: nil, on: day(2026, 10, 27), calendar: utc) == 56)
 }
+
+@Test func derivedLiftFollowsTheCyclePercentage() throws {
+    // Test au soulevé de terre (125 × 5, max ≈ 146 kg), 40 % du max : la trap bar (même max)
+    // part de là (58,3 → 57,5 kg), pas d'une charge de travail pleine.
+    let history = [LiftEntry(exercise: "Soulevé de terre", date: day(2026, 10, 20), kg: 125, reps: 5, isTest: true)]
+    let target = try #require(StrengthProgress.target(
+        for: "Soulevé de terre à la trap bar", plannedReps: 5, percentOfMax: 0.4, history: history, on: day(2026, 10, 21), calendar: utc
+    ))
+    #expect(target.kg == 57.5)
+}
+
+@Test func barbellLoadsUseWholePlatesAndNeverGoBelowTheBar() throws {
+    let history = [LiftEntry(exercise: "Développé militaire", date: day(2026, 10, 20), kg: 30, reps: 5, isTest: true)]
+    let light = try #require(StrengthProgress.target(
+        for: "Développé militaire", plannedReps: 5, percentOfMax: 0.36, history: history, on: day(2026, 10, 21), calendar: utc
+    ))
+    #expect(light.kg == StrengthCalibration.barbellKg)
+    let loads = StrengthCycle.waveLoads(StrengthCycle.wave(for: CycleWeek(program: .crossfit, number: 4)), startingKg: 10, reps: 6)
+    #expect(loads.allSatisfy { $0 >= 20 && $0.truncatingRemainder(dividingBy: 2.5) == 0 })
+}
+
+@Test func dumbbellVariantLeavesTheWave() {
+    var press = WorkoutExercise(name: "Développé couché haltères", sets: 3, volume: .reps(1), restSeconds: 180, priority: 1)
+    press.wave = StrengthCycle.wave(for: CycleWeek(program: .crossfit, number: 3))
+    press.backoffSets = 5
+    let plain = press.keepingWaveOnlyAtTheBarbell()
+    #expect(plain.wave.isEmpty && plain.backoffSets == 0)
+    #expect(plain.sets == 3 && plain.volume == .reps(5))
+    #expect(plain.percentOfMax == press.wave.first?.percentOfMax)
+    var squat = press
+    squat.name = "Squat à la barre"
+    #expect(squat.keepingWaveOnlyAtTheBarbell() == squat)
+}
+
+@Test func kneeVariantNeverKeepsTheWave() {
+    var squat = WorkoutExercise(name: "Squat à la barre", sets: 3, volume: .reps(1), restSeconds: 180, priority: 1)
+    squat.wave = StrengthCycle.wave(for: CycleWeek(program: .crossfit, number: 3))
+    squat.backoffSets = 5
+    var hipThrust = squat
+    hipThrust.name = "Hip thrust"
+    // À la barre : un remplacement choisi garde la vague, la variante de sécurité du genou non.
+    #expect(!hipThrust.keepingWaveOnlyAtTheBarbell().wave.isEmpty)
+    #expect(hipThrust.withoutWave().wave.isEmpty)
+}
