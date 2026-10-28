@@ -46,6 +46,8 @@ enum LaunchOptions {
     static var demoLifts: Bool { defaults.bool(forKey: "demoLifts") }
     /// `-demoCalibration YES` : profil en salle sans charge notée, la séance du jour est le premier test de force.
     static var demoCalibration: Bool { defaults.bool(forKey: "demoCalibration") }
+    /// `-demoVideo YES` : la fiche d'exercice s'ouvre avec la démonstration affichée.
+    static var demoVideo: Bool { defaults.bool(forKey: "demoVideo") }
     /// `-demoRecovery YES` : force faite hier, la séance du jour est cardio et marche.
     static var demoRecovery: Bool { defaults.bool(forKey: "demoRecovery") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.

@@ -49,7 +49,7 @@ struct TodayView: View {
             describedMeals: todayLog?.describedMeals ?? [:],
             lastWorkoutTitle: lastStrength.title,
             lastStrengthDay: lastStrength.day,
-            calibratedLifts: DayLogEditor.calibratedLifts(lifts, before: now, calendar: calendar),
+            calibratedLifts: DayLogEditor.calibratedLifts(lifts, before: now, since: profileRecord.strengthTestResetAt, calendar: calendar),
             sleepHours: sleepHours,
             activeDays: DayLogEditor.activeDays(before: now, completed: completed, samples: healthActivities, calendar: calendar),
             recentActivities: healthActivities,

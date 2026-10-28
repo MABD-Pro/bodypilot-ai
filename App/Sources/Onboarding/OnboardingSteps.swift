@@ -159,3 +159,63 @@ extension ActivityLevel {
         }
     }
 }
+
+/// Le point de départ : comment le coach trouve tes charges, et le test à refaire après une pause.
+struct StartStep: View {
+    let equipment: Equipment
+    /// `nil` à l'inscription ; en modification du profil, relance le test de force.
+    var redoStrengthTest: (() -> Void)?
+
+    @State private var isRedone = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            if equipment == .gym {
+                point(symbol: "scalemass.fill", title: "Deux séances de test", text: "Au premier jour de force, la séance s'appelle « Test de force 1/2 » : squat, développé couché, rowing. Le « 2/2 » suit au moins 48 h plus tard : soulevé de terre, développé militaire, tirage vertical.")
+                point(symbol: "chart.line.uptrend.xyaxis", title: "Une série de 5, lourde mais propre", text: "Pour chaque mouvement, quelques paliers légers puis des essais de 5 répétitions de plus en plus lourds. Tu t'arrêtes quand la 5e devient difficile. Pas de charge maximale : c'est plus sûr et aussi fiable.")
+                point(symbol: "dumbbell.fill", title: "Tes charges en découlent", text: "Le coach en tire tes charges de travail, et celles des variantes (haltères, machines). Elles montent ensuite séance après séance.")
+                point(symbol: "moon.zzz.fill", title: "Seulement en forme", text: "Fatigué, genou sensible ou peu de temps : le test attend un meilleur jour, et le coach te dit pourquoi.")
+                if let redoStrengthTest {
+                    Button {
+                        redoStrengthTest()
+                        withAnimation(Theme.springy) { isRedone = true }
+                    } label: {
+                        Label(isRedone ? "Le test revient au prochain jour de force" : "Refaire le test de force", systemImage: isRedone ? "checkmark.circle.fill" : "arrow.counterclockwise")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.glass)
+                    .tint(Theme.training)
+                    .disabled(isRedone)
+                    .padding(.top, Theme.Spacing.s)
+                    Text("Utile après une pause, une blessure ou un gros changement de forme. Tes records restent : le test repart de tes dernières charges.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                point(symbol: "figure.strengthtraining.functional", title: "Pas de test à la maison", text: "Au poids du corps, le coach part de répétitions simples et te fait progresser en répétitions et en variantes plus dures.")
+                point(symbol: "dumbbell.fill", title: "À la salle, un test de force", text: "Si tu passes en salle dans ton profil, deux séances de test fixeront tes charges de départ.")
+            }
+        }
+        .sensoryFeedback(.success, trigger: isRedone)
+    }
+
+    private func point(symbol: String, title: String, text: String) -> some View {
+        HStack(alignment: .top, spacing: Theme.Spacing.m) {
+            IconBadge(symbol: symbol, tint: Theme.training, size: 34)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(text)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Theme.Spacing.m)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassEffect(.regular, in: .rect(cornerRadius: Theme.Radius.inner + 4))
+    }
+}

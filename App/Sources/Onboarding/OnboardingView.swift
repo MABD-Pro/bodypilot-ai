@@ -2,7 +2,7 @@ import BodyPilotCore
 import SwiftData
 import SwiftUI
 
-/// Accueil en deux écrans, une minute au plus. Sert aussi à modifier le profil.
+/// Accueil en trois écrans, une minute au plus. Sert aussi à modifier le profil.
 struct OnboardingView: View {
     private let editing: ProfileRecord?
 
@@ -17,12 +17,13 @@ struct OnboardingView: View {
     }
 
     enum Step: Int, CaseIterable {
-        case body, rhythm
+        case body, rhythm, start
 
         var title: String {
             switch self {
             case .body: "Parle-moi de toi"
             case .rhythm: "Ton rythme"
+            case .start: "Ton point de départ"
             }
         }
 
@@ -30,6 +31,7 @@ struct OnboardingView: View {
             switch self {
             case .body: "Objectif : perdre du gras et gagner du muscle. Tout reste sur ton iPhone."
             case .rhythm: "Une séance chaque jour, dosée selon ta récupération."
+            case .start: "Le coach mesure d'abord où tu en es, puis ajuste chaque jour."
             }
         }
     }
@@ -53,6 +55,7 @@ struct OnboardingView: View {
                     switch step {
                     case .body: BodyStep(draft: $draft)
                     case .rhythm: RhythmStep(draft: $draft)
+                    case .start: StartStep(equipment: draft.equipment, redoStrengthTest: editing.map { record in { record.strengthTestResetAt = .now } })
                     }
                 }
                 .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
@@ -63,7 +66,7 @@ struct OnboardingView: View {
             .scrollBounceBehavior(.basedOnSize)
 
             Button(action: next) {
-                Text(step == .rhythm ? (editing == nil ? "Voir mon plan du jour" : "Enregistrer") : "Continuer")
+                Text(step == .start ? (editing == nil ? "Voir mon plan du jour" : "Enregistrer") : "Continuer")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
