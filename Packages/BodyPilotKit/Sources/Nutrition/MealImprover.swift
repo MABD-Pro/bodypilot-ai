@@ -19,9 +19,12 @@ public struct MealSuggestion: Sendable, Equatable, Identifiable {
     public var id: String { title }
 }
 
-/// Suggestions déterministes et locales sur un repas décrit : un échange qui allège, un ajout
-/// qui apporte des protéines. Au plus une de chaque, pour rester une aide et pas une leçon.
+/// Suggestions déterministes et locales sur un repas décrit : deux échanges au plus qui allègent,
+/// un ajout qui apporte des protéines. Peu de suggestions, pour rester une aide et pas une leçon.
 public enum MealImprover {
+    /// Allègements proposés au plus, sur des aliments différents.
+    static let maxLighter = 2
+
     /// En dessous, un repas manque de protéines (environ 20 à 40 g par repas pour la synthèse
     /// musculaire, Schoenfeld et Aragon 2018 ; plus bas pour une collation).
     static func minimumProtein(for slot: MealSlot) -> Double {
@@ -46,16 +49,32 @@ public enum MealImprover {
         ("Glace", "skyr", 150),
         ("Sauce", nil, nil),
         ("Fromage", nil, nil),
+        ("Beurre", nil, nil),
+        ("Chips", "amande", nil),
     ]
 
     public static func suggestions(for meal: DescribedMeal, slot: MealSlot) -> [MealSuggestion] {
-        [lighter(meal), moreProtein(meal, slot: slot)].compactMap { $0 }
+        lighter(meal) + [moreProtein(meal, slot: slot)].compactMap { $0 }
     }
 
-    /// L'échange qui fait gagner le plus de calories.
-    static func lighter(_ meal: DescribedMeal) -> MealSuggestion? {
-        var best: (saving: Double, suggestion: MealSuggestion)?
+    /// Les échanges qui font gagner le plus de calories, un par aliment, du plus au moins utile.
+    static func lighter(_ meal: DescribedMeal) -> [MealSuggestion] {
+        var found: [(saving: Double, suggestion: MealSuggestion)] = []
+        // Beurre et huile dans le même repas : deux matières grasses, une seule suffit.
+        if let butter = meal.foods.firstIndex(where: { $0.name == "Beurre" }),
+           meal.foods.contains(where: { $0.name == Foods.oliveOil.name }) {
+            let saving = meal.foods[butter].macros.kcal
+            var foods = meal.foods
+            foods.remove(at: butter)
+            if saving >= minimumSavingKcal {
+                found.append((saving, MealSuggestion(
+                    goal: .lighter, title: "Beurre ou huile, pas les deux", effect: "−\(saving.frenchInteger) kcal",
+                    meal: DescribedMeal(text: meal.text, foods: foods)
+                )))
+            }
+        }
         for (index, food) in meal.foods.enumerated() {
+            if food.name == "Beurre", !found.isEmpty { continue }
             guard let swap = swaps.first(where: { $0.from == food.name }) else { continue }
             let replacement: DescribedFood
             let title: String
@@ -69,22 +88,53 @@ public enum MealImprover {
                 title = "Moitié moins de \(food.name.lowercased())"
             }
             let saving = food.macros.kcal - replacement.macros.kcal
-            guard saving >= minimumSavingKcal, saving > (best?.saving ?? 0) else { continue }
+            guard saving >= minimumSavingKcal, !found.contains(where: { $0.suggestion.title == title }) else { continue }
             var foods = meal.foods
             foods[index] = replacement
-            best = (saving, MealSuggestion(
+            found.append((saving, MealSuggestion(
                 goal: .lighter, title: title, effect: "−\(saving.frenchInteger) kcal",
                 meal: DescribedMeal(text: meal.text, foods: foods)
-            ))
+            )))
         }
-        return best?.suggestion
+        return found.sorted { $0.saving > $1.saving }.prefix(maxLighter).map(\.suggestion)
+    }
+
+    /// Familles d'aliments interchangeables : « Remplacer » propose les autres membres de la famille.
+    static let families: [[String]] = [
+        ["Blanc de poulet", "Steak", "Saumon", "Thon au naturel", "Poisson", "Jambon", "Œufs", "Tofu ferme"],
+        ["Pâtes", "Riz", "Pommes de terre", "Patate douce cuite", "Quinoa cuit", "Lentilles cuites", "Pois chiches cuits", "Frites"],
+        ["Pain", "Pain complet", "Baguette", "Croissant", "Pain au chocolat", "Céréales", "Flocons d'avoine"],
+        ["Fromage", "Fromage blanc 0 %", "Skyr nature", "Yaourt grec 0 %", "Yaourt"],
+        ["Beurre", "Huile d'olive", "Avocat", "Houmous", "Sauce"],
+        ["Banane", "Pomme", "Orange", "Fruit", "Fruits rouges", "Dattes"],
+        ["Légumes", "Brocoli", "Haricots verts", "Courgette", "Tomates", "Salade verte"],
+        ["Chips", "Olives", "Amandes", "Noix", "Chocolat", "Biscuits", "Glace", "Barre protéinée"],
+        ["Soda", "Soda zéro", "Jus de fruits", "Eau", "Café", "Bière", "Vin"],
+    ]
+
+    /// Équivalents d'un aliment, les plus légers d'abord, à la même part de portion :
+    /// une demi-portion de fromage devient une demi-portion de fromage blanc.
+    public static func alternatives(for food: DescribedFood) -> [DescribedFood] {
+        guard let family = families.first(where: { $0.contains(food.name) }),
+              let current = FoodLexicon.entries.first(where: { $0.food.name == food.name })
+        else { return [] }
+        let share = current.portionGrams > 0 ? food.grams / current.portionGrams : 1
+        return family.filter { $0 != food.name }
+            .compactMap { name in FoodLexicon.entries.first { $0.food.name == name } }
+            .map { entry in
+                let grams = (entry.portionGrams * share).rounded()
+                let label = abs(share - 1) < 0.05 ? entry.portionLabel : "≈ \(Int(grams)) g"
+                return described(entry, grams: grams, label: label)
+            }
+            .sorted { $0.macros.kcal < $1.macros.kcal }
     }
 
     /// Un ajout riche en protéines quand le repas en manque : un skyr le matin et en collation,
     /// une portion de poulet au déjeuner et au dîner (un skyr si le plat a déjà sa viande).
     static func moreProtein(_ meal: DescribedMeal, slot: MealSlot) -> MealSuggestion? {
         guard meal.macros.proteinG < minimumProtein(for: slot) else { return nil }
-        let hasMainProtein = meal.foods.contains { $0.grams > 0 && $0.macros.proteinG / $0.grams * 100 >= 15 }
+        // Une vraie portion de viande, de poisson ou d'œufs : un morceau de fromage n'en tient pas lieu.
+        let hasMainProtein = meal.foods.contains { $0.macros.proteinG >= 15 }
         let useMeat = (slot == .lunch || slot == .dinner) && !hasMainProtein
         guard let entry = entry(useMeat ? "poulet" : "skyr") else { return nil }
         let grams = useMeat ? 100.0 : 150

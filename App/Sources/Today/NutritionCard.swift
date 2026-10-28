@@ -193,6 +193,9 @@ private struct MealRow: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Theme.protein)
                         .padding(.top, 2)
+                    if let described = meal.described {
+                        improvements(for: described)
+                    }
                 }
                 .padding(.leading, dynamicTypeSize.isAccessibilitySize ? 0 : 50)
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -204,6 +207,37 @@ private struct MealRow: View {
 }
 
 extension MealRow {
+    /// Repas décrit : les mêmes suggestions que dans « Décrire », applicables d'une touche.
+    @ViewBuilder
+    func improvements(for described: DescribedMeal) -> some View {
+        let suggestions = MealImprover.suggestions(for: described, slot: meal.slot)
+        if suggestions.isEmpty {
+            Label("Repas équilibré : rien à changer", systemImage: "checkmark.seal.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.progress)
+                .padding(.top, 2)
+        } else {
+            ForEach(suggestions) { suggestion in
+                Button {
+                    reuse(suggestion.meal)
+                } label: {
+                    Label {
+                        Text("\(suggestion.title) · \(suggestion.effect)")
+                            .multilineTextAlignment(.leading)
+                    } icon: {
+                        Image(systemName: suggestion.goal == .lighter ? "leaf.fill" : "bolt.heart.fill")
+                            .foregroundStyle(suggestion.goal == .lighter ? Theme.progress : Theme.protein)
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(meal.slot.tint)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
+                .accessibilityHint("Remplace ce repas par la version proposée")
+            }
+        }
+    }
+
     var kcalLabel: some View {
         Text("\(meal.isEatingOut || meal.isEaten ? "≈ " : "")\(meal.macros.kcal.frenchInteger) kcal")
             .font(.footnote.weight(.semibold))
