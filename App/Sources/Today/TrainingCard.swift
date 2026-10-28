@@ -665,6 +665,7 @@ private struct LiftEntrySheet: View {
     @State private var reps: Int
     @State private var showsTechnique = false
     @State private var showsVideo = LaunchOptions.demoVideo
+    @State private var detent: PresentationDetent = LaunchOptions.demoVideo ? .large : .medium
 
     init(item: LiftToLog, save: @escaping (LiftEntry) -> Void) {
         self.item = item
@@ -677,11 +678,22 @@ private struct LiftEntrySheet: View {
     }
 
     var body: some View {
-        ScrollView {
-            content
+        ScrollViewReader { proxy in
+            ScrollView {
+                content
+            }
+            .onChange(of: showsVideo) { _, shown in
+                guard shown else { return }
+                detent = .large
+                Task {
+                    // Le temps que le lecteur apparaisse et que la feuille s'agrandisse.
+                    try? await Task.sleep(for: .milliseconds(300))
+                    withAnimation(.snappy) { proxy.scrollTo("video", anchor: .bottom) }
+                }
+            }
         }
         .scrollBounceBehavior(.basedOnSize)
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.medium, .large], selection: $detent)
         .sensoryFeedback(.increase, trigger: kg)
         .sensoryFeedback(.increase, trigger: reps)
     }
@@ -737,11 +749,6 @@ private struct LiftEntrySheet: View {
                 ramp
             }
 
-            if showsVideo, let embed = ExerciseDemonstration.embedURL(for: item.exercise) {
-                demonstration(embed)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-
             if showsTechnique, let guide = item.guide {
                 technique(guide)
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -773,6 +780,12 @@ private struct LiftEntrySheet: View {
             .buttonStyle(.glassProminent)
             .tint(Theme.training)
 
+            // Sous la saisie : la vidéo ne repousse pas la série à noter.
+            if showsVideo, let embed = ExerciseDemonstration.embedURL(for: item.exercise) {
+                demonstration(embed)
+                    .id("video")
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
         }
         .padding(Theme.Spacing.xxl)
     }
@@ -814,8 +827,8 @@ private struct LiftEntrySheet: View {
                 .clipShape(.rect(cornerRadius: Theme.Radius.inner))
             Link(destination: ExerciseDemonstration.url(for: item.exercise)) {
                 Label("Ouvrir dans YouTube", systemImage: "arrow.up.right.square")
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.training)
             }
         }
     }
