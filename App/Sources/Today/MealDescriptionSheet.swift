@@ -335,7 +335,8 @@ struct MealDescriptionSheet: View {
                     ForEach(alternatives, id: \.name) { alternative in
                         // L'écart avec l'aliment saisi : un remplaçant peut être plus calorique.
                         let delta = alternative.macros.kcal - base.macros.kcal
-                        Button("\(alternative.name) · \(delta < 0 ? "−" : "+")\(abs(delta).frenchInteger) kcal") {
+                        let effect = abs(delta) < 5 ? "même apport" : "\(delta < 0 ? "−" : "+")\(abs(delta).frenchInteger) kcal"
+                        Button("\(alternative.name) · \(effect)") {
                             withAnimation(Theme.springy) {
                                 replacements[index] = alternative
                                 scales[index] = nil
