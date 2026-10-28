@@ -72,3 +72,10 @@ public enum CycleConditioning {
         )
     }
 }
+
+extension Workout {
+    /// Séance chronométrée du cycle (WOD de référence CrossFit, test Hyrox) : le temps se note.
+    public var isCycleBenchmark: Bool {
+        title == CycleConditioning.benchmarkTitle || title == HyroxCycle.benchmarkTitle
+    }
+}
