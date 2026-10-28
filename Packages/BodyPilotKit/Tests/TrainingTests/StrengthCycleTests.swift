@@ -29,14 +29,40 @@ private func workout(_ day: TrainingDay) -> Workout? {
     let heavy = try #require(workout(planner.trainingDay(for: profile, on: monday, constraints: week3)))
     let main = heavy.exercises.filter { $0.priority == 1 }
     #expect(!main.isEmpty)
-    #expect(main.allSatisfy { $0.sets == 4 && $0.volume == .reps(5) && $0.percentOfMax == 0.82 })
+    // Semaine 3 du 5/3/1 : 5 à 75 %, 3 à 85 %, 1+ à 95 % du max d'entraînement (90 % du max), puis 5 × 5.
+    #expect(main.allSatisfy { $0.wave.map(\.reps) == [5, 3, 1] && $0.wave.last?.isPlus == true && $0.backoffSets == 5 })
+    #expect(main.allSatisfy { $0.sets == 3 && $0.volume == .reps(1) && abs(($0.percentOfMax ?? 0) - 0.855) < 1e-9 })
 
     let deload = DayConstraints(cycleWeek: CycleWeek(program: .crossfit, number: 8))
     let light = try #require(workout(planner.trainingDay(for: profile, on: monday, constraints: deload)))
-    #expect(light.exercises.filter { $0.priority == 1 }.allSatisfy { $0.sets == 2 && $0.percentOfMax == 0.70 })
+    #expect(light.exercises.filter { $0.priority == 1 }.allSatisfy { $0.wave.allSatisfy { !$0.isPlus } && $0.backoffSets == 0 && abs(($0.percentOfMax ?? 0) - 0.54) < 1e-9 })
     #expect(light.exercises.filter { $0.priority == 2 }.allSatisfy { $0.sets == 2 })
     let notes = planner.trainingDay(for: profile, on: monday, constraints: deload).notes
     #expect(notes.first?.hasPrefix("Cycle CrossFit · semaine 8 sur 12 (allégée)") == true)
+}
+
+@Test func waveFollowsTheThreeWeeksAndTheDeload() {
+    let week1 = StrengthCycle.wave(for: CycleWeek(program: .crossfit, number: 1))
+    #expect(week1.map(\.reps) == [5, 5, 5])
+    #expect(zip(week1.map(\.percentOfMax), [0.585, 0.675, 0.765]).allSatisfy { abs($0 - $1) < 1e-9 })
+    #expect(StrengthCycle.wave(for: CycleWeek(program: .crossfit, number: 6)).map(\.reps) == [3, 3, 3])
+    #expect(StrengthCycle.wave(for: CycleWeek(program: .crossfit, number: 12)).allSatisfy { !$0.isPlus })
+}
+
+@Test func tiredKeepsTheWaveWithoutTheMaxSet() throws {
+    var constraints = DayConstraints(cycleWeek: CycleWeek(program: .crossfit, number: 2))
+    constraints.lowEnergy = true
+    let session = try #require(workout(planner.trainingDay(for: makeProfile(sessionMinutes: 90, equipment: .gym), on: monday, constraints: constraints)))
+    let main = session.exercises.filter { !$0.wave.isEmpty }
+    #expect(!main.isEmpty)
+    #expect(main.allSatisfy { $0.sets == 3 && $0.backoffSets == 0 && !$0.wave.contains(where: \.isPlus) })
+}
+
+@Test func shortSessionDropsBackoffSetsBeforeTheWave() throws {
+    let session = try #require(workout(planner.trainingDay(for: makeProfile(sessionMinutes: 40, equipment: .gym), on: monday, constraints: DayConstraints(cycleWeek: CycleWeek(program: .crossfit, number: 1)))))
+    let main = session.exercises.filter { !$0.wave.isEmpty }
+    #expect(!main.isEmpty)
+    #expect(main.allSatisfy { $0.sets == 3 && $0.backoffSets < StrengthCycle.backoffSets })
 }
 
 @Test func deloadWeekIsShorterNotMoreCardio() {

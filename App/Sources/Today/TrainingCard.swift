@@ -361,6 +361,16 @@ struct TrainingCard: View {
         )
         // Test refait : le premier essai part des dernières charges plutôt que de la charge d'essai.
         let firstAttemptKg = target?.kg ?? startingKg
+        var wave: [RampStep] = exercise.wave.compactMap { set in
+            StrengthProgress.target(
+                for: exercise.name, plannedReps: set.reps, percentOfMax: set.percentOfMax, history: earlier,
+                lastStrengthDay: lastStrengthDay, on: .now, calendar: calendar
+            )?.kg.map { RampStep(reps: set.reps, kg: $0) }
+        }
+        // Sans max noté : la vague part de la charge d'essai prudente (prévue pour 6 répétitions).
+        if !exercise.wave.isEmpty, wave.count != exercise.wave.count, let startingKg {
+            wave = zip(exercise.wave, StrengthCycle.waveLoads(exercise.wave, startingKg: startingKg, reps: 6)).map { RampStep(reps: $0.reps, kg: $1) }
+        }
         return LiftToLog(
             exercise: exercise.name,
             plannedReps: planned,
@@ -371,7 +381,10 @@ struct TrainingCard: View {
             guide: guide,
             startingKg: startingKg,
             isTest: isTest,
-            ramp: isTest ? firstAttemptKg.map { StrengthCalibration.ramp(for: exercise.name, firstAttemptKg: $0) } ?? [] : []
+            ramp: isTest ? firstAttemptKg.map { StrengthCalibration.ramp(for: exercise.name, firstAttemptKg: $0) } ?? [] : [],
+            wave: wave.count == exercise.wave.count ? wave : [],
+            waveEndsWithMax: exercise.wave.last?.isPlus == true,
+            backoffSets: exercise.backoffSets
         )
     }
 
@@ -392,10 +405,13 @@ struct TrainingCard: View {
         }
         if let target = item.target {
             return .init(
-                text: "Vise \(StrengthProgress.label(kg: target.kg, reps: target.reps))",
+                text: "Vise \(StrengthProgress.label(kg: target.kg, reps: target.reps))\(item.waveEndsWithMax ? "+" : "")",
                 symbol: target.isIncrease ? "arrow.up.right" : "scope",
                 tint: target.isIncrease ? Theme.training : .secondary
             )
+        }
+        if let top = item.wave.last {
+            return .init(text: "Essai : \(StrengthProgress.label(kg: top.kg, reps: top.reps))\(item.waveEndsWithMax ? "+" : "")", symbol: "scope", tint: .secondary)
         }
         if let start = item.startingKg {
             return .init(text: "Essai : \(StrengthProgress.label(kg: start, reps: item.plannedReps))", symbol: "scope", tint: .secondary)
@@ -848,6 +864,11 @@ struct LiftToLog: Identifiable {
     /// Test du calibrage : paliers d'échauffement puis premier essai.
     var isTest = false
     var ramp: [RampStep] = []
+    /// 5/3/1 : les séries de la vague (la dernière au max si `waveEndsWithMax`), puis les séries
+    /// « First Set Last » à la charge de la première.
+    var wave: [RampStep] = []
+    var waveEndsWithMax = false
+    var backoffSets = 0
     var id: String { exercise }
 }
 
@@ -868,7 +889,7 @@ private struct LiftEntrySheet: View {
         self.item = item
         self.save = save
         let start = item.today.map { LiftTarget(kg: $0.kg, reps: $0.reps, isIncrease: false) } ?? item.target
-        let kg = start?.kg ?? (start == nil && item.usesLoads ? item.startingKg ?? 20 : nil)
+        let kg = start?.kg ?? (start == nil && item.usesLoads ? item.wave.last?.kg ?? item.startingKg ?? 20 : nil)
         _withLoad = State(initialValue: kg != nil)
         _kg = State(initialValue: kg ?? 10)
         _reps = State(initialValue: start?.reps ?? item.plannedReps)
@@ -903,7 +924,7 @@ private struct LiftEntrySheet: View {
                     .multilineTextAlignment(.center)
                 Text(item.isTest
                     ? "Note ta série de 5 la plus lourde faite proprement : elle fixe tes charges de travail."
-                    : "Ta meilleure série du jour. Prévu : \(item.plannedReps) répétitions.")
+                    : "Ta meilleure série du jour. Prévu : \(item.plannedReps) répétition\(item.plannedReps > 1 ? "s" : "")\(item.waveEndsWithMax ? " ou plus" : "").")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -944,6 +965,9 @@ private struct LiftEntrySheet: View {
 
             if !item.ramp.isEmpty {
                 ramp
+            }
+            if !item.wave.isEmpty {
+                wave
             }
 
             if showsTechnique, let guide = item.guide {
@@ -1010,6 +1034,45 @@ private struct LiftEntrySheet: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+        .padding(Theme.Spacing.l)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.training.opacity(0.08), in: .rect(cornerRadius: Theme.Radius.inner))
+    }
+
+    /// Séance 5/3/1 : les 3 séries qui montent, puis « First Set Last ».
+    private var wave: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            Label("5/3/1", systemImage: "chart.bar.fill")
+                .font(.headline)
+                .foregroundStyle(Theme.training)
+            ForEach(Array(item.wave.enumerated()), id: \.offset) { index, step in
+                let isMax = item.waveEndsWithMax && index == item.wave.count - 1
+                HStack(spacing: Theme.Spacing.s) {
+                    Text(isMax ? "Série \(index + 1), au max" : "Série \(index + 1)")
+                        .font(.subheadline.weight(isMax ? .semibold : .regular))
+                    Spacer()
+                    Text(StrengthProgress.label(kg: step.kg, reps: step.reps) + (isMax ? "+" : ""))
+                        .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
+                }
+            }
+            if item.backoffSets > 0, let first = item.wave.first {
+                HStack(spacing: Theme.Spacing.s) {
+                    Text("Puis \(item.backoffSets) séries")
+                        .font(.subheadline)
+                    Spacer()
+                    Text(StrengthProgress.label(kg: first.kg, reps: StrengthCycle.backoffReps))
+                        .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
+                }
+            }
+            Text(item.waveEndsWithMax
+                ? "Dernière série : autant de répétitions propres que possible, en gardant 1 répétition en réserve. Note-la : elle recalcule ton max."
+                : "Semaine légère : 3 séries sans forcer, rien au maximum.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(Theme.Spacing.l)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1099,7 +1162,12 @@ extension WorkoutExercise {
     var isSwapped: Bool { name != key && !alternatives.isEmpty }
 
     var prescription: String {
-        switch volume {
+        // 5/3/1 : « 5-3-1+ · 5 × 5 ».
+        if !wave.isEmpty {
+            let steps = wave.map { "\($0.reps)" }.joined(separator: "-") + (wave.last?.isPlus == true ? "+" : "")
+            return backoffSets > 0 ? "\(steps) · \(backoffSets) × \(StrengthCycle.backoffReps)" : steps
+        }
+        return switch volume {
         case .reps(let reps): "\(sets) × \(reps)"
         // Effort continu (marche inclinée, cardio tempo) : en minutes.
         case .seconds(let seconds) where sets == 1 && seconds >= 120: "\(Int((Double(seconds) / 60).rounded())) min"

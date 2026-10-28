@@ -9,7 +9,11 @@ extension WorkoutExercise {
         }
     }
 
-    var estimatedSeconds: Int { sets * workSeconds + max(sets - 1, 0) * restSeconds + Self.transitionSeconds }
+    var estimatedSeconds: Int {
+        sets * workSeconds + max(sets - 1, 0) * restSeconds
+            + backoffSets * (StrengthCycle.backoffReps * 3 + StrengthCycle.backoffRestSeconds)
+            + Self.transitionSeconds
+    }
 
     static let transitionSeconds = 30
 }
