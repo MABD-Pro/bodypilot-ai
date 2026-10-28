@@ -23,6 +23,7 @@ struct TodayView: View {
     @State private var describing: MealToDescribe?
     @State private var isAddingWeight = false
     @State private var isEditingProfile = false
+    @State private var isManagingCycle = false
     @State private var isShowingHistory = LaunchOptions.demoHistory != nil
     /// Entraînements lus dans Santé (Watch, autres apps), pour la semaine et la régularité.
     @State private var healthActivities: [ActivitySample] = []
@@ -73,6 +74,7 @@ struct TodayView: View {
             trainingChoice: todayLog?.trainingChoice,
             cardio: cardio,
             exerciseKcalPerDay: exerciseKcal,
+            cycle: profileRecord.cycle,
             on: now
         )
 
@@ -126,7 +128,10 @@ struct TodayView: View {
                             bodyweightKg: weights.last?.kg ?? profileRecord.startWeightKg,
                             sex: profileRecord.profile.sex,
                             cardioTestToday: cardioTests.last { calendar.isDateInToday($0.day) }?.measure,
-                            logCardioTest: logCardioTest
+                            logCardioTest: logCardioTest,
+                            cycleWeek: profileRecord.cycle?.week(on: now, calendar: calendar),
+                            canStartCycle: profileRecord.profile.equipment == .gym,
+                            manageCycle: { isManagingCycle = true }
                         )
                             .id("training")
                         ProgressCard(
@@ -211,6 +216,9 @@ struct TodayView: View {
             }
             .sheet(isPresented: $isAddingWaist) {
                 WaistEntrySheet(initialCm: waists.last?.cm ?? 90)
+            }
+            .sheet(isPresented: $isManagingCycle) {
+                CycleSheet(profile: profileRecord)
             }
             .sheet(isPresented: $isEditingProfile) {
                 OnboardingView(editing: profileRecord, currentWeightKg: weights.last?.kg)

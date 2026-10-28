@@ -35,6 +35,10 @@ struct TrainingCard: View {
     /// Test de cardio noté aujourd'hui.
     var cardioTestToday: CardioMeasure?
     var logCardioTest: (_ minutes: Double, _ heartRate: Int) -> Void = { _, _ in }
+    /// Cycle de 12 semaines : semaine en cours, ou proposition d'en commencer un (salle).
+    var cycleWeek: CycleWeek?
+    var canStartCycle = false
+    var manageCycle: () -> Void = {}
 
     @State private var isPreviewingWatch = false
     @State private var isLoggingCardioTest = false
@@ -44,6 +48,9 @@ struct TrainingCard: View {
 
     var body: some View {
         CoachCard(eyebrow: "Bouger", symbol: "figure.strengthtraining.functional", tint: Theme.training) {
+            if cycleWeek != nil || canStartCycle {
+                cycleRow
+            }
             if let options {
                 FeelingPicker(adjustments: adjustments, set: setFeeling)
                 OptionsPicker(options: options, choice: choice ?? options.recommended, choose: choose)
@@ -197,6 +204,34 @@ struct TrainingCard: View {
         .sensoryFeedback(.success, trigger: cardioTestToday?.vo2max)
     }
 
+    /// Semaine du cycle (la semaine allégée se voit), ou de quoi en commencer un.
+    private var cycleRow: some View {
+        Button(action: manageCycle) {
+            HStack(spacing: Theme.Spacing.s) {
+                Image(systemName: cycleWeek?.isDeload == true ? "leaf.fill" : "chart.bar.fill")
+                    .foregroundStyle(Theme.training)
+                if let cycleWeek {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(cycleWeek.program.title) · semaine \(cycleWeek.number) sur \(TrainingCycle.weeks)")
+                            .font(.subheadline.weight(.semibold))
+                        Text(cycleWeek.isDeload ? "Semaine allégée" : "Phase \(cycleWeek.phase), \(cycleWeek.phaseTitle)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text("Commencer un cycle de 12 semaines")
+                        .font(.subheadline.weight(.semibold))
+                }
+                Spacer(minLength: Theme.Spacing.s)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
     /// Pourquoi la séance est ainsi (récupération, genou, fatigue…), juste sous son titre.
     private var notes: some View {
         ForEach(training.notes, id: \.self) { note in
@@ -212,7 +247,7 @@ struct TrainingCard: View {
         let guide = ExerciseGuide.guide(for: exercise.name)
         let startingKg = usesLoads ? bodyweightKg.flatMap { guide?.startingLoad(bodyweightKg: $0, sex: sex) } : nil
         let target = StrengthProgress.target(
-            for: exercise.name, plannedReps: planned, history: earlier,
+            for: exercise.name, plannedReps: planned, percentOfMax: exercise.percentOfMax, history: earlier,
             lastStrengthDay: lastStrengthDay, on: .now, calendar: calendar
         )
         // Test refait : le premier essai part des dernières charges plutôt que de la charge d'essai.

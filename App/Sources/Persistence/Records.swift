@@ -28,6 +28,9 @@ final class ProfileRecord {
     var lastCheckInAt: Date?
     /// « Refaire le test de force » : les charges notées avant cette date ne comptent plus comme calibrées.
     var strengthTestResetAt: Date?
+    /// Cycle de 12 semaines en cours ; `nil` : séances au jour le jour, sans cycle.
+    var cycleProgramRaw: String?
+    var cycleStartDate: Date?
 
     init(_ profile: UserProfile) {
         entityID = profile.id.rawValue
@@ -46,6 +49,17 @@ final class ProfileRecord {
         trainingWeekdaysRaw = profile.trainingWeekdays
         sessionMinutes = profile.sessionMinutes
         equipmentRaw = profile.equipment.rawValue
+    }
+
+    var cycle: TrainingCycle? {
+        get {
+            guard let raw = cycleProgramRaw, let program = CycleProgram(rawValue: raw), let cycleStartDate else { return nil }
+            return TrainingCycle(program: program, startDate: cycleStartDate)
+        }
+        set {
+            cycleProgramRaw = newValue?.program.rawValue
+            cycleStartDate = newValue?.startDate
+        }
     }
 
     /// Le bilan revient au plus une fois par semaine.

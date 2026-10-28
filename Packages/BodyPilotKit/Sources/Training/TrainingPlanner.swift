@@ -160,9 +160,16 @@ public struct TrainingPlanner: TrainingPlanning {
                     "Test de force : monte par paliers jusqu'à une série de 5 lourde et propre, puis note-la. Toutes tes charges de travail en découlent.",
                 ])
             }
-            let strength = nextWorkout(after: constraints.lastWorkoutTitle, for: profile, on: date)
-            let composed = budget >= Self.threeAxisMinutes ? withConditioning(strength, budget: budget, equipment: profile.equipment, on: date) : strength
-            var day = adapt(composed, budget: budget, constraints: constraints)
+            var strength = nextWorkout(after: constraints.lastWorkoutTitle, for: profile, on: date)
+            if let week = constraints.cycleWeek {
+                strength = StrengthCycle.apply(week, to: strength, usesLoads: profile.equipment == .gym)
+            }
+            // Semaine allégée du cycle : séance plus courte, plutôt que plus de cardio.
+            let sessionBudget = constraints.cycleWeek?.isDeload == true
+                ? max(Int(Double(budget) * StrengthCycle.deloadTimeShare), min(budget, Self.threeAxisMinutes))
+                : budget
+            let composed = sessionBudget >= Self.threeAxisMinutes ? withConditioning(strength, budget: sessionBudget, equipment: profile.equipment, on: date) : strength
+            var day = adapt(composed, budget: sessionBudget, constraints: constraints)
             if let postponed = postponedTest(for: profile, constraints: constraints) {
                 day.notes.insert(postponed, at: 0)
             }
@@ -170,6 +177,9 @@ public struct TrainingPlanner: TrainingPlanning {
                let pause = calendar.dateComponents([.day], from: calendar.startOfDay(for: last), to: calendar.startOfDay(for: date)).day,
                let comeback = StrengthProgress.comebackNote(pauseDays: pause) {
                 day.notes.insert(comeback, at: 0)
+            }
+            if let week = constraints.cycleWeek {
+                day.notes.insert(StrengthCycle.note(for: week), at: 0)
             }
             return day
         case .conditioning:

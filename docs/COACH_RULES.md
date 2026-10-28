@@ -52,6 +52,15 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - « J'ai raté ma séance » : jamais deux séances le même jour. Une marche tranquille le jour même ; la force non faite revient dès le lendemain, puisque la dernière force date toujours d'au moins 48 h.
 - « Machine prise, pas de barre » : chaque exercice a deux ou trois variantes du même mouvement, avec le même matériel. Une touche passe à la variante suivante, puis revient à l'exercice d'origine. Séries, volume et repos ne changent pas. Le choix vaut pour la journée. Les règles de sécurité restent prioritaires : avec un genou douloureux, une variante qui charge le genou est remplacée par la version qui l'épargne, et celle-ci ne se remplace pas.
 
+## Cycle de 12 semaines (`BodyPilotCore/Cycle`, `Training/StrengthCycle`)
+
+- Choisi par l'utilisateur (salle) depuis la carte Bouger ; commence le jour même. Premier programme : vers le CrossFit (plan validé par Mounaïm le 2026-10-28). L'Hyrox suivra une fois son plan validé.
+- 3 phases de 4 semaines (base, puissance, conditioning) ; la 4ᵉ semaine de chaque phase est allégée. Après la 12ᵉ semaine, le cycle s'arrête et la carte propose d'en recommencer un.
+- Mouvements principaux (priorité 1) : semaine 1 : 3 × 6 à ~75 % du max, 3 répétitions en réserve ; semaine 2 : 4 × 6 à ~78 %, 2 en réserve ; semaine 3 : 4 × 5 à ~82 %, 1 en réserve ; semaine allégée : 2 × 5 à ~70 %, 4 en réserve. Exercices secondaires : 3 séries ; en semaine allégée, 2 séries à ~70 % du max. La semaine allégée raccourcit aussi la séance de force à 70 % du temps (au moins 30 min si le temps le permet) : le temps gagné ne part pas en cardio. Choix BodyPilot dans la fourchette de l'ACSM (2009) ; semaine allégée selon le consensus de Bell et al. (2023).
+- Charge = pourcentage du max pondéré (`StrengthProgress.referenceOneRepMax`), arrondie aux disques en dessous ; elle remplace la surcharge progressive pendant le cycle. Le max se recalcule à chaque série notée : la phase suivante monte toute seule si la semaine 3 a progressé.
+- Le coach du jour garde la main : fatigue, nuit courte, genou, temps limité et test de force passent avant le cycle. La note de la séance indique la semaine et la phase.
+- Pas encore dans ce lot : Force C et nouveaux exercices, cardio progressif, EMOM/AMRAP, WOD de référence.
+
 ## Séance sur l'Apple Watch (`Training/GuidedWorkout`)
 
 - La séance envoyée est celle du jour, déjà adaptée (temps, fatigue, genou, déplacement).

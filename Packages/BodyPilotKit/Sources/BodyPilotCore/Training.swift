@@ -25,6 +25,8 @@ public struct WorkoutExercise: Sendable, Equatable {
     /// Variantes équivalentes (même mouvement, même matériel), proposées quand l'utilisateur
     /// veut remplacer l'exercice : poste occupé, matériel absent, mouvement qu'il n'aime pas.
     public var alternatives: [String]
+    /// Charge visée en part du max estimé, fixée par la semaine du cycle ; `nil` : surcharge progressive.
+    public var percentOfMax: Double? = nil
 
     public init(
         name: String,
@@ -167,6 +169,8 @@ public struct DayConstraints: Sendable, Equatable {
     public var choice: TrainingChoice?
     /// Forme cardio : test à faire, zone de cardio modéré.
     public var cardio: CardioStatus
+    /// Semaine du cycle de 12 semaines en cours ; `nil` : pas de cycle.
+    public var cycleWeek: CycleWeek?
 
     public init(
         availableMinutes: Int? = nil,
@@ -183,7 +187,8 @@ public struct DayConstraints: Sendable, Equatable {
         activeDays: Set<Date> = [],
         recentActivities: [ActivitySample] = [],
         choice: TrainingChoice? = nil,
-        cardio: CardioStatus = CardioStatus()
+        cardio: CardioStatus = CardioStatus(),
+        cycleWeek: CycleWeek? = nil
     ) {
         self.availableMinutes = availableMinutes
         self.lowEnergy = lowEnergy
@@ -200,6 +205,7 @@ public struct DayConstraints: Sendable, Equatable {
         self.recentActivities = recentActivities
         self.choice = choice
         self.cardio = cardio
+        self.cycleWeek = cycleWeek
     }
 }
 

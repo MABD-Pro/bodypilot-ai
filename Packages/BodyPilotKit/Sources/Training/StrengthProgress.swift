@@ -130,10 +130,12 @@ public enum StrengthProgress {
     /// prévu, la charge monte de 2 à 10 %. Après une pause de plus de 3 semaines, on repart du
     /// max pondéré, sans hausse. Au poids du corps, on vise une répétition de plus.
     /// Sans série notée, la charge vient du mouvement de référence.
-    /// Sans `date`, aucune pause n'est comptée.
+    /// Sans `date`, aucune pause n'est comptée. Dans un cycle, `percentOfMax` fixe la charge
+    /// à cette part du max pondéré, à la place de la surcharge progressive.
     public static func target(
         for exercise: String,
         plannedReps: Int,
+        percentOfMax: Double? = nil,
         history: [LiftEntry],
         lastStrengthDay: Date? = nil,
         on date: Date? = nil,
@@ -148,6 +150,10 @@ public enum StrengthProgress {
             return LiftTarget(kg: nil, reps: beat ? last.reps + 1 : plannedReps, isIncrease: beat)
         }
         let reference = referenceOneRepMax(for: exercise, history: history, lastStrengthDay: lastStrengthDay, on: date, calendar: calendar) ?? score(last)
+        if let percentOfMax {
+            let load = StrengthCalibration.roundDown(reference * percentOfMax)
+            return LiftTarget(kg: load, reps: plannedReps, isIncrease: load > kg)
+        }
         let fromMax = StrengthCalibration.workingLoad(oneRepMax: reference, reps: plannedReps)
         let pause = date.flatMap { pauseDays(history: history, lastStrengthDay: lastStrengthDay, on: $0, calendar: calendar) } ?? 0
         if last.isTest || retention(afterDays: pause) < 1 {
