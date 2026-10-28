@@ -85,7 +85,7 @@ struct HistoryView: View {
 
     /// Menu de filtre d'une partie, dans la couleur de la partie.
     private func filterMenu<Value: Hashable>(
-        _ title: String, selection: Value, options: [(value: Value, label: String)], tint: Color, choose: @escaping (Value) -> Void
+        _ title: String, selection: Value, options: [(value: Value, label: String)], tint: Color, choose: @escaping @MainActor (Value) -> Void
     ) -> some View {
         Menu {
             Picker(title, selection: Binding(get: { selection }, set: choose)) {
