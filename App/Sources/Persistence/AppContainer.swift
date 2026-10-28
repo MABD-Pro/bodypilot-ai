@@ -45,6 +45,10 @@ enum LaunchOptions {
     /// `-demoActivities YES` : quelques activités Santé dans la semaine (course, vélo, marche).
     static var demoActivities: Bool { defaults.bool(forKey: "demoActivities") }
     /// `-demoSleep 5.5` : nuit passée lue dans Santé, en heures.
+    /// `-demoAge 68` : âge du profil de démo (séries de 10, équilibre à partir de 65 ans).
+    static var demoAge: Int? { defaults.object(forKey: "demoAge") == nil ? nil : defaults.integer(forKey: "demoAge") }
+    /// `-demoSleepAverage 6.25` : sommeil moyen des 7 dernières nuits.
+    static var demoSleepAverage: Double? { defaults.object(forKey: "demoSleepAverage") == nil ? nil : defaults.double(forKey: "demoSleepAverage") }
     static var demoSleepHours: Double? { defaults.object(forKey: "demoSleep") == nil ? nil : defaults.double(forKey: "demoSleep") }
     /// `-demoCycle 4` : cycle CrossFit en cours, aujourd'hui dans cette semaine (1 à 12).
     static var demoCycleWeek: Int? { defaults.object(forKey: "demoCycle") == nil ? nil : defaults.integer(forKey: "demoCycle") }
@@ -195,7 +199,7 @@ enum DemoData {
 
     @MainActor
     static func seed(_ context: ModelContext, now: Date = .now, calendar: Calendar = .current) {
-        let birthDate = calendar.date(byAdding: .year, value: -34, to: now) ?? now
+        let birthDate = calendar.date(byAdding: .year, value: -(LaunchOptions.demoAge ?? 34), to: now) ?? now
         let profile = UserProfile(
             sex: .male,
             birthDate: birthDate,

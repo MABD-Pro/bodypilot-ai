@@ -197,6 +197,8 @@ public struct DayConstraints: Sendable, Equatable {
     /// Un « oui » au questionnaire de santé sans accord médical : ni test, ni fractionné, ni
     /// série au maximum, effort modéré (voir `HealthScreening`).
     public var medicalCaution: Bool
+    /// Sommeil moyen des 7 dernières nuits (au moins 4 mesurées), lu dans Santé.
+    public var averageSleepHours: Double? = nil
 
     public init(
         availableMinutes: Int? = nil,

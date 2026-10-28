@@ -58,6 +58,7 @@ public struct DailyCoach: Sendable {
         lastStrengthDay: Date? = nil,
         calibratedLifts: Set<String>? = nil,
         sleepHours: Double? = nil,
+        averageSleepHours: Double? = nil,
         activeDays: Set<Date> = [],
         recentActivities: [ActivitySample] = [],
         trainingChoice: TrainingChoice? = nil,
@@ -88,7 +89,7 @@ public struct DailyCoach: Sendable {
             on: date,
             constraints: MealConstraints(today: adjustments, at: date, calendar: calendar, eatingOutSlot: eatingOutSlot, eaten: mealIntakes, described: describedMeals)
         )
-        let constraints = DayConstraints(
+        var constraints = DayConstraints(
             today: adjustments,
             availableMinutes: availableMinutes,
             exerciseSwaps: exerciseSwaps,
@@ -104,6 +105,7 @@ public struct DailyCoach: Sendable {
             cycleWorkoutsThisWeek: cycleWorkoutsThisWeek,
             cyclePlan: cycle.flatMap { cycle in cycleSessionsPerWeek.map { CycleSessionPlan(sessions: $0, program: cycle.program) } }
         )
+        constraints.averageSleepHours = averageSleepHours
         let options = training.options(for: profile, on: date, constraints: constraints)
         let chosen = trainingChoice.flatMap { options.option($0) } ?? options.option(options.recommended)
         let trainingDay = chosen?.day ?? TrainingDay(kind: .rest, estimatedMinutes: 0)

@@ -33,6 +33,8 @@ struct TodayView: View {
     @State private var healthActivities: [ActivitySample] = []
     /// Sommeil de la nuit passée, lu dans Santé.
     @State private var sleepHours: Double?
+    /// Sommeil moyen des 7 dernières nuits (Santé).
+    @State private var averageSleepHours: Double?
     /// Forme cardio estimée par la Watch et pouls au repos, lus dans Santé.
     @State private var watchCardio: CardioMeasure?
     @State private var restingHeartRate: Double?
@@ -84,6 +86,7 @@ struct TodayView: View {
             lastStrengthDay: lastStrength.day,
             calibratedLifts: DayLogEditor.calibratedLifts(lifts, before: now, since: profileRecord.strengthTestResetAt, lastStrengthDay: lastStrength.day, calendar: calendar),
             sleepHours: sleepHours,
+            averageSleepHours: averageSleepHours,
             activeDays: activeDays,
             recentActivities: healthActivities,
             trainingChoice: todayLog?.trainingChoice,
@@ -221,6 +224,7 @@ struct TodayView: View {
                     if LaunchOptions.demoComposition { compositions = DemoData.compositions() }
                     if LaunchOptions.demoSteps { dailySteps = DemoData.steps() }
                     if let hours = LaunchOptions.demoSleepHours { sleepHours = hours }
+                    if let hours = LaunchOptions.demoSleepAverage { averageSleepHours = hours }
                     if LaunchOptions.demoData && !LaunchOptions.demoCardioTest {
                         watchCardio = DemoData.watchCardio()
                         restingHeartRate = 58
@@ -340,13 +344,14 @@ struct TodayView: View {
         async let weightSamples = try? HealthWeight.samples(since: weightsSince)
         async let activities = try? HealthWorkouts.samples(since: activitiesSince)
         async let sleep = try? HealthSleep.lastNightHours(calendar: calendar)
+        async let averageSleep = try? HealthSleep.averageHours(calendar: calendar)
         async let measure = try? HealthCardio.latestVO2max()
         async let resting = try? HealthCardio.restingHeartRate()
         async let values = HealthProfile.read(calendar: calendar)
         async let starts: [Date]? = readsCycle ? (try? HealthCycle.periodStarts(calendar: calendar)) : nil
         async let entries = HealthBodyComposition.entries(calendar: calendar)
         async let steps = try? HealthSteps.daily(calendar: calendar)
-        let read = await (weights: weightSamples, activities: activities, sleep: sleep, measure: measure,
+        let read = await (weights: weightSamples, activities: activities, sleep: sleep, averageSleep: averageSleep, measure: measure,
                           resting: resting, values: values, starts: starts, entries: entries, steps: steps)
 
         let toImport = read.weights.map {
@@ -362,6 +367,7 @@ struct TodayView: View {
             }
             if let activities = read.activities { healthActivities = activities }
             if let hours = read.sleep { sleepHours = hours }
+            if let hours = read.averageSleep { averageSleepHours = hours }
             watchCardio = read.measure
             restingHeartRate = read.resting
             if let starts = read.starts { periodStarts = starts }

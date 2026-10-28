@@ -68,6 +68,41 @@ enum WorkoutCatalog {
         intensityCue: bodyweightCue
     )
 
+    // MARK: Isolation
+
+    /// Compléments d'isolation après la force : épaules (faisceau latéral), bras et mollets, que
+    /// les polyarticulaires travaillent peu. 2 séries courtes, repos 45 s : environ 3 min chacun.
+    /// Le volume par muscle compte pour la prise de muscle (Schoenfeld, Ogborn & Krieger, 2017).
+    static func accessories(after title: String, equipment: Equipment) -> [WorkoutExercise] {
+        let isB = title == gymB.title
+        switch equipment {
+        case .gym:
+            return isB
+                ? [
+                    WorkoutExercise(name: "Extension triceps à la poulie", sets: 2, volume: .reps(12), restSeconds: 45, priority: 3, alternatives: ["Extension triceps haltère au-dessus de la tête", "Dips sur une chaise"]),
+                    WorkoutExercise(name: "Mollets debout à la machine", sets: 2, volume: .reps(15), restSeconds: 45, priority: 3, alternatives: ["Mollets sur une marche"]),
+                ]
+                : [
+                    WorkoutExercise(name: "Élévations latérales haltères", sets: 2, volume: .reps(15), restSeconds: 45, priority: 3, alternatives: ["Élévations latérales à la poulie"]),
+                    WorkoutExercise(name: "Curl haltères", sets: 2, volume: .reps(12), restSeconds: 45, priority: 3, alternatives: ["Curl marteau", "Curl à la poulie"]),
+                ]
+        case .bodyweight:
+            return isB
+                ? [
+                    WorkoutExercise(name: "Pompes diamant", sets: 2, volume: .reps(10), restSeconds: 45, priority: 3, alternatives: ["Dips sur une chaise"]),
+                    WorkoutExercise(name: "Rowing serviette à la porte", sets: 2, volume: .reps(12), restSeconds: 45, priority: 3, alternatives: ["Superman au sol"]),
+                ]
+                : [
+                    WorkoutExercise(name: "Pompes pike", sets: 2, volume: .reps(10), restSeconds: 45, priority: 3, alternatives: ["Pompes déclinées"]),
+                    WorkoutExercise(name: "Mollets sur une marche", sets: 2, volume: .reps(20), restSeconds: 45, priority: 3),
+                ]
+        }
+    }
+
+    /// À partir de 65 ans : équilibre en premier complément (prévention des chutes,
+    /// Sherrington et al., 2019).
+    static let balance = WorkoutExercise(name: "Équilibre sur une jambe", sets: 2, volume: .seconds(30), restSeconds: 15, priority: 3)
+
     // MARK: Cycle CrossFit (salle) : rotation A / B / C
 
     static func cycleSessions(phase: Int) -> [Workout] {
