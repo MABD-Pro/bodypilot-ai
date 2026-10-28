@@ -82,15 +82,21 @@ public enum HyroxCycle {
         return Workout(title: qualityTitle, warmupMinutes: 10, cooldownMinutes: 5, exercises: [exercise], intensityCue: cue)
     }
 
-    static func benchmark() -> Workout {
-        Workout(
+    /// En semaine 1 (phase 1, pas de course dure), le test se court à allure soutenue mais
+    /// contrôlée : il donne la référence. En semaine 11, à allure de course.
+    static func benchmark(for week: CycleWeek) -> Workout {
+        let first = week.phase == 1
+        let run = first ? "1 km à allure soutenue" : "1 km à allure Hyrox"
+        return Workout(
             title: benchmarkTitle, warmupMinutes: 10, cooldownMinutes: 5,
             exercises: [
-                running("1 km à allure Hyrox", sets: 1, seconds: 360, rest: 0),
+                running(run, sets: 1, seconds: 360, rest: 0),
                 WorkoutExercise(name: "Wall ball", sets: 1, volume: .reps(50), restSeconds: 0, priority: 4, loadsKnee: true, kneeFriendlyAlternative: "Rameur 500 m"),
-                running("1 km à allure Hyrox", sets: 1, seconds: 360, rest: 0),
+                running(run, sets: 1, seconds: 360, rest: 0),
             ],
-            intensityCue: "Au chrono, sans pause prévue : 1 km, 50 wall balls en séries fixes, 1 km. Note ton temps : il mesure ta progression."
+            intensityCue: first
+                ? "Au chrono : 1 km, 50 wall balls en séries fixes, 1 km. Allure soutenue mais contrôlée, sans finir à fond : c'est ta référence de départ, les tendons s'habituent encore."
+                : "Au chrono, sans pause prévue : 1 km, 50 wall balls en séries fixes, 1 km. Compare ton temps à celui de la semaine 1."
         )
     }
 
@@ -176,7 +182,7 @@ public enum HyroxCycle {
 
     static func workout(_ session: Session, week: CycleWeek, budget: Int, zone: ClosedRange<Int>?) -> Workout {
         switch session {
-        case .benchmark: benchmark()
+        case .benchmark: benchmark(for: week)
         case .quality: quality(for: week)
         case .fundamentals: fundamentals(for: week)
         case .easyRun: easyRun(for: week, budget: budget, zone: zone)

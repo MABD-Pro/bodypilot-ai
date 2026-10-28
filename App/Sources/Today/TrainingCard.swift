@@ -122,7 +122,7 @@ struct TrainingCard: View {
                         detail: workout.isStrengthTest ? "5 rép." : workout.isCardioTest ? "1,6 km" : exercise.prescription,
                         isWarmup: false,
                         isSwapped: exercise.isSwapped,
-                        caption: toLog.map(caption),
+                        caption: toLog.map(caption) ?? exercise.recoveryCaption.map { ExerciseRow.Caption(text: $0, symbol: "figure.walk", tint: .secondary) },
                         swap: exercise.alternatives.isEmpty ? nil : { swap(exercise.key) },
                         log: toLog.map { item -> () -> Void in { logging = item } }
                     )
@@ -846,6 +846,8 @@ private struct ExerciseRow: View {
                 Label(caption.text, systemImage: caption.symbol)
                     .font(.caption.weight(.medium))
                     .foregroundStyle(caption.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .contentTransition(.opacity)
             }
         }
@@ -1172,11 +1174,13 @@ extension WorkoutExercise {
             return backoffSets > 0 ? "\(steps) · \(backoffSets) × \(StrengthCycle.backoffReps)" : steps
         }
         return switch volume {
+        // Une seule série (test au chrono) : « 50 rép. » se lit mieux que « 1 × 50 ».
+        case .reps(let reps) where sets == 1: "\(reps) rép."
         case .reps(let reps): "\(sets) × \(reps)"
         // Effort continu (marche inclinée, cardio tempo) : en minutes.
         case .seconds(let seconds) where sets == 1 && seconds >= 120: "\(Int((Double(seconds) / 60).rounded())) min"
-        // Fractionné : effort puis récupération.
-        case .seconds(let seconds) where isConditioning && restSeconds > 0: "\(sets) × \(Self.duration(seconds)) / \(Self.duration(restSeconds))"
+        // Fractionné : la récupération passe sous le nom (recoveryCaption), le volume reste court.
+        case .seconds(let seconds) where isConditioning && restSeconds > 0: "\(sets) × \(Self.duration(seconds))"
         // Tours enchaînés sans pause (WOD au chrono) : la durée n'est qu'un ordre d'idée, déjà
         // dans la durée de la séance ; un volume court laisse la place au contenu du tour.
         case .seconds where isConditioning && sets > 1: "\(sets) tours"
@@ -1192,11 +1196,24 @@ extension WorkoutExercise {
 
     /// Cardio et marche inclinée, ajoutés après la force.
     var isConditioning: Bool { priority >= 4 }
+
+    /// « Récupération 2 min » sous le nom d'un fractionné.
+    var recoveryCaption: String? {
+        guard isConditioning, sets > 1, restSeconds > 0, case .seconds = volume else { return nil }
+        return "Récupération \(Self.duration(restSeconds))"
+    }
 }
 
 extension Workout {
     /// « 4 exercices de force · cardio · marche inclinée ».
     var summary: String {
+        switch title {
+        case HyroxCycle.benchmarkTitle: return "course · wall balls"
+        case HyroxCycle.qualityTitle: return "fractionné"
+        case HyroxCycle.fundamentalsTitle: return "ateliers Hyrox"
+        case HyroxCycle.easyRunTitle: return "course"
+        default: break
+        }
         let strength = exercises.filter { !$0.isConditioning }
         var parts: [String] = strength.isEmpty ? [] : ["\(strength.count) exercice\(strength.count > 1 ? "s" : "") de force"]
         let conditioning = exercises.filter(\.isConditioning).count

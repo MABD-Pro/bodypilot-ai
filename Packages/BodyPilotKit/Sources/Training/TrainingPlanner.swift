@@ -490,6 +490,14 @@ public struct TrainingPlanner: TrainingPlanning {
             // La vague 5/3/1 garde ses 3 séries : c'est la dernière qui compte.
             { w in w.exercises = w.exercises.map { var e = $0; if e.priority < 4 && e.wave.isEmpty { e.sets = min(e.sets, 2) }; return e } },
         ]
+        // Séance de cardio seule en tours (fractionné, ateliers) : on retire des tours plutôt que
+        // d'écourter l'échauffement ou les récupérations, qui font la qualité de l'effort.
+        if !result.exercises.isEmpty && result.exercises.allSatisfy({ $0.priority >= 4 }) {
+            while result.estimatedMinutes > budget,
+                  let index = result.exercises.indices.filter({ result.exercises[$0].sets > 2 }).max(by: { result.exercises[$0].sets < result.exercises[$1].sets }) {
+                result.exercises[index].sets -= 1
+            }
+        }
         for step in steps where result.estimatedMinutes > budget {
             step(&result)
         }
