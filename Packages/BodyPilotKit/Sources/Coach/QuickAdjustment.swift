@@ -42,7 +42,8 @@ extension DayConstraints {
         sleepHours: Double? = nil,
         activeDays: Set<Date> = [],
         recentActivities: [ActivitySample] = [],
-        choice: TrainingChoice? = nil
+        choice: TrainingChoice? = nil,
+        cardio: CardioStatus = CardioStatus()
     ) {
         self.init(
             availableMinutes: today.contains(.shortOnTime) ? (availableMinutes ?? QuickAdjustment.shortOnTimeMinutes) : nil,
@@ -58,7 +59,8 @@ extension DayConstraints {
             sleepHours: sleepHours,
             activeDays: activeDays,
             recentActivities: recentActivities,
-            choice: choice
+            choice: choice,
+            cardio: cardio
         )
     }
 }

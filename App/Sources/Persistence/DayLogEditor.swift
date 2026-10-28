@@ -43,6 +43,7 @@ enum DayLogEditor {
         let start = calendar.startOfDay(for: now)
         let done = (try? context.fetch(FetchDescriptor<DayLogRecord>(predicate: #Predicate { $0.workoutDone && $0.day < start }))) ?? []
         let lifts = (try? context.fetch(FetchDescriptor<LiftRecord>(predicate: #Predicate { $0.day < start }))) ?? []
+        let cardioTests = (try? context.fetch(FetchDescriptor<CardioTestRecord>())) ?? []
         let last = lastStrength(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar)
         return CoachFactory.coach.plan(
             for: profile.profile,
@@ -59,6 +60,7 @@ enum DayLogEditor {
             calibratedLifts: calibratedLifts(lifts.map(\.entry), before: now, since: profile.strengthTestResetAt, calendar: calendar),
             activeDays: activeDays(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar),
             trainingChoice: today?.trainingChoice,
+            cardio: cardioStatus(for: profile.profile, measures: cardioTests.map(\.measure), restingHeartRate: nil, on: now, calendar: calendar),
             on: now
         )
     }
@@ -73,6 +75,17 @@ enum DayLogEditor {
         let start = calendar.startOfDay(for: date)
         let days = completed.map(\.day) + samples.filter { $0.minutes >= 20 }.map(\.start)
         return Set(days.map { calendar.startOfDay(for: $0) }.filter { $0 < start })
+    }
+
+    /// Forme cardio : test de marche à faire sans mesure de moins de 8 semaines avant ce jour
+    /// (un test fait aujourd'hui reste affiché), zone de cardio modéré selon l'âge et le pouls au repos.
+    nonisolated static func cardioStatus(for profile: UserProfile, measures: [CardioMeasure], restingHeartRate: Double?, on date: Date, calendar: Calendar = .current) -> CardioStatus {
+        let start = calendar.startOfDay(for: date)
+        let last = CardioTest.latest(measures.filter { $0.date < start })
+        return CardioStatus(
+            testDue: CardioTest.isDue(lastMeasured: last?.date, on: date, calendar: calendar),
+            moderateHeartRate: CardioTest.moderateZone(age: profile.age(on: date, calendar: calendar), restingHeartRate: restingHeartRate)
+        )
     }
 
     /// Exercices dont une charge est notée avant ce jour. Les séries du jour n'en font pas partie :

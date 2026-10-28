@@ -76,6 +76,14 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Après le test : charge de travail = 1RM estimé (Epley) ramené aux répétitions prévues plus 2 en réserve, arrondi vers le bas. Les variantes (haltères, machines, hip thrust, roumain…) se déduisent du mouvement de référence par un ratio prudent, jusqu'à leur première série notée.
 - L'inscription l'explique (écran « Ton point de départ »). Dans « Mon profil », « Refaire le test de force » (salle) remet le calibrage à zéro : seules les charges notées depuis comptent, le test revient au prochain jour de force et son premier essai part des dernières charges. Les records restent.
 
+## Test de cardio (`Training/CardioTest`)
+
+- Forme cardio = VO2max (ml/kg/min). La plus récente des mesures compte : la « Forme cardio » de l'Apple Watch lue dans Santé, ou un test de marche noté dans l'app.
+- Sans mesure de moins de 8 semaines avant ce jour, un jour de cardio devient « Test de cardio : 1,6 km de marche ». C'est seulement possible sans fatigue, courbatures, nuit courte ni genou sensible, et avec au moins 25 min. Un jour de force, la force reste recommandée. Le test se fait en marchant le plus vite possible, sans courir, sur terrain plat. La Watch reçoit un objectif de 1,6 km.
+- « Noter mon test » : temps et pouls à l'arrivée → VO2max par l'équation de Rockport. Un test par jour, corrigeable.
+- Zone de cardio modéré : 40 à 59 % de la réserve cardiaque si le pouls au repos est connu (Santé), sinon 64 à 76 % de la fréquence maximale (208 − 0,7 × âge). Elle s'affiche dans la consigne des jours de cardio et dans Progresser.
+- Siri et Raccourcis ne lisent pas Santé : ils ne voient que les tests notés dans l'app.
+
 ## Progression (`ProgressInsights/WeightTrendAnalyzer`)
 
 - Poids lissé (moyenne mobile exponentielle, 0,25) pour gommer l'eau et le sel.
@@ -97,6 +105,8 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 ## Pesées importées de Santé (`ProgressInsights/WeightImportPlanner`)
 
 - Lecture seule du poids (HealthKit, `bodyMass`), 90 jours en arrière à la connexion, puis à chaque retour dans l'app. Aucune donnée ne quitte l'iPhone.
+- Santé fournit aussi, en lecture : les entraînements (Watch, cours collectifs, autres apps), le sommeil de la nuit passée, la VO2max et le pouls au repos. Progresser affiche ce qui est relié et la nuit dernière.
+- Profil : la taille, la date de naissance et le sexe de Santé remplacent ceux du profil à chaque retour dans l'app, donc les besoins se recalculent. « Mon profil » affiche le poids de la dernière pesée. Un poids modifié là devient la pesée du jour, et le poids de départ ne change pas.
 - Une pesée par jour : la première de la journée (le plus souvent le matin à jeun).
 - Un jour déjà renseigné n'est jamais écrasé : la saisie manuelle garde la main.
 - Valeurs hors 25–350 kg écartées ; une mesure déjà importée (même identifiant Santé) ne revient pas.

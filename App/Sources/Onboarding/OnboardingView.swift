@@ -5,15 +5,20 @@ import SwiftUI
 /// Accueil en trois écrans, une minute au plus. Sert aussi à modifier le profil.
 struct OnboardingView: View {
     private let editing: ProfileRecord?
+    /// Dernière pesée (saisie ou Santé) : le profil affiche le poids actuel, pas celui de l'inscription.
+    private let currentWeightKg: Double?
 
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var draft: ProfileDraft
     @State private var step: Step = .body
 
-    init(editing: ProfileRecord? = nil) {
+    init(editing: ProfileRecord? = nil, currentWeightKg: Double? = nil) {
         self.editing = editing
-        _draft = State(initialValue: editing.map { ProfileDraft($0.profile) } ?? ProfileDraft())
+        self.currentWeightKg = currentWeightKg
+        var draft = editing.map { ProfileDraft($0.profile) } ?? ProfileDraft()
+        if let currentWeightKg { draft.weightKg = currentWeightKg }
+        _draft = State(initialValue: draft)
     }
 
     enum Step: Int, CaseIterable {
@@ -113,8 +118,18 @@ struct OnboardingView: View {
             withAnimation(Theme.springy) { step = following }
             return
         }
-        let profile = draft.profile()
+        var profile = draft.profile()
         if let editing {
+            // Le poids de départ reste celui de l'inscription ; un poids modifié ici devient la pesée du jour.
+            profile.startWeightKg = editing.startWeightKg
+            // Âge inchangé : on garde la date de naissance exacte (celle de Santé, par exemple).
+            if profile.age(on: .now, calendar: .current) == editing.profile.age(on: .now, calendar: .current) {
+                profile.birthDate = editing.birthDate
+            }
+            let shown = currentWeightKg ?? editing.startWeightKg
+            if abs(draft.weightKg - shown) >= 0.05 {
+                context.insert(WeightRecord(date: .now, kg: draft.weightKg))
+            }
             editing.update(from: profile)
             dismiss()
         } else {

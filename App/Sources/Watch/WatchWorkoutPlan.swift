@@ -52,6 +52,9 @@ extension TrainingDay {
     /// La séance guidée, ou la marche du jour avec son objectif de durée.
     var watchPlan: WorkoutPlan? {
         switch kind {
+        case .workout(let workout) where workout.isCardioTest:
+            // Le test de marche : 1,6 km, la Watch mesure le temps et le pouls.
+            WorkoutPlan(.goal(SingleGoalWorkout(activity: .walking, location: .outdoor, goal: .distance(CardioTest.distanceKm, .kilometers))))
         case .workout(let workout):
             workout.guided.watchPlan
         case .activeRest(_, let minutes):

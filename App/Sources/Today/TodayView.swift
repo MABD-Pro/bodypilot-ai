@@ -18,6 +18,7 @@ struct TodayView: View {
     @Query private var dayLogs: [DayLogRecord]
     @Query(sort: \WaistRecord.date) private var waists: [WaistRecord]
     @Query(sort: \LiftRecord.day) private var liftRecords: [LiftRecord]
+    @Query(sort: \CardioTestRecord.day) private var cardioTests: [CardioTestRecord]
     @State private var isAddingWaist = false
     @State private var describing: MealToDescribe?
     @State private var isAddingWeight = false
@@ -26,6 +27,9 @@ struct TodayView: View {
     @State private var healthActivities: [ActivitySample] = []
     /// Sommeil de la nuit passée, lu dans Santé.
     @State private var sleepHours: Double?
+    /// Forme cardio estimée par la Watch et pouls au repos, lus dans Santé.
+    @State private var watchCardio: CardioMeasure?
+    @State private var restingHeartRate: Double?
 
     private let calendar = Calendar.current
 
@@ -37,6 +41,8 @@ struct TodayView: View {
         let completed = doneLogs.map { (day: $0.day, title: $0.doneWorkoutTitle) }
         let lastStrength = DayLogEditor.lastStrength(before: now, completed: completed, samples: healthActivities, calendar: calendar)
         let lifts = liftRecords.map(\.entry)
+        let cardioMeasures = cardioTests.map(\.measure) + [watchCardio].compactMap { $0 }
+        let cardio = DayLogEditor.cardioStatus(for: profileRecord.profile, measures: cardioMeasures, restingHeartRate: restingHeartRate, on: now, calendar: calendar)
         let plan = CoachFactory.coach.plan(
             for: profileRecord.profile,
             weights: weights.map(\.entry),
@@ -54,6 +60,7 @@ struct TodayView: View {
             activeDays: DayLogEditor.activeDays(before: now, completed: completed, samples: healthActivities, calendar: calendar),
             recentActivities: healthActivities,
             trainingChoice: todayLog?.trainingChoice,
+            cardio: cardio,
             on: now
         )
 
@@ -95,7 +102,9 @@ struct TodayView: View {
                             usesLoads: profileRecord.profile.equipment == .gym,
                             logLift: logLift,
                             bodyweightKg: weights.last?.kg ?? profileRecord.startWeightKg,
-                            sex: profileRecord.profile.sex
+                            sex: profileRecord.profile.sex,
+                            cardioTestToday: cardioTests.last { calendar.isDateInToday($0.day) }?.measure,
+                            logCardioTest: logCardioTest
                         )
                             .id("training")
                         ProgressCard(
@@ -107,6 +116,9 @@ struct TodayView: View {
                             waistCm: waists.last?.cm,
                             waistChange: plan.waistChangeCm,
                             records: StrengthProgress.records(in: lifts),
+                            cardio: CardioTest.latest(cardioMeasures),
+                            cardioZone: cardio.moderateHeartRate,
+                            sleepHours: sleepHours,
                             addWeight: { isAddingWeight = true },
                             addWaist: { isAddingWaist = true },
                             acceptCheckIn: { acceptCheckIn(checkIn) },
@@ -124,6 +136,10 @@ struct TodayView: View {
                 .task {
                     if LaunchOptions.demoActivities { healthActivities = DemoData.activities() }
                     if let hours = LaunchOptions.demoSleepHours { sleepHours = hours }
+                    if LaunchOptions.demoData && !LaunchOptions.demoCardioTest {
+                        watchCardio = DemoData.watchCardio()
+                        restingHeartRate = 58
+                    }
                     guard let target = LaunchOptions.demoScrollTarget else { return }
                     try? await Task.sleep(for: .seconds(2))
                     withAnimation { proxy.scrollTo(target, anchor: .top) }
@@ -147,6 +163,8 @@ struct TodayView: View {
                 await importHealthWeights()
                 await importHealthActivities()
                 await importSleep()
+                await importCardio()
+                await importProfile()
                 await exportMeals(plan.meals, on: now)
             }
             .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
@@ -165,7 +183,7 @@ struct TodayView: View {
                 WaistEntrySheet(initialCm: waists.last?.cm ?? 90)
             }
             .sheet(isPresented: $isEditingProfile) {
-                OnboardingView(editing: profileRecord)
+                OnboardingView(editing: profileRecord, currentWeightKg: weights.last?.kg)
             }
         }
     }
@@ -192,6 +210,7 @@ struct TodayView: View {
         }
         healthSync = true
         await importHealthWeights()
+        await importProfile()
     }
 
     /// Repas mangés du jour → Santé ; un repas annulé ou sauté en est retiré.
@@ -207,6 +226,53 @@ struct TodayView: View {
     private func importSleep() async {
         guard !LaunchOptions.demoData, let hours = try? await HealthSleep.lastNightHours(calendar: calendar) else { return }
         withAnimation(Theme.springy) { sleepHours = hours }
+    }
+
+    /// Taille, date de naissance et sexe de Santé : le profil suit, les besoins se recalculent.
+    private func importProfile() async {
+        guard !LaunchOptions.demoData else { return }
+        let values = await HealthProfile.read(calendar: calendar)
+        withAnimation(Theme.springy) {
+            if let height = values.heightCm, abs(height - profileRecord.heightCm) >= 1 {
+                profileRecord.heightCm = height
+            }
+            if let birthDate = values.birthDate, !calendar.isDate(birthDate, inSameDayAs: profileRecord.birthDate) {
+                profileRecord.birthDate = birthDate
+            }
+            if let sex = values.sex, sex.rawValue != profileRecord.sexRaw {
+                profileRecord.sexRaw = sex.rawValue
+            }
+        }
+    }
+
+    private func importCardio() async {
+        guard !LaunchOptions.demoData else { return }
+        let measure = try? await HealthCardio.latestVO2max()
+        let resting = try? await HealthCardio.restingHeartRate()
+        withAnimation(Theme.springy) {
+            watchCardio = measure
+            restingHeartRate = resting
+        }
+    }
+
+    /// Test de marche noté : la forme cardio du jour, un seul test par jour.
+    private func logCardioTest(minutes: Double, heartRate: Int) {
+        let profile = profileRecord.profile
+        let vo2max = CardioTest.vo2max(
+            minutes: minutes, heartRate: heartRate,
+            weightKg: weights.last?.kg ?? profile.startWeightKg,
+            age: profile.age(on: .now, calendar: calendar), sex: profile.sex
+        )
+        withAnimation(Theme.springy) {
+            if let existing = cardioTests.last(where: { calendar.isDateInToday($0.day) }) {
+                existing.minutes = minutes
+                existing.heartRate = heartRate
+                existing.vo2max = vo2max
+            } else {
+                context.insert(CardioTestRecord(day: calendar.startOfDay(for: .now), minutes: minutes, heartRate: heartRate, vo2max: vo2max))
+            }
+        }
+        try? context.save()
     }
 
     private func chooseTraining(_ choice: TrainingChoice) {

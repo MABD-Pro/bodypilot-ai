@@ -61,6 +61,8 @@ public struct Workout: Sendable, Equatable {
     public var intensityCue: String
     /// Séance de test des charges : chaque exercice monte par paliers jusqu'à une série de 5.
     public var isStrengthTest = false
+    /// Test de cardio : marche la plus rapide possible sur 1,6 km, temps et pouls notés à l'arrivée.
+    public var isCardioTest = false
 
     public init(title: String, warmupMinutes: Int, cooldownMinutes: Int, exercises: [WorkoutExercise], intensityCue: String) {
         self.title = title
@@ -163,6 +165,8 @@ public struct DayConstraints: Sendable, Equatable {
     public var recentActivities: [ActivitySample]
     /// Proposition choisie par l'utilisateur ; `nil` : celle que le coach recommande.
     public var choice: TrainingChoice?
+    /// Forme cardio : test à faire, zone de cardio modéré.
+    public var cardio: CardioStatus
 
     public init(
         availableMinutes: Int? = nil,
@@ -178,7 +182,8 @@ public struct DayConstraints: Sendable, Equatable {
         sleepHours: Double? = nil,
         activeDays: Set<Date> = [],
         recentActivities: [ActivitySample] = [],
-        choice: TrainingChoice? = nil
+        choice: TrainingChoice? = nil,
+        cardio: CardioStatus = CardioStatus()
     ) {
         self.availableMinutes = availableMinutes
         self.lowEnergy = lowEnergy
@@ -194,6 +199,41 @@ public struct DayConstraints: Sendable, Equatable {
         self.activeDays = activeDays
         self.recentActivities = recentActivities
         self.choice = choice
+        self.cardio = cardio
+    }
+}
+
+/// D'où vient une mesure de forme cardio.
+public enum CardioSource: String, Sendable, Codable {
+    /// « Forme cardio » estimée par l'Apple Watch pendant les marches et courses en extérieur.
+    case watch
+    /// Test de marche de 1,6 km fait dans l'app.
+    case walkTest
+}
+
+/// Forme cardio mesurée : VO2max en ml/kg/min.
+public struct CardioMeasure: Sendable, Equatable {
+    public var vo2max: Double
+    public var date: Date
+    public var source: CardioSource
+
+    public init(vo2max: Double, date: Date, source: CardioSource) {
+        self.vo2max = vo2max
+        self.date = date
+        self.source = source
+    }
+}
+
+/// Ce que le coach sait de la forme cardio pour proposer la séance du jour.
+public struct CardioStatus: Sendable, Equatable {
+    /// Aucune mesure récente : un jour de cardio devient le test de marche.
+    public var testDue: Bool
+    /// Fréquence cardiaque du cardio modéré (battements par minute), si l'âge est connu.
+    public var moderateHeartRate: ClosedRange<Int>?
+
+    public init(testDue: Bool = false, moderateHeartRate: ClosedRange<Int>? = nil) {
+        self.testDue = testDue
+        self.moderateHeartRate = moderateHeartRate
     }
 }
 

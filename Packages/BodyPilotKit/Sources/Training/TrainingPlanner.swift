@@ -60,7 +60,7 @@ public struct TrainingPlanner: TrainingPlanning {
         let strengthOK = isStrengthDay(date, lastStrengthDay: constraints.lastStrengthDay)
         let test = strengthOK ? strengthTest(for: profile, budget: budget, constraints: constraints) : nil
         let choices: [TrainingChoice] = (strengthOK ? [.strength] : []) + [.conditioning, .light, .rest]
-        let recommendation = recommend(on: date, constraints: constraints, strengthOK: strengthOK, isTest: test != nil)
+        let recommendation = recommend(on: date, constraints: constraints, strengthOK: strengthOK, isTest: test != nil, cardioTest: cardioTest(budget: budget, constraints: constraints) != nil)
         return TrainingOptions(
             options: choices.map { TrainingOption(choice: $0, day: day(for: $0, profile: profile, budget: budget, test: test, on: date, constraints: constraints)) },
             recommended: recommendation.choice,
@@ -87,7 +87,7 @@ public struct TrainingPlanner: TrainingPlanning {
     /// La proposition que le coach met en avant, et pourquoi. Repos complet après six jours
     /// d'activité d'affilée ou quand fatigue et nuit courte s'additionnent ; nuit courte seule :
     /// pas de force lourde ; courbatures : cardio modéré ; sinon force dès que 48 h sont passées.
-    func recommend(on date: Date, constraints: DayConstraints, strengthOK: Bool, isTest: Bool) -> (choice: TrainingChoice, reason: String) {
+    func recommend(on date: Date, constraints: DayConstraints, strengthOK: Bool, isTest: Bool, cardioTest: Bool = false) -> (choice: TrainingChoice, reason: String) {
         if constraints.missedToday {
             return (.light, "Séance ratée : on ne la double pas. Une marche tranquille aujourd'hui, la force revient au prochain jour.")
         }
@@ -119,6 +119,9 @@ public struct TrainingPlanner: TrainingPlanning {
         }
         if let hard = hardActivity(before: date, in: constraints.recentActivities) {
             return (.light, "\(hard.kind.title) de \(Int(hard.minutes.rounded())) min hier et force il y a moins de 48 h : une marche tranquille pour récupérer.")
+        }
+        if cardioTest {
+            return (.conditioning, "Force faite hier et pas encore de mesure de ta forme cardio : test de marche de 1,6 km aujourd'hui, il fixe ta zone de cardio.")
         }
         return (.conditioning, "Force faite hier : cardio modéré et marche aujourd'hui, les muscles récupèrent 48 h avant la prochaine séance lourde.")
     }
@@ -165,7 +168,16 @@ public struct TrainingPlanner: TrainingPlanning {
             }
             return day
         case .conditioning:
-            return adapt(conditioningWorkout(budget: budget, equipment: profile.equipment, on: date), budget: budget, constraints: constraints)
+            if let test = cardioTest(budget: budget, constraints: constraints) {
+                return TrainingDay(kind: .workout(test), estimatedMinutes: test.estimatedMinutes, notes: [
+                    "Test de cardio : ton temps et ton pouls à l'arrivée donnent ta forme cardio (VO2max) et ta zone de cardio modéré. La Watch les affiche ; à refaire toutes les 8 semaines.",
+                ])
+            }
+            var workout = conditioningWorkout(budget: budget, equipment: profile.equipment, on: date)
+            if let zone = constraints.cardio.moderateHeartRate {
+                workout.intensityCue = "Tout à allure modérée, entre \(zone.lowerBound) et \(zone.upperBound) battements par minute : tu peux parler, avec un léger essoufflement."
+            }
+            return adapt(workout, budget: budget, constraints: constraints)
         case .light:
             let minutes = max(min(budget, Self.lightWalkMinutes), 10)
             return TrainingDay(kind: .activeRest(title: "Marche tranquille", minutes: minutes), estimatedMinutes: minutes)
@@ -215,6 +227,15 @@ public struct TrainingPlanner: TrainingPlanning {
               let test = StrengthCalibration.testWorkout(calibrated: calibrated, budget: budget),
               test.estimatedMinutes <= budget else { return nil }
         return test
+    }
+
+    /// Test de cardio à la place du cardio du jour : seulement en forme (pas de fatigue, de
+    /// courbatures, de nuit courte ni de genou sensible) et avec assez de temps.
+    func cardioTest(budget: Int, constraints: DayConstraints) -> Workout? {
+        guard constraints.cardio.testDue, !constraints.lowEnergy, !constraints.sore, !constraints.kneePain,
+              (constraints.sleepHours ?? Self.shortSleepHours) >= Self.shortSleepHours,
+              budget >= CardioTest.minimumMinutes else { return nil }
+        return CardioTest.workout()
     }
 
     /// Calibrage en attente mais pas proposé aujourd'hui : on dit pourquoi, et quand il reviendra.

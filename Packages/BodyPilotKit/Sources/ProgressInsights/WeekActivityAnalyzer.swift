@@ -46,7 +46,7 @@ public struct WeekActivityAnalyzer: Sendable {
     static func kind(ofSession title: String?) -> ActivityKind {
         guard let title else { return .strength }
         if title.hasPrefix("Cardio") { return .cardio }
-        if title.hasPrefix("Marche") { return .walking }
+        if title.hasPrefix("Marche") || title.hasPrefix("Test de cardio") { return .walking }
         return .strength
     }
 
