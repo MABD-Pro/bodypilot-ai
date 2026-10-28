@@ -118,3 +118,9 @@ private func compositions(from start: Double, to end: Double) -> [BodyCompositio
     let suggestion = try #require(coach.weeklyCheckIn(for: recompositionProfile(), weights: weights(start: 88, perDay: 0), compositions: compositions(from: 30, to: 29.9), on: today))
     #expect(suggestion.deltaKcal == -150)
 }
+
+@Test func noDecreaseWithEatingDisorderHistory() {
+    var profile = makeProfile()
+    profile.screening = HealthScreening(answeredAt: today, situations: [.eatingDisorder])
+    #expect(coach.weeklyCheckIn(for: profile, weights: weights(start: 88, perDay: 0), on: today) == nil)
+}

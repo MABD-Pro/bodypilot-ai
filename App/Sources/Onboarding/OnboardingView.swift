@@ -11,7 +11,7 @@ struct OnboardingView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var draft: ProfileDraft
-    @State private var step: Step = .body
+    @State private var step: Step = LaunchOptions.demoOnboardingStep.flatMap(Step.init(rawValue:)) ?? .body
     /// « Refaire le test de force » touché : appliqué seulement à l'enregistrement, pas si on annule.
     @State private var redoStrengthTest = false
     /// Profil déjà créé : une double touche sur le dernier bouton n'en crée pas un second.
@@ -26,11 +26,12 @@ struct OnboardingView: View {
     }
 
     enum Step: Int, CaseIterable {
-        case body, rhythm, start
+        case body, health, rhythm, start
 
         var title: String {
             switch self {
             case .body: "Parle-moi de toi"
+            case .health: "Ta santé"
             case .rhythm: "Ton rythme"
             case .start: "Ton point de départ"
             }
@@ -39,6 +40,7 @@ struct OnboardingView: View {
         var subtitle: String {
             switch self {
             case .body: "Objectif : perdre du gras et gagner du muscle. Tout reste sur ton iPhone."
+            case .health: "Sept questions avant de commencer : le coach adapte l'intensité si besoin."
             case .rhythm: "Une séance chaque jour, dosée selon ta récupération."
             case .start: "Le coach mesure d'abord où tu en es, puis ajuste chaque jour."
             }
@@ -63,6 +65,7 @@ struct OnboardingView: View {
                 Group {
                     switch step {
                     case .body: BodyStep(draft: $draft)
+                    case .health: HealthScreeningStep(screening: $draft.screening, sex: draft.sex, age: Int(draft.age))
                     case .rhythm: RhythmStep(draft: $draft)
                     case .start: StartStep(equipment: draft.equipment, redoStrengthTest: editing.map { _ in { redoStrengthTest = true } })
                     }
@@ -123,6 +126,7 @@ struct OnboardingView: View {
             return
         }
         guard !isSaved else { return }
+        draft.screening.answeredAt = .now
         var profile = draft.profile()
         if let editing {
             // Le poids de départ reste celui de l'inscription ; un poids modifié ici devient la pesée du jour.
@@ -159,6 +163,7 @@ struct ProfileDraft {
     var trainingWeekdays: [Int] = UserProfile.defaultTrainingWeekdays(count: 3)
     var sessionMinutes: Int = 45
     var equipment: Equipment = .bodyweight
+    var screening = HealthScreening()
     var id = EntityID()
 
     init() {}
@@ -174,6 +179,7 @@ struct ProfileDraft {
         trainingWeekdays = profile.trainingWeekdays
         sessionMinutes = profile.sessionMinutes
         equipment = profile.equipment
+        screening = profile.screening
     }
 
     func profile(now: Date = .now, calendar: Calendar = .current) -> UserProfile {
@@ -189,7 +195,8 @@ struct ProfileDraft {
             trainingDaysPerWeek: trainingWeekdays.count,
             trainingWeekdays: trainingWeekdays,
             sessionMinutes: sessionMinutes,
-            equipment: equipment
+            equipment: equipment,
+            screening: screening
         )
     }
 }

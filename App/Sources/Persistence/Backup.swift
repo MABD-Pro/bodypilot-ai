@@ -39,6 +39,11 @@ struct BackupArchive: Codable {
         var cycleStartDate: Date?
         var cycleSessionsPerWeek: Int
         var cycleSessionsWeekStart: Date?
+        // Questionnaire de santé : absents des sauvegardes plus anciennes.
+        var screeningYesRaw: [String]?
+        var screeningSituationsRaw: [String]?
+        var screeningAnsweredAt: Date?
+        var medicalClearance: Bool?
     }
 
     struct Weight: Codable {
@@ -111,7 +116,9 @@ enum Backup {
                 trainingDaysPerWeek: $0.trainingDaysPerWeek, trainingWeekdaysRaw: $0.trainingWeekdaysRaw, sessionMinutes: $0.sessionMinutes,
                 equipmentRaw: $0.equipmentRaw, calorieAdjustmentKcal: $0.calorieAdjustmentKcal, lastCheckInAt: $0.lastCheckInAt,
                 strengthTestResetAt: $0.strengthTestResetAt, cycleProgramRaw: $0.cycleProgramRaw, cycleStartDate: $0.cycleStartDate,
-                cycleSessionsPerWeek: $0.cycleSessionsPerWeek, cycleSessionsWeekStart: $0.cycleSessionsWeekStart
+                cycleSessionsPerWeek: $0.cycleSessionsPerWeek, cycleSessionsWeekStart: $0.cycleSessionsWeekStart,
+                screeningYesRaw: $0.screeningYesRaw, screeningSituationsRaw: $0.screeningSituationsRaw,
+                screeningAnsweredAt: $0.screeningAnsweredAt, medicalClearance: $0.medicalClearance
             )
         }
         archive.weights = try context.fetch(FetchDescriptor<WeightRecord>(sortBy: [SortDescriptor(\.date)])).map {
@@ -205,6 +212,10 @@ enum Backup {
                 record.cycleStartDate = item.cycleStartDate
                 record.cycleSessionsPerWeek = item.cycleSessionsPerWeek
                 record.cycleSessionsWeekStart = item.cycleSessionsWeekStart
+                record.screeningYesRaw = item.screeningYesRaw ?? []
+                record.screeningSituationsRaw = item.screeningSituationsRaw ?? []
+                record.screeningAnsweredAt = item.screeningAnsweredAt
+                record.medicalClearance = item.medicalClearance ?? false
             }
             for extra in profiles { context.delete(extra) }
             for item in archive.weights {

@@ -27,7 +27,11 @@ public struct EnergyCalculator: Sendable {
 
         var kcal: Double
         var explanation: String
+        let noDeficit = profile.noDeficitReason(on: date, calendar: calendar)
         switch profile.goal {
+        case .loseFat where noDeficit != nil, .recomposition where noDeficit != nil:
+            kcal = maintenance
+            explanation = "\(spent). Pas de déficit (\(noDeficit ?? "")) : on vise l'équilibre. Pour un objectif de poids, parles-en à un professionnel de santé."
         case .loseFat:
             let deficit = min(maintenance * SafetyLimits.deficitRatio, SafetyLimits.maxDeficitKcal)
             let floor = max(bmr, SafetyLimits.minimumKcal(for: profile.sex))
@@ -58,7 +62,7 @@ public struct EnergyCalculator: Sendable {
             explanation = "\(spent), plus \(surplus.frenchInteger) kcal pour construire du muscle en limitant le gras."
         }
         if profile.calorieAdjustmentKcal != 0 {
-            let adjusted = clampAdjusted(kcal + profile.calorieAdjustmentKcal, planned: kcal, bmr: bmr, maintenance: maintenance, profile: profile)
+            let adjusted = clampAdjusted(kcal + profile.calorieAdjustmentKcal, planned: kcal, bmr: bmr, maintenance: maintenance, profile: profile, on: date)
             let applied = adjusted - kcal
             if abs(applied) >= 1 {
                 explanation += " Ajusté de \(applied > 0 ? "+" : "")\(applied.frenchInteger) kcal après tes bilans de la semaine."
@@ -81,8 +85,11 @@ public struct EnergyCalculator: Sendable {
 
     /// Une correction de bilan ne franchit jamais les garde-fous : pas sous le plancher de sécurité,
     /// pas de surplus pendant une perte de gras, pas plus que le surplus maximal sinon.
-    private func clampAdjusted(_ kcal: Double, planned: Double, bmr: Double, maintenance: Double, profile: UserProfile) -> Double {
-        let floor = min(max(bmr, SafetyLimits.minimumKcal(for: profile.sex)), planned)
+    private func clampAdjusted(_ kcal: Double, planned: Double, bmr: Double, maintenance: Double, profile: UserProfile, on date: Date) -> Double {
+        // Sans déficit permis (grossesse, trouble alimentaire, moins de 18 ans), jamais sous l'équilibre.
+        let floor = profile.forbidsDeficit(on: date, calendar: calendar) && profile.goal != .buildMuscle
+            ? maintenance
+            : min(max(bmr, SafetyLimits.minimumKcal(for: profile.sex)), planned)
         let noSurplus = profile.goal == .loseFat || profile.goal == .recomposition
         let ceiling = max(planned, noSurplus ? maintenance : maintenance + SafetyLimits.maxSurplusKcal)
         return min(max(kcal, floor), ceiling)
