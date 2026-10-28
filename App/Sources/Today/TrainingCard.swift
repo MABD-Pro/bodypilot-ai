@@ -627,6 +627,7 @@ enum Feeling: CaseIterable {
 
 /// « Comment te sens-tu ? » : le coach en tient compte pour sa recommandation.
 private struct FeelingPicker: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let adjustments: Set<QuickAdjustment>
     let set: (Feeling) -> Void
 
@@ -634,7 +635,11 @@ private struct FeelingPicker: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             Text("Comment te sens-tu ?")
                 .font(.headline)
-            HStack(spacing: Theme.Spacing.s) {
+            // Très grand texte : les trois choix s'empilent au lieu d'être tronqués.
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(spacing: Theme.Spacing.s))
+                : AnyLayout(HStackLayout(spacing: Theme.Spacing.s))
+            layout {
                 ForEach(Feeling.allCases, id: \.self) { feeling in
                     let isOn = isSelected(feeling)
                     Button {
@@ -642,7 +647,7 @@ private struct FeelingPicker: View {
                     } label: {
                         Label(feeling.label, systemImage: feeling.symbol)
                             .font(.footnote.weight(.semibold))
-                            .lineLimit(1)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                             .minimumScaleFactor(0.75)
                             .foregroundStyle(isOn ? Color.white : Color.primary)
                             .padding(.horizontal, 6)
@@ -668,6 +673,7 @@ private struct FeelingPicker: View {
 
 /// « Aujourd'hui, au choix » : 2 ou 3 activités et le repos, la recommandée marquée.
 private struct OptionsPicker: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let options: TrainingOptions
     let choice: TrainingChoice
     let choose: (TrainingChoice) -> Void
@@ -710,14 +716,11 @@ private struct OptionsPicker: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(Theme.training)
                     }
+                    // Très grand texte : la durée passe sous le nom, qui garde toute la largeur.
+                    if dynamicTypeSize.isAccessibilitySize { duration(option) }
                 }
                 Spacer(minLength: Theme.Spacing.s)
-                if option.day.estimatedMinutes > 0 {
-                    Text("\(option.day.estimatedMinutes) min")
-                        .font(.subheadline)
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
+                if !dynamicTypeSize.isAccessibilitySize { duration(option) }
                 Image(systemName: isChosen ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(isChosen ? Theme.training : Color.secondary.opacity(0.5))
@@ -728,6 +731,16 @@ private struct OptionsPicker: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isChosen ? .isSelected : [])
+    }
+
+    @ViewBuilder
+    private func duration(_ option: TrainingOption) -> some View {
+        if option.day.estimatedMinutes > 0 {
+            Text("\(option.day.estimatedMinutes) min")
+                .font(.subheadline)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

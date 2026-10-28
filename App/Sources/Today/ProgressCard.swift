@@ -14,6 +14,7 @@ enum HealthLink {
 
 /// « Est-ce que je progresse vers mon objectif ? »
 struct ProgressCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let trend: WeightTrend
     let message: String
     let profile: UserProfile
@@ -41,20 +42,27 @@ struct ProgressCard: View {
 
     var body: some View {
         CoachCard(eyebrow: "Progresser", symbol: "chart.line.downtrend.xyaxis", tint: Theme.progress) {
-            HStack(alignment: .firstTextBaseline) {
+            // Très grand texte : la variation passe sous le poids, qui garde sa ligne.
+            let header = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Spacing.s))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+            header {
                 if let current = trend.currentTrendKg {
-                    Text(current.frenchOneDecimal)
-                        .font(.display(44))
-                        .monospacedDigit()
-                        .contentTransition(.numericText(value: current))
-                    Text("kg")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(current.frenchOneDecimal)
+                            .font(.display(44))
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .contentTransition(.numericText(value: current))
+                        Text("kg")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
                 } else {
                     Text("Première pesée")
                         .font(.display(28))
                 }
-                Spacer()
+                if !dynamicTypeSize.isAccessibilitySize { Spacer() }
                 if let weekly = trend.weeklyChangeKg {
                     Tag(text: "\(weekly.frenchSignedOneDecimal) kg/sem.", symbol: weekly < 0 ? "arrow.down.right" : "arrow.up.right", tint: trend.status.tint)
                 }
