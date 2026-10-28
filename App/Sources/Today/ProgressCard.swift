@@ -22,6 +22,8 @@ struct ProgressCard: View {
     let waistCm: Double?
     /// Variation sur 4 semaines (cm).
     let waistChange: Double?
+    /// Taux de gras et masse maigre de la balance (Santé), si mesurés.
+    var composition: BodyCompositionChange?
     /// Records de force, les plus récents d'abord.
     var records: [PersonalRecord] = []
     /// Dernière forme cardio (Watch ou test de marche) et zone de cardio modéré.
@@ -35,6 +37,7 @@ struct ProgressCard: View {
     let dismissCheckIn: () -> Void
     let connectHealth: () -> Void
     let disconnectHealth: () -> Void
+    let showHistory: () -> Void
 
     var body: some View {
         CoachCard(eyebrow: "Progresser", symbol: "chart.line.downtrend.xyaxis", tint: Theme.progress) {
@@ -69,6 +72,10 @@ struct ProgressCard: View {
 
             waistRow
 
+            if let composition {
+                compositionRow(composition)
+            }
+
             if !records.isEmpty {
                 recordsRow
             }
@@ -81,6 +88,16 @@ struct ProgressCard: View {
             }
 
             healthRow
+
+            Button(action: showHistory) {
+                Label("Historique : mesures, force, séances, repas", systemImage: "clock.arrow.circlepath")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(Theme.Spacing.m)
+                    .background(Theme.progress.opacity(0.10), in: .rect(cornerRadius: Theme.Radius.inner))
+                    .foregroundStyle(Theme.progress)
+            }
+            .buttonStyle(.plain)
 
             HStack {
                 if let target = profile.targetWeightKg {
@@ -174,6 +191,47 @@ struct ProgressCard: View {
         }
         .padding(Theme.Spacing.m)
         .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+    }
+
+    /// Balance à impédance : la tendance sur 4 semaines compte, pas la mesure d'un jour.
+    private func compositionRow(_ composition: BodyCompositionChange) -> some View {
+        HStack(alignment: .top, spacing: Theme.Spacing.m) {
+            IconBadge(symbol: "figure.arms.open", tint: Theme.progress, size: 36)
+            VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                if let fat = composition.fatPercent {
+                    compositionLine(
+                        title: "Masse grasse \(fat.frenchOneDecimal) %",
+                        change: composition.fatChangePoints.map { "\($0 > 0 ? "+" : "")\($0.frenchOneDecimal) point\(abs($0) >= 2 ? "s" : "") en 4 semaines" },
+                        good: (composition.fatChangePoints ?? 0) < 0
+                    )
+                }
+                if let lean = composition.leanKg {
+                    compositionLine(
+                        title: "Masse maigre \(lean.frenchOneDecimal) kg",
+                        change: composition.leanChangeKg.map { "\($0 > 0 ? "+" : "")\($0.frenchOneDecimal) kg en 4 semaines" },
+                        good: (composition.leanChangeKg ?? 0) >= 0
+                    )
+                }
+                Text("Balance dans Santé. Muscles, eau et os comptent dans la masse maigre ; seule la tendance est fiable.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Theme.Spacing.m)
+        .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+    }
+
+    private func compositionLine(title: String, change: String?, good: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+            Text(change ?? "Tendance après deux semaines de mesures.")
+                .font(.footnote)
+                .foregroundStyle(change != nil && good ? Theme.progress : .secondary)
+        }
     }
 
     /// Force : en déficit, des charges qui tiennent ou montent montrent que le muscle est gardé.

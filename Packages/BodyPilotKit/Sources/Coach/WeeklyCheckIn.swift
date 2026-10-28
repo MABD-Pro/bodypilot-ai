@@ -28,6 +28,7 @@ extension DailyCoach {
         for profile: UserProfile,
         weights: [WeightEntry],
         waists: [WaistEntry] = [],
+        compositions: [BodyCompositionEntry] = [],
         exerciseKcalPerDay: Double = 0,
         retainsWater: Bool = false,
         on date: Date
@@ -53,9 +54,11 @@ extension DailyCoach {
             direction = -1
             reason = "Ta tendance ne baisse plus depuis deux semaines (\(change))."
         case (.recomposition, .stalled), (.recomposition, .wrongDirection):
-            // Taille en baisse : le gras part, on ne touche à rien.
+            // Taille ou taux de gras en baisse : le gras part, on ne touche à rien.
             guard persistent else { return nil }
             if let waist = progress.waistChange(of: waists, on: date), waist <= Self.meaningfulWaistDropCm { return nil }
+            if let fat = progress.compositionChange(of: compositions, on: date)?.fatChangePoints,
+               fat <= Self.meaningfulFatDropPoints { return nil }
             direction = -1
             reason = waists.isEmpty
                 ? "Ton poids ne baisse plus depuis deux semaines (\(change)). Mesure aussi ton tour de taille : s'il baisse, pas besoin de manger moins."

@@ -38,6 +38,10 @@ enum LaunchOptions {
         guard parts.count == 2, let slot = MealSlot(rawValue: parts[0]) else { return nil }
         return (slot, parts[1])
     }
+    /// `-demoHistory Force` : ouvre l'historique sur cette partie (Mesures, Force, Séances, Repas).
+    static var demoHistory: String? { defaults.string(forKey: "demoHistory") }
+    /// `-demoComposition YES` : 4 semaines de taux de gras et de masse maigre lus dans Santé.
+    static var demoComposition: Bool { defaults.bool(forKey: "demoComposition") }
     /// `-demoActivities YES` : quelques activités Santé dans la semaine (course, vélo, marche).
     static var demoActivities: Bool { defaults.bool(forKey: "demoActivities") }
     /// `-demoSleep 5.5` : nuit passée lue dans Santé, en heures.
@@ -95,6 +99,16 @@ enum AppContainer {
 }
 
 enum DemoData {
+    /// Balance à impédance sur 4 semaines : le gras baisse d'environ un point, la masse maigre monte un peu.
+    static func compositions(now: Date = .now, calendar: Calendar = .current) -> [BodyCompositionEntry] {
+        stride(from: 27, through: 0, by: -1).compactMap { daysAgo in
+            guard let date = calendar.date(byAdding: .day, value: -daysAgo, to: now) else { return nil }
+            let progress = Double(27 - daysAgo) / 27
+            let noise = Double((daysAgo * 7) % 5 - 2) * 0.15
+            return BodyCompositionEntry(date: date, fatPercent: 31.8 - 1.1 * progress + noise, leanKg: 59.3 + 0.4 * progress + noise / 2)
+        }
+    }
+
     /// Forme cardio de la Watch il y a 3 jours : pas de test de cardio à faire.
     static func watchCardio(now: Date = .now) -> CardioMeasure {
         CardioMeasure(vo2max: 41.5, date: now.addingTimeInterval(-3 * 86_400), source: .watch)

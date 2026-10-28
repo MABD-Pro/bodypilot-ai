@@ -32,7 +32,7 @@ targets:
           UIColorName: LaunchBackground
           UIImageName: LaunchLogo
           UIImageRespectsSafeAreaInsets: false
-        NSHealthShareUsageDescription: BodyPilot lit ton poids, ta taille, ta date de naissance, ton sexe, tes entraînements, ton sommeil, ta forme cardio, ton pouls au repos et, si tu le notes, ton cycle menstruel dans Santé pour suivre ta tendance et te proposer la bonne séance du jour sans saisie. Rien ne quitte ton iPhone.
+        NSHealthShareUsageDescription: BodyPilot lit ton poids, ton taux de gras et ta masse maigre, ta taille, ta date de naissance, ton sexe, tes entraînements, ton sommeil, ta forme cardio, ton pouls au repos et, si tu le notes, ton cycle menstruel dans Santé pour suivre ta tendance et te proposer la bonne séance du jour sans saisie. Rien ne quitte ton iPhone.
         NSHealthUpdateUsageDescription: BodyPilot enregistre dans Santé les repas que tu as mangés (calories, protéines, glucides, lipides). Rien ne quitte ton iPhone.
         NSCameraUsageDescription: BodyPilot photographie ton repas pour estimer ce que tu as mangé. La photo est analysée sur ton iPhone et n'est pas conservée.
     entitlements:

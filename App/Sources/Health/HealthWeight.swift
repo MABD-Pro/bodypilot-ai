@@ -18,6 +18,7 @@ enum HealthWeight {
     static func requestAccess(includeCycle: Bool = false) async throws {
         var read = Set<HKObjectType>([bodyMass, HealthWorkouts.workoutType, HealthSleep.sleepType, HealthCardio.vo2MaxType, HealthCardio.restingHeartRateType])
             .union(HealthProfile.readTypes)
+            .union(HealthBodyComposition.readTypes)
         if includeCycle { read.insert(HealthCycle.menstrualFlowType) }
         try await HKHealthStore().requestAuthorization(toShare: HealthMeals.writtenTypes, read: read)
     }

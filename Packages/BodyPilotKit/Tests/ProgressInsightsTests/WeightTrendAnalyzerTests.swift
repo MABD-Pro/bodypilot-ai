@@ -62,3 +62,28 @@ private func entries(days: Int, start: Double, perDay: Double, noise: [Double] =
     let trend = analyzer.trend(of: entries(days: 3, start: 90, perDay: 0) + [future], for: makeProfile(), on: today)
     #expect(trend.points.allSatisfy { $0.measuredKg == 90 })
 }
+
+@Test func bodyCompositionComparesFirstAndLastWeekAverages() throws {
+    // Gras de 30 à 29 % et masse maigre de 80 à 80,5 kg sur 4 semaines, avec une mesure bruitée.
+    let entries = (0..<28).map { index in
+        BodyCompositionEntry(
+            date: utc.date(byAdding: .day, value: index - 27, to: today)!,
+            fatPercent: 30 - Double(index) / 27 + (index == 27 ? 1.5 : 0),
+            leanKg: 80 + 0.5 * Double(index) / 27
+        )
+    }
+    let change = try #require(analyzer.compositionChange(of: entries, on: today))
+    // Le pic du dernier jour est lissé par la moyenne de la semaine.
+    #expect(try #require(change.fatChangePoints) < -0.5)
+    #expect(try #require(change.leanChangeKg) > 0.3)
+}
+
+@Test func bodyCompositionNeedsTwoWeeksForATrend() throws {
+    let entries = (0..<10).map { index in
+        BodyCompositionEntry(date: utc.date(byAdding: .day, value: index - 9, to: today)!, fatPercent: 30)
+    }
+    let change = try #require(analyzer.compositionChange(of: entries, on: today))
+    #expect(change.fatPercent == 30)
+    #expect(change.fatChangePoints == nil)
+    #expect(analyzer.compositionChange(of: [], on: today) == nil)
+}
