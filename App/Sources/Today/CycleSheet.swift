@@ -38,13 +38,13 @@ struct CycleSheet: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.l) {
             Text("Vers le CrossFit")
                 .font(.display(28))
-            Text("Trois phases de 4 semaines : base, puissance, conditioning. Dans chaque phase, la force monte 3 semaines, puis une semaine allégée laisse retomber la fatigue.")
+            Text("Trois phases de 4 semaines : base, puissance, conditioning. Dans chaque phase, la force monte 3 semaines en 5/3/1, puis une semaine allégée laisse retomber la fatigue.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             weekTable
             phases
-            Text("Le coach du jour garde la main : fatigue, nuit courte ou genou sensible allègent la séance. Les charges partent de ton max, recalculé à chaque série notée.")
+            Text("Mouvements à la barre en 5/3/1 : 3 séries qui montent, la dernière au maximum de répétitions propres (1 en réserve), puis 5 × 5 à la charge de la première. Les pourcentages portent sur un max d'entraînement à 90 % de ton max, recalculé à chaque série notée. Le coach du jour garde la main : fatigue, nuit courte ou genou sensible allègent la séance.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -64,7 +64,6 @@ struct CycleSheet: View {
     }
 
     private func current(_ week: CycleWeek) -> some View {
-        let plan = StrengthCycle.prescription(for: week)
         return VStack(alignment: .leading, spacing: Theme.Spacing.l) {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text("Semaine \(week.number) sur \(TrainingCycle.weeks)")
@@ -75,7 +74,7 @@ struct CycleSheet: View {
             }
             ProgressView(value: Double(week.number), total: Double(TrainingCycle.weeks))
                 .tint(Theme.training)
-            Text("Cette semaine : \(plan.sets) × \(plan.reps) à environ \(Int((plan.percentOfMax * 100).rounded())) % de ton max sur les mouvements principaux, \(plan.repsInReserve) répétition\(plan.repsInReserve > 1 ? "s" : "") en réserve.")
+            Text("Cette semaine, à la barre : \(Self.waveText(week)) du max d'entraînement\(week.isDeload ? ", rien au maximum." : ", la dernière série au maximum, puis 5 × 5.")")
                 .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
             weekTable
@@ -94,12 +93,11 @@ struct CycleSheet: View {
         VStack(spacing: Theme.Spacing.s) {
             ForEach(1...TrainingCycle.weeksPerPhase, id: \.self) { number in
                 let week = CycleWeek(program: .crossfit, number: number)
-                let plan = StrengthCycle.prescription(for: week)
                 HStack {
                     Text(week.isDeload ? "Semaine \(number), allégée" : "Semaine \(number)")
                         .font(.subheadline)
                     Spacer()
-                    Text("\(plan.sets) × \(plan.reps) · ~\(Int((plan.percentOfMax * 100).rounded())) %")
+                    Text(Self.waveText(week))
                         .font(.subheadline.weight(.semibold))
                         .monospacedDigit()
                 }
@@ -108,6 +106,13 @@ struct CycleSheet: View {
         .padding(Theme.Spacing.m)
         .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
             }
+
+    /// « 5 à 65 %, 5 à 75 %, 5+ à 85 % », en pourcentages du max d'entraînement.
+    static func waveText(_ week: CycleWeek) -> String {
+        StrengthCycle.wave(for: week).map { set in
+            "\(set.reps)\(set.isPlus ? "+" : "") à \(Int((set.percentOfMax / StrengthCycle.trainingMaxShare * 100).rounded())) %"
+        }.joined(separator: ", ")
+    }
 
     /// Les 3 phases, qui reprennent ces 4 semaines avec des charges recalculées.
     private var phases: some View {

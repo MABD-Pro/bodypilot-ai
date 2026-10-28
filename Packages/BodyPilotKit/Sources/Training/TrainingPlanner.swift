@@ -438,6 +438,12 @@ public struct TrainingPlanner: TrainingPlanning {
         var result = workout
         result.exercises = workout.exercises.map { exercise in
             var lighter = exercise
+            if !exercise.wave.isEmpty {
+                // 5/3/1 : la vague reste, sans série au max ni séries « First Set Last ».
+                lighter.wave = exercise.wave.map { WaveSet(reps: $0.reps, percentOfMax: $0.percentOfMax) }
+                lighter.backoffSets = 0
+                return lighter
+            }
             // Un effort continu (marche, cardio tempo) reste en une seule fois.
             lighter.sets = exercise.sets > 1 ? max(exercise.sets - 1, 2) : 1
             if exercise.isHighImpact, let alternative = exercise.lowImpactAlternative {
@@ -458,10 +464,14 @@ public struct TrainingPlanner: TrainingPlanning {
             // Les exercices principaux gardent au moins 2 minutes de repos : en dessous, la force
             // progresse moins sur les polyarticulaires (Grgic et al., 2018). Voir docs/TRAINING_EVIDENCE.md.
             { w in w.exercises = w.exercises.map { var e = $0; e.restSeconds = e.priority == 1 ? max(min(e.restSeconds, Self.mainLiftRestSeconds), e.restSeconds * 2 / 3) : max(30, e.restSeconds * 2 / 3); return e } },
+            // 5/3/1 : les séries « First Set Last » se raccourcissent avant le reste.
+            { w in w.exercises = w.exercises.map { var e = $0; e.backoffSets = min(e.backoffSets, 3); return e } },
             { w in w.warmupMinutes = min(w.warmupMinutes, 3); w.cooldownMinutes = min(w.cooldownMinutes, 2) },
             // Le cardio et la marche (priorité 4) ne perdent pas de séries : ils sont retirés en premier si besoin.
             { w in w.exercises = w.exercises.map { var e = $0; if e.priority > 1 && e.priority < 4 { e.sets = min(e.sets, 2) }; return e } },
-            { w in w.exercises = w.exercises.map { var e = $0; if e.priority < 4 { e.sets = min(e.sets, 2) }; return e } },
+            { w in w.exercises = w.exercises.map { var e = $0; e.backoffSets = 0; return e } },
+            // La vague 5/3/1 garde ses 3 séries : c'est la dernière qui compte.
+            { w in w.exercises = w.exercises.map { var e = $0; if e.priority < 4 && e.wave.isEmpty { e.sets = min(e.sets, 2) }; return e } },
         ]
         for step in steps where result.estimatedMinutes > budget {
             step(&result)

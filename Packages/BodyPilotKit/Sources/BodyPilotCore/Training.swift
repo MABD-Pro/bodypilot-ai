@@ -27,6 +27,11 @@ public struct WorkoutExercise: Sendable, Equatable {
     public var alternatives: [String]
     /// Charge visée en part du max estimé, fixée par la semaine du cycle ; `nil` : surcharge progressive.
     public var percentOfMax: Double? = nil
+    /// 5/3/1 : les séries qui montent jusqu'à la dernière, en part du max estimé ; vide hors cycle.
+    /// `sets`, `volume` et `percentOfMax` décrivent alors la dernière série.
+    public var wave: [WaveSet] = []
+    /// « First Set Last » : séries de 5 après la vague, à la charge de la première série.
+    public var backoffSets = 0
 
     public init(
         name: String,
@@ -51,6 +56,20 @@ public struct WorkoutExercise: Sendable, Equatable {
         self.loadsKnee = loadsKnee
         self.kneeFriendlyAlternative = kneeFriendlyAlternative
         self.alternatives = alternatives
+    }
+}
+
+/// Une série de la vague 5/3/1.
+public struct WaveSet: Sendable, Equatable {
+    public var reps: Int
+    public var percentOfMax: Double
+    /// Dernière série : autant de répétitions propres que possible, 1 en réserve.
+    public var isPlus: Bool
+
+    public init(reps: Int, percentOfMax: Double, isPlus: Bool = false) {
+        self.reps = reps
+        self.percentOfMax = percentOfMax
+        self.isPlus = isPlus
     }
 }
 
