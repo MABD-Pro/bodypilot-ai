@@ -53,3 +53,23 @@ private func lift(_ name: String) -> WorkoutExercise {
     let plan = WarmupPlanner.cooldown(for: workout, atGym: true)
     #expect(plan.blocks.last?.steps.map(\.title) == ["Étirement des ischio-jambiers", "Étirement des pectoraux contre un mur"])
 }
+
+@Test func shortWarmupKeepsTwoMovesAndRunsStartWithEasyRunning() {
+    let strength = Workout(
+        title: "Full body A", warmupMinutes: 3, cooldownMinutes: 0,
+        exercises: [lift("Squat à la barre"), lift("Développé couché")],
+        intensityCue: ""
+    )
+    let short = WarmupPlanner.warmup(for: strength, atGym: true)
+    #expect(short.blocks.first { $0.title == "Mobiliser" }?.steps.count == 2)
+    #expect(short.blocks.first?.steps.first?.detail == "2 min")
+
+    let run = Workout(
+        title: "Qualité", warmupMinutes: 10, cooldownMinutes: 5,
+        exercises: [WorkoutExercise(name: "1 km à allure Hyrox", sets: 3, volume: .seconds(360), restSeconds: 120, priority: 4)],
+        intensityCue: ""
+    )
+    let plan = WarmupPlanner.warmup(for: run, atGym: true)
+    #expect(plan.blocks.first?.steps.first?.title.hasPrefix("Course très lente") == true)
+    #expect(plan.blocks.last?.title == "Préparer l'effort")
+}

@@ -107,10 +107,13 @@ public enum WarmupPlanner {
     public static func warmup(for workout: Workout, atGym: Bool, firstLift: (name: String, kg: Double)? = nil) -> WarmupPlan {
         let patterns = patterns(of: workout)
         let isCardio = patterns.isEmpty
-        let pulseMinutes = isCardio ? max(3, workout.warmupMinutes - 2) : 3
+        let pulseMinutes = isCardio ? max(3, workout.warmupMinutes - 2) : min(3, max(2, workout.warmupMinutes - 1))
+        let cardio = workout.exercises.filter { $0.priority >= 4 }
+        let runs = cardio.contains { $0.name.localizedCaseInsensitiveContains("course") || $0.name.contains(" km") }
         let pulse = WarmupStep(
             kind: .pulse,
-            title: atGym ? "Vélo ou rameur, facile puis un peu plus vite" : "Marche rapide sur place, puis montées de genoux",
+            title: runs ? "Course très lente, puis un peu plus vite"
+                : atGym ? "Vélo ou rameur, facile puis un peu plus vite" : "Marche rapide sur place, puis montées de genoux",
             detail: "\(pulseMinutes) min"
         )
         var blocks = [WarmupPlan.Block(title: "Faire monter le pouls", steps: [pulse])]
@@ -119,11 +122,16 @@ public enum WarmupPlanner {
         for step in (isCardio ? cardioMobility : patterns.flatMap(\.mobility)) where !mobility.contains(step) {
             mobility.append(step)
         }
-        blocks.append(WarmupPlan.Block(title: "Mobiliser", steps: Array(mobility.prefix(4))))
+        // Échauffement court : deux mouvements, pour tenir dans le temps prévu.
+        blocks.append(WarmupPlan.Block(title: "Mobiliser", steps: Array(mobility.prefix(workout.warmupMinutes <= 4 ? 2 : 4))))
 
         var notes: [String] = []
         if isCardio {
-            if workout.exercises.contains(where: { $0.name.localizedCaseInsensitiveContains("fractionné") }) {
+            // Séance intense (fractionné, plusieurs efforts, allure de course) : quelques accélérations avant.
+            let intense = cardio.contains { exercise in
+                exercise.sets > 1 || ["fractionné", "allure", "soutenu"].contains { exercise.name.localizedCaseInsensitiveContains($0) }
+            }
+            if intense {
                 blocks.append(WarmupPlan.Block(title: "Préparer l'effort", steps: [
                     WarmupStep(kind: .ramp, title: "Accélérations progressives, récupération facile entre deux", detail: "2 × 20 s"),
                 ]))
@@ -134,6 +142,7 @@ public enum WarmupPlanner {
         } else {
             if let firstLift, firstLift.kg > 0 {
                 blocks.append(WarmupPlan.Block(title: "Monter en charge : \(firstLift.name)", steps: ramp(for: firstLift.name, workingKg: firstLift.kg)))
+                notes.append("Les séries de montée comptent dans le premier exercice, pas dans les minutes d'échauffement.")
             }
             notes.append("Avant chaque nouvel exercice : une série légère de 5 à 8 répétitions.")
             notes.append("Pas d'étirements longs maintenant : ils font perdre un peu de force. Garde-les pour le retour au calme.")
@@ -168,7 +177,7 @@ public enum WarmupPlanner {
         let easy = WarmupStep(
             kind: .pulse,
             title: atGym ? "Vélo ou marche très facile" : "Marche tranquille",
-            detail: "\(max(2, min(5, workout.cooldownMinutes - 2))) min"
+            detail: "\(max(1, min(5, workout.cooldownMinutes / 2))) min"
         )
         let stretches = patterns.isEmpty
             ? [
