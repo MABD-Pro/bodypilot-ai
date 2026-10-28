@@ -47,3 +47,19 @@ private let base = Workout(
     let edited = SessionEdits(added: ["Squat à la barre"]).apply(to: base)
     #expect(edited.exercises.count == base.exercises.count)
 }
+
+@Test func editedSessionDropsTheFittedNote() {
+    let day = TrainingDay(kind: .workout(base), estimatedMinutes: base.estimatedMinutes, notes: [
+        "Séance resserrée à 39 min : l'essentiel est gardé.", "Genou : pas de saut.",
+    ])
+    let edited = SessionEdits(removed: ["Rowing barre"]).apply(to: day)
+    #expect(edited.notes == ["Genou : pas de saut."])
+    #expect(SessionEdits().apply(to: day).notes.count == 2)
+}
+
+@Test func addableSectionsSplitStrengthAndStations() {
+    let sections = SessionEdits.addableSections
+    #expect(sections.map(\.title) == ["Force", "Ateliers Hyrox"])
+    #expect(sections[1].exercises.contains("SkiErg") && !sections[0].exercises.contains("SkiErg"))
+    #expect(sections.flatMap(\.exercises).count == SessionEdits.addableExercises.count)
+}

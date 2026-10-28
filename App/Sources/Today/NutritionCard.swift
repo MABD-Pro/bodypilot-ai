@@ -157,49 +157,10 @@ private struct MealRow: View {
                         .buttonStyle(.plain)
                         .foregroundStyle(.secondary)
                 } else {
-                    Button {
-                        log(.asPlanned)
-                    } label: {
-                        Label("Comme prévu", systemImage: "checkmark.circle")
-                            .font(.caption.weight(.semibold))
-                            .lineLimit(1)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(meal.slot.tint)
-                    Spacer()
-                    Button(action: describe) {
-                        Label("Décrire", systemImage: "square.and.pencil")
-                            .font(.caption.weight(.semibold))
-                            .lineLimit(1)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(meal.slot.tint)
-                    if !recent.isEmpty {
-                        Menu {
-                            ForEach(recent, id: \.meal.title) { item in
-                                Button {
-                                    reuse(item.meal)
-                                } label: {
-                                    Text(item.meal.title)
-                                    Text("\(Self.dayLabel(item.day)), \(item.slot.title.lowercased()) · \(item.meal.macros.kcal.frenchInteger) kcal")
-                                }
-                            }
-                        } label: {
-                            Label("Reprendre", systemImage: "arrow.counterclockwise")
-                                .font(.caption.weight(.semibold))
-                                .lineLimit(1)
-                        }
-                        .foregroundStyle(meal.slot.tint)
-                    }
-                    Menu {
-                        ForEach([MealIntake.skipped, .light, .hearty, .veryHearty], id: \.self) { intake in
-                            Button(intake.label) { log(intake) }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.callout.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .accessibilityLabel("Autrement")
+                    // Sur un écran étroit, « Décrire » et « Reprendre » passent en icônes.
+                    ViewThatFits(in: .horizontal) {
+                        pendingActions(iconOnly: false)
+                        pendingActions(iconOnly: true)
                     }
                 }
             }
@@ -233,10 +194,80 @@ private struct MealRow: View {
 }
 
 extension MealRow {
+    /// Repas pas encore noté : comme prévu, décrit, repris d'un jour récent ou autrement.
+    func pendingActions(iconOnly: Bool) -> some View {
+        HStack(spacing: Theme.Spacing.m) {
+            Button {
+                log(.asPlanned)
+            } label: {
+                Label("Comme prévu", systemImage: "checkmark.circle")
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(meal.slot.tint)
+            .fixedSize()
+            Spacer(minLength: 0)
+            Button(action: describe) {
+                Label("Décrire", systemImage: "square.and.pencil")
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                    .labelStyle(CompactLabelStyle(iconOnly: iconOnly))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(meal.slot.tint)
+            .accessibilityLabel("Décrire ce que j'ai mangé")
+            .fixedSize()
+            if !recent.isEmpty {
+                Menu {
+                    ForEach(recent, id: \.meal.title) { item in
+                        Button {
+                            reuse(item.meal)
+                        } label: {
+                            Text(item.meal.title)
+                            Text("\(Self.dayLabel(item.day)), \(item.slot.title.lowercased()) · \(item.meal.macros.kcal.frenchInteger) kcal")
+                        }
+                    }
+                } label: {
+                    Label("Reprendre", systemImage: "arrow.counterclockwise")
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                        .labelStyle(CompactLabelStyle(iconOnly: iconOnly))
+                }
+                .foregroundStyle(meal.slot.tint)
+                .accessibilityLabel("Reprendre un repas récent")
+                .fixedSize()
+            }
+            Menu {
+                ForEach([MealIntake.skipped, .light, .hearty, .veryHearty], id: \.self) { intake in
+                    Button(intake.label) { log(intake) }
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Autrement")
+            }
+        }
+    }
+
     /// « Hier », « Lundi » : le jour d'un repas récent.
     static func dayLabel(_ day: Date, calendar: Calendar = .current) -> String {
         if calendar.isDateInYesterday(day) { return "Hier" }
         return day.formatted(.dateTime.weekday(.wide).locale(Locale(identifier: "fr_FR"))).capitalized
+    }
+}
+
+/// Libellé complet, ou l'icône seule quand la place manque. « Comme prévu », l'action
+/// principale, garde ses mots.
+private struct CompactLabelStyle: LabelStyle {
+    let iconOnly: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 4) {
+            configuration.icon
+            if !iconOnly { configuration.title }
+        }
     }
 }
 

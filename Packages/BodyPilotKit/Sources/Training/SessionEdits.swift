@@ -47,6 +47,14 @@ public struct SessionEdits: Sendable, Equatable, Codable {
         ExerciseGuide.catalog.keys.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 
+    /// Les mêmes, rangés : la force d'abord, puis les ateliers chronométrés.
+    public static var addableSections: [(title: String, exercises: [String])] {
+        [
+            ("Force", addableExercises.filter { !timed.contains($0) }),
+            ("Ateliers Hyrox", addableExercises.filter { timed.contains($0) }),
+        ]
+    }
+
     public func apply(to workout: Workout) -> Workout {
         var result = workout
         let present = Set(workout.exercises.map(\.key))
@@ -74,6 +82,8 @@ public struct SessionEdits: Sendable, Equatable, Codable {
     public func apply(to day: TrainingDay) -> TrainingDay {
         guard !isEmpty, case .workout(let workout) = day.kind else { return day }
         let edited = apply(to: workout)
-        return TrainingDay(kind: .workout(edited), estimatedMinutes: edited.estimatedMinutes, notes: day.notes)
+        // La séance n'est plus celle que le coach avait resserrée : la note ne vaut plus.
+        let notes = day.notes.filter { !$0.hasPrefix(TrainingPlanner.fittedNotePrefix) }
+        return TrainingDay(kind: .workout(edited), estimatedMinutes: edited.estimatedMinutes, notes: notes)
     }
 }

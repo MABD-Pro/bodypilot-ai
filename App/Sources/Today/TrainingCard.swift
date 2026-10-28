@@ -63,6 +63,7 @@ struct TrainingCard: View {
     /// Mode retouche : une touche sur un exercice ouvre ses séries, « Ajouter » en propose d'autres.
     @State private var isEditing = false
     @State private var editingExercise: ExerciseToEdit?
+    @State private var isAddingExercise = false
     private let calendar = Calendar.current
 
     var body: some View {
@@ -138,7 +139,7 @@ struct TrainingCard: View {
                         isWarmup: false,
                         isSwapped: exercise.isSwapped,
                         caption: isEditing
-                            ? ExerciseRow.Caption(text: "Touche pour modifier", symbol: "slider.horizontal.3", tint: Theme.training)
+                            ? ExerciseRow.Caption(text: "Modifier", symbol: "slider.horizontal.3", tint: Theme.training)
                             : toLog.map(caption) ?? exercise.recoveryCaption.map { ExerciseRow.Caption(text: $0, symbol: "figure.walk", tint: .secondary) },
                         swap: isEditing || exercise.alternatives.isEmpty ? nil : { swap(exercise.key) },
                         log: isEditing
@@ -179,6 +180,14 @@ struct TrainingCard: View {
             .sheet(item: $station) { item in
                 StationSheet(exercise: item.id)
                     .id(item.id)
+            }
+            .sheet(isPresented: $isAddingExercise) {
+                AddExerciseSheet(present: Set(workout.exercises.map(\.key))) { name in
+                    var next = edits
+                    next.removed.remove(name)
+                    if !next.added.contains(name) { next.added.append(name) }
+                    withAnimation(.snappy) { editSession(next) }
+                }
             }
             .sensoryFeedback(.success, trigger: celebration) { _, new in new != nil }
 
@@ -421,18 +430,10 @@ struct TrainingCard: View {
         }
     }
 
-    /// Exercices qui ont une fiche, hors ceux déjà dans la séance.
+    /// Ouvre la liste des exercices à ajouter, rangée et cherchable.
     private func addExerciseMenu(_ workout: Workout) -> some View {
-        let present = Set(workout.exercises.map(\.key))
-        return Menu {
-            ForEach(SessionEdits.addableExercises.filter { !present.contains($0) }, id: \.self) { name in
-                Button(name) {
-                    var next = edits
-                    next.removed.remove(name)
-                    if !next.added.contains(name) { next.added.append(name) }
-                    withAnimation(.snappy) { editSession(next) }
-                }
-            }
+        Button {
+            isAddingExercise = true
         } label: {
             Label("Ajouter un exercice", systemImage: "plus.circle.fill")
                 .font(.subheadline.weight(.semibold))
@@ -440,6 +441,7 @@ struct TrainingCard: View {
                 .padding(.vertical, 10)
                 .padding(.leading, 40)
         }
+        .buttonStyle(.plain)
         .foregroundStyle(Theme.training)
     }
 
@@ -994,6 +996,62 @@ private struct StationSheet: View {
     }
 }
 
+/// Exercices à ajouter à la séance : la force, puis les ateliers, avec une recherche.
+private struct AddExerciseSheet: View {
+    /// Déjà dans la séance : pas proposés.
+    let present: Set<String>
+    let add: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(sections, id: \.title) { section in
+                    Section(section.title) {
+                        ForEach(section.exercises, id: \.self) { name in
+                            Button {
+                                add(name)
+                                dismiss()
+                            } label: {
+                                HStack {
+                                    Text(name)
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    Text(SessionEdits.addedExercise(name).prescription)
+                                        .font(.subheadline)
+                                        .monospacedDigit()
+                                        .foregroundStyle(.secondary)
+                                }
+                                .contentShape(.rect)
+                            }
+                        }
+                    }
+                }
+            }
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Chercher un exercice")
+            .navigationTitle("Ajouter un exercice")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler", role: .cancel) { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+
+    private var sections: [(title: String, exercises: [String])] {
+        SessionEdits.addableSections.compactMap { section in
+            let names = section.exercises.filter {
+                !present.contains($0) && (query.isEmpty || $0.localizedStandardContains(query))
+            }
+            return names.isEmpty ? nil : (section.title, names)
+        }
+    }
+}
+
 /// Exercice de la séance en cours de retouche.
 struct ExerciseToEdit: Identifiable {
     let exercise: WorkoutExercise
@@ -1406,6 +1464,12 @@ extension WorkoutExercise {
     /// Cardio et marche inclinée, ajoutés après la force.
     var isConditioning: Bool { priority >= 4 }
 
+    /// Marche inclinée, en côte, tranquille ou escalier (pas la marche du fermier, un atelier).
+    var isWalking: Bool {
+        let name = self.name.lowercased()
+        return (name.contains("marche") && !name.contains("fermier")) || name.contains("escalier")
+    }
+
     /// « Récupération 2 min » sous le nom d'un fractionné.
     var recoveryCaption: String? {
         guard isConditioning, sets > 1, restSeconds > 0, case .seconds = volume else { return nil }
@@ -1425,9 +1489,12 @@ extension Workout {
         }
         let strength = exercises.filter { !$0.isConditioning }
         var parts: [String] = strength.isEmpty ? [] : ["\(strength.count) exercice\(strength.count > 1 ? "s" : "") de force"]
-        let conditioning = exercises.filter(\.isConditioning).count
-        if conditioning >= 1 { parts.append("cardio") }
-        if conditioning >= 2 { parts.append("marche") }
+        // La marche se reconnaît à son nom (marche inclinée, en côte, escalier) : un atelier
+        // ajouté (SkiErg, rameur) reste du cardio.
+        let conditioning = exercises.filter(\.isConditioning)
+        let walking = conditioning.filter(\.isWalking)
+        if conditioning.count > walking.count { parts.append("cardio") }
+        if !walking.isEmpty { parts.append("marche") }
         return parts.joined(separator: " · ")
     }
 }
