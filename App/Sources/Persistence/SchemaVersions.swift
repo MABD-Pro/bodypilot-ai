@@ -2,11 +2,47 @@ import BodyPilotCore
 import Foundation
 import SwiftData
 
-/// Schéma de la base, figé par version. Une prochaine modification d'un modèle ajoute un
-/// `SchemaV2` (copie des modèles modifiés) et une étape de migration dans `BodyPilotMigrationPlan`,
-/// au lieu de laisser SwiftData échouer à l'ouverture d'une base existante.
+/// Schéma de la base, figé par version. Toute modification d'un modèle ajoute une version
+/// (copie figée des modèles modifiés dans la version précédente) et une étape de migration dans
+/// `BodyPilotMigrationPlan`, au lieu de laisser SwiftData échouer à l'ouverture d'une base existante.
 enum SchemaV1: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
+
+    static var models: [any PersistentModel.Type] {
+        [SchemaV1.ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self]
+    }
+
+    /// Profil tel qu'il était avant le questionnaire de santé.
+    @Model
+    final class ProfileRecord {
+        var entityID: UUID = UUID()
+        var createdAt: Date = Date.now
+        var sexRaw: String = BiologicalSex.male.rawValue
+        var birthDate: Date = Date.now
+        var heightCm: Double = 175
+        var startWeightKg: Double = 75
+        var targetWeightKg: Double?
+        var activityRaw: String = ActivityLevel.light.rawValue
+        var goalRaw: String = Goal.recomposition.rawValue
+        var trainingDaysPerWeek: Int = 3
+        var trainingWeekdaysRaw: [Int] = []
+        var sessionMinutes: Int = 45
+        var equipmentRaw: String = Equipment.bodyweight.rawValue
+        var calorieAdjustmentKcal: Double = 0
+        var lastCheckInAt: Date?
+        var strengthTestResetAt: Date?
+        var cycleProgramRaw: String?
+        var cycleStartDate: Date?
+        var cycleSessionsPerWeek: Int = 0
+        var cycleSessionsWeekStart: Date?
+
+        init() {}
+    }
+}
+
+/// V2 : questionnaire de santé dans le profil (`ProfileRecord.screening…`).
+enum SchemaV2: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
 
     static var models: [any PersistentModel.Type] {
         [ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self]
@@ -14,8 +50,9 @@ enum SchemaV1: VersionedSchema {
 }
 
 enum BodyPilotMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self] }
-    static var stages: [MigrationStage] { [] }
+    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self] }
+    /// Champs ajoutés avec une valeur par défaut : migration légère, sans perte.
+    static var stages: [MigrationStage] { [.lightweight(fromVersion: SchemaV1.self, toVersion: SchemaV2.self)] }
 }
 
 /// Jours enregistrés à minuit par les versions précédentes, ramenés à midi (voir

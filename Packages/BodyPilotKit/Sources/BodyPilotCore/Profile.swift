@@ -57,6 +57,8 @@ public struct UserProfile: Sendable, Equatable, Codable {
     public var equipment: Equipment
     /// Correction décidée lors des bilans hebdomadaires (kcal/jour), appliquée dans les limites de sécurité.
     public var calorieAdjustmentKcal: Double
+    /// Questionnaire de santé : limite l'intensité ou le déficit si besoin.
+    public var screening: HealthScreening
 
     public init(
         id: EntityID = EntityID(),
@@ -71,7 +73,8 @@ public struct UserProfile: Sendable, Equatable, Codable {
         trainingWeekdays: [Int]? = nil,
         sessionMinutes: Int,
         equipment: Equipment,
-        calorieAdjustmentKcal: Double = 0
+        calorieAdjustmentKcal: Double = 0,
+        screening: HealthScreening = HealthScreening()
     ) {
         self.id = id
         self.sex = sex
@@ -85,6 +88,7 @@ public struct UserProfile: Sendable, Equatable, Codable {
         self.sessionMinutes = sessionMinutes
         self.equipment = equipment
         self.calorieAdjustmentKcal = calorieAdjustmentKcal
+        self.screening = screening
     }
 
     public var trainingDaysPerWeek: Int { trainingWeekdays.count }

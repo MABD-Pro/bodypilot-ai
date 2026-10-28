@@ -60,12 +60,17 @@ enum LaunchOptions {
     static var demoVideo: Bool { defaults.bool(forKey: "demoVideo") }
     /// `-demoRecovery YES` : force faite hier, la séance du jour est cardio et marche.
     static var demoRecovery: Bool { defaults.bool(forKey: "demoRecovery") }
+    /// `-demoScreening pending` : profil sans questionnaire de santé (bandeau visible) ;
+    /// `caution` : un oui sans accord médical, séances à effort modéré.
+    static var demoScreening: String? { defaults.string(forKey: "demoScreening") }
+    /// `-demoOnboardingStep 1` : l'accueil s'ouvre sur cette étape (0 à 3).
+    static var demoOnboardingStep: Int? { defaults.object(forKey: "demoOnboardingStep") == nil ? nil : defaults.integer(forKey: "demoOnboardingStep") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }
 
 enum AppContainer {
-    static let schema = Schema(versionedSchema: SchemaV1.self)
+    static let schema = Schema(versionedSchema: SchemaV2.self)
 
     /// Raison pour laquelle la base locale n'a pas pu s'ouvrir : l'app l'affiche au lieu de
     /// planter à chaque lancement (Siri compris), sans jamais effacer les données.
@@ -186,7 +191,10 @@ enum DemoData {
             goal: .recomposition,
             trainingDaysPerWeek: 3,
             sessionMinutes: 45,
-            equipment: LaunchOptions.demoLifts || LaunchOptions.demoCalibration ? .gym : .bodyweight
+            equipment: LaunchOptions.demoLifts || LaunchOptions.demoCalibration ? .gym : .bodyweight,
+            screening: LaunchOptions.demoScreening == "pending"
+                ? HealthScreening()
+                : HealthScreening(answeredAt: now, yes: LaunchOptions.demoScreening == "caution" ? [.boneOrJoint] : [])
         )
         let profileRecord = ProfileRecord(profile)
         if let week = LaunchOptions.demoCycleWeek, let start = calendar.date(byAdding: .day, value: -7 * (week - 1), to: now) {

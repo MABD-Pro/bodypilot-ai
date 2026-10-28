@@ -58,6 +58,9 @@ public struct TrainingPlanner: TrainingPlanning {
     }
 
     public func options(for profile: UserProfile, on date: Date, constraints: DayConstraints) -> TrainingOptions {
+        var constraints = constraints
+        // Un « oui » au questionnaire de santé sans accord médical : effort modéré seulement.
+        constraints.medicalCaution = constraints.medicalCaution || profile.screening.restrictsIntensity
         let profile = adapted(profile, constraints: constraints)
         let budget = min(constraints.availableMinutes ?? profile.sessionMinutes, profile.sessionMinutes)
         let strengthOK = isStrengthDay(date, lastStrengthDay: constraints.lastStrengthDay)
@@ -301,6 +304,9 @@ public struct TrainingPlanner: TrainingPlanning {
         if constraints.lowEnergy {
             adapted = lighten(adapted)
             notes.append("Fatigue : une série de moins, pas d'impacts, effort modéré.")
+        } else if constraints.medicalCaution {
+            adapted = lighten(adapted)
+            notes.append(Self.medicalCautionNote)
         }
 
         if budget < Self.minimumWorkoutMinutes || adapted.exercises.isEmpty {
@@ -318,11 +324,14 @@ public struct TrainingPlanner: TrainingPlanning {
         return TrainingDay(kind: .workout(adapted), estimatedMinutes: adapted.estimatedMinutes, notes: notes)
     }
 
+    /// Séance du jour tant qu'un « oui » au questionnaire de santé attend l'accord d'un médecin.
+    static let medicalCautionNote = "Questionnaire de santé : en attendant l'avis de ton médecin, effort modéré, sans test ni série au maximum. Son accord se note dans Mon profil."
+
     /// Mouvements de référence pas encore testés (salle seulement). Pas de test avec une douleur
     /// au genou, de la fatigue, ou trop peu de temps pour un mouvement : la séance habituelle suit.
     func strengthTest(for profile: UserProfile, budget: Int, constraints: DayConstraints) -> Workout? {
         guard profile.equipment == .gym, let calibrated = constraints.calibratedLifts,
-              !constraints.kneePain, !constraints.lowEnergy,
+              !constraints.kneePain, !constraints.avoidsMaximalEffort,
               let test = StrengthCalibration.testWorkout(calibrated: calibrated, budget: budget),
               test.estimatedMinutes <= budget else { return nil }
         return test
@@ -331,7 +340,7 @@ public struct TrainingPlanner: TrainingPlanning {
     /// Test de cardio à la place du cardio du jour : seulement en forme (pas de fatigue, de
     /// courbatures, de nuit courte ni de genou sensible) et avec assez de temps.
     func cardioTest(budget: Int, constraints: DayConstraints) -> Workout? {
-        guard constraints.cardio.testDue, !constraints.lowEnergy, !constraints.sore, !constraints.kneePain,
+        guard constraints.cardio.testDue, !constraints.avoidsMaximalEffort, !constraints.sore, !constraints.kneePain,
               (constraints.sleepHours ?? Self.shortSleepHours) >= Self.shortSleepHours,
               budget >= CardioTest.minimumMinutes else { return nil }
         return CardioTest.workout()
@@ -343,6 +352,7 @@ public struct TrainingPlanner: TrainingPlanning {
               !StrengthCalibration.pending(calibrated: calibrated).isEmpty else { return nil }
         var reasons: [String] = []
         if constraints.lowEnergy { reasons.append("tu es fatigué") }
+        if constraints.medicalCaution { reasons.append("avis médical en attente") }
         if constraints.kneePain { reasons.append("ton genou est sensible") }
         if reasons.isEmpty { reasons.append("le temps manque") }
         return "Test de force reporté (\(reasons.joined(separator: ", "))) : il reviendra un prochain jour de force, quand tu seras en forme et disponible au moins 45 min."

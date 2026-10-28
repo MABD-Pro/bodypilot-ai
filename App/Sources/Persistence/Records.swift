@@ -36,6 +36,12 @@ final class ProfileRecord {
     var cycleSessionsPerWeek: Int = 0
     /// Premier jour de la semaine du cycle où ce nombre a été confirmé.
     var cycleSessionsWeekStart: Date?
+    /// Questionnaire de santé (schéma V2) : questions répondues oui, situations sans déficit,
+    /// date de réponse (`nil` : jamais répondu) et accord du médecin.
+    var screeningYesRaw: [String] = []
+    var screeningSituationsRaw: [String] = []
+    var screeningAnsweredAt: Date?
+    var medicalClearance: Bool = false
 
     init(_ profile: UserProfile) {
         entityID = profile.id.rawValue
@@ -59,6 +65,24 @@ final class ProfileRecord {
         trainingWeekdaysRaw = profile.trainingWeekdays
         sessionMinutes = profile.sessionMinutes
         equipmentRaw = profile.equipment.rawValue
+        screening = profile.screening
+    }
+
+    var screening: HealthScreening {
+        get {
+            HealthScreening(
+                answeredAt: screeningAnsweredAt,
+                yes: Set(screeningYesRaw.compactMap(ScreeningQuestion.init(rawValue:))),
+                situations: Set(screeningSituationsRaw.compactMap(NoDeficitSituation.init(rawValue:))),
+                medicalClearance: medicalClearance
+            )
+        }
+        set {
+            screeningAnsweredAt = newValue.answeredAt
+            screeningYesRaw = newValue.yes.map(\.rawValue).sorted()
+            screeningSituationsRaw = newValue.situations.map(\.rawValue).sorted()
+            medicalClearance = newValue.medicalClearance
+        }
     }
 
     var cycle: TrainingCycle? {
@@ -109,7 +133,8 @@ final class ProfileRecord {
             trainingWeekdays: trainingWeekdaysRaw.isEmpty ? nil : trainingWeekdaysRaw,
             sessionMinutes: sessionMinutes,
             equipment: Equipment(rawValue: equipmentRaw) ?? .bodyweight,
-            calorieAdjustmentKcal: calorieAdjustmentKcal
+            calorieAdjustmentKcal: calorieAdjustmentKcal,
+            screening: screening
         )
     }
 }

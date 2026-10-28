@@ -2,6 +2,13 @@
 
 Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
+## Questionnaire de santé (`BodyPilotCore/HealthScreening`)
+
+- À l'inscription (étape « Ta santé »), 7 questions par oui ou non, inspirées du PAR-Q+ (Warburton et al., 2011) : problème cardiaque ou hypertension, douleur à la poitrine, vertige ou perte de connaissance, autre maladie chronique, traitement chronique, problème d'os, d'articulation ou de tendon, sport sous surveillance médicale seulement. Les profils créés avant voient un bandeau sur l'écran Aujourd'hui, une seule fois, sans blocage.
+- Un oui ne bloque rien. Tant que l'accord du médecin n'est pas noté (« Mon médecin m'a donné son accord… », dans Mon profil) : ni test de force, ni test de cardio, ni fractionné du cycle, ni séance dure de l'Hyrox, ni série au maximum ; la séance de force est allégée comme en cas de fatigue (une série de moins, sans impact, 3 répétitions en réserve), avec une note qui le dit. Pas de nouveau cycle de 12 semaines. Le dépistage de l'ACSM (Riebe et al., 2015) réserve lui aussi l'effort intense à l'accord médical quand une maladie est connue.
+- Situations sans déficit : grossesse ou allaitement (femmes), trouble alimentaire actuel ou passé, moins de 18 ans (d'après l'âge). Les calories restent à l'équilibre, les bilans ne proposent jamais de baisse et une correction passée ne s'applique plus en dessous de l'équilibre. Le coach renvoie vers un professionnel de santé pour un objectif de poids.
+- Tout reste sur l'iPhone, dans le profil (schéma V2) et la sauvegarde.
+
 ## Besoins nutritionnels (`Nutrition/EnergyCalculator`)
 
 - Métabolisme de base : Mifflin-St Jeor. Dépense = métabolisme × facteur de la vie quotidienne hors sport (1,2 / 1,3 / 1,4 / 1,55, choix BodyPilot) + dépense des séances faites (`ProgressInsights/ExerciseEnergy`).

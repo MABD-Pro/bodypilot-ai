@@ -103,3 +103,22 @@ private let today = day(2026, 10, 27)
     #expect(training.rationale.contains("dont 300 kcal pour tes séances"))
     #expect(training.macros.proteinG == rest.macros.proteinG)
 }
+
+@Test func pregnancyMeansNoDeficitEvenAfterCheckIns() {
+    var profile = makeProfile(sex: .female, goal: .recomposition)
+    profile.screening = HealthScreening(answeredAt: today, situations: [.pregnancy])
+    profile.calorieAdjustmentKcal = -300
+    let targets = calculator.targets(for: profile, currentWeightKg: 90, on: today)
+    #expect(targets.macros.kcal == (targets.maintenanceKcal / 10).rounded() * 10)
+    #expect(targets.rationale.contains("grossesse"))
+}
+
+@Test func minorsGetNoDeficit() {
+    let teen = UserProfile(
+        sex: .male, birthDate: day(2010, 1, 1), heightCm: 175, startWeightKg: 80, targetWeightKg: 70,
+        activity: .light, goal: .recomposition, trainingDaysPerWeek: 3, sessionMinutes: 45, equipment: .bodyweight
+    )
+    let targets = calculator.targets(for: teen, currentWeightKg: 80, on: today)
+    #expect(targets.macros.kcal == (targets.maintenanceKcal / 10).rounded() * 10)
+    #expect(targets.rationale.contains("moins de 18 ans"))
+}

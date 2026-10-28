@@ -25,6 +25,7 @@ struct TodayView: View {
     @State private var isEditingProfile = false
     @State private var isManagingData = false
     @State private var isManagingCycle = false
+    @State private var isAnsweringScreening = false
     @State private var isShowingHistory = LaunchOptions.demoHistory != nil
     /// Ce que l'historique montre en s'ouvrant : la partie ou l'élément touché.
     @State private var historyFocus = HistoryView.Focus.section(.measures)
@@ -112,6 +113,9 @@ struct TodayView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                         header(plan: plan, date: now)
+                        if !profileRecord.screening.isAnswered {
+                            screeningBanner
+                        }
                         CommandField(apply: apply)
                         AdjustmentBar(active: todayAdjustments, toggle: toggle)
                         NutritionCard(targets: plan.targets, meals: plan.meals, logIntake: logIntake, describe: { slot in
@@ -143,7 +147,8 @@ struct TodayView: View {
                             cardioTestToday: cardioTests.last { calendar.isDateInToday($0.day) }?.measure,
                             logCardioTest: logCardioTest,
                             cycleWeek: profileRecord.cycle?.week(on: now, calendar: calendar),
-                            canStartCycle: profileRecord.profile.equipment == .gym,
+                            // Pas de cycle (séries au maximum, fractionné) tant qu'un avis médical est attendu.
+                            canStartCycle: profileRecord.profile.equipment == .gym && !profileRecord.screening.restrictsIntensity,
                             manageCycle: { isManagingCycle = true },
                             cycleSessions: cycleSessions,
                             setCycleSessions: { sessions in
@@ -254,6 +259,9 @@ struct TodayView: View {
             }
             .sheet(isPresented: $isAddingWaist) {
                 WaistEntrySheet(initialCm: waists.last?.cm ?? 90)
+            }
+            .sheet(isPresented: $isAnsweringScreening) {
+                HealthScreeningSheet(profile: profileRecord)
             }
             .sheet(isPresented: $isManagingCycle) {
                 CycleSheet(profile: profileRecord)
@@ -413,6 +421,32 @@ struct TodayView: View {
             log.trainingChoice = nil
         }
         try? context.save()
+    }
+
+    /// Profil créé avant le questionnaire de santé : on le propose une fois, sans bloquer.
+    private var screeningBanner: some View {
+        Button { isAnsweringScreening = true } label: {
+            HStack(spacing: Theme.Spacing.m) {
+                IconBadge(symbol: "stethoscope", tint: Theme.protein, size: 34)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Questionnaire de santé")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Sept questions, 30 secondes : le coach adapte l'intensité si besoin.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(Theme.Spacing.m)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: Theme.Radius.inner + 4))
     }
 
     private func header(plan: TodayPlan, date: Date) -> some View {

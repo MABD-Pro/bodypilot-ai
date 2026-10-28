@@ -75,6 +75,9 @@ shoot 5-ajustement-20min-fatigue -demoData YES -demoAdjustments shortOnTime,tire
 shoot 6a-phrase-resto-genou-repas -demoData YES -demoCommand "J'ai mal au genou et ce soir resto" -demoScrollTo nutrition
 shoot 6b-phrase-resto-genou-seance -demoData YES -demoCommand "J'ai mal au genou et ce soir resto" -demoScrollTo training
 shoot 7-accueil -demoOnboarding YES
+shoot 7b-questionnaire-sante -demoOnboarding YES -demoOnboardingStep 1
+shoot 3h-seance-avis-medical -demoData YES -demoScreening caution -demoCalibration YES -demoScrollTo training
+shoot 1b-bandeau-sante -demoData YES -demoScreening pending
 xcrun simctl ui "$UDID" appearance dark
 shoot 8-aujourdhui-sombre -demoData YES
 echo "Captures : $((SECONDS - start)) s"

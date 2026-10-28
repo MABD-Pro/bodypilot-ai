@@ -194,6 +194,9 @@ public struct DayConstraints: Sendable, Equatable {
     public var cycleWorkoutsThisWeek: [String]
     /// Séances prévues cette semaine du cycle ; `nil` : le coach décide au jour le jour.
     public var cyclePlan: CycleSessionPlan?
+    /// Un « oui » au questionnaire de santé sans accord médical : ni test, ni fractionné, ni
+    /// série au maximum, effort modéré (voir `HealthScreening`).
+    public var medicalCaution: Bool
 
     public init(
         availableMinutes: Int? = nil,
@@ -213,7 +216,8 @@ public struct DayConstraints: Sendable, Equatable {
         cardio: CardioStatus = CardioStatus(),
         cycleWeek: CycleWeek? = nil,
         cycleWorkoutsThisWeek: [String] = [],
-        cyclePlan: CycleSessionPlan? = nil
+        cyclePlan: CycleSessionPlan? = nil,
+        medicalCaution: Bool = false
     ) {
         self.availableMinutes = availableMinutes
         self.lowEnergy = lowEnergy
@@ -233,7 +237,11 @@ public struct DayConstraints: Sendable, Equatable {
         self.cycleWeek = cycleWeek
         self.cycleWorkoutsThisWeek = cycleWorkoutsThisWeek
         self.cyclePlan = cyclePlan
+        self.medicalCaution = medicalCaution
     }
+
+    /// Pas d'effort maximal aujourd'hui : fatigue ou avis médical en attente.
+    public var avoidsMaximalEffort: Bool { lowEnergy || medicalCaution }
 }
 
 /// D'où vient une mesure de forme cardio.

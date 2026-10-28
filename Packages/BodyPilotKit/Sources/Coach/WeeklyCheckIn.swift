@@ -76,6 +76,8 @@ extension DailyCoach {
         }
 
         if direction < 0, retainsWater { return nil }
+        // Grossesse, trouble alimentaire, moins de 18 ans : jamais de baisse proposée.
+        if direction < 0, profile.forbidsDeficit(on: date, calendar: calendar) { return nil }
 
         let current = profile.calorieAdjustmentKcal
         let proposed = min(max(current + direction * Self.calorieStep, -Self.maxCalorieAdjustment), Self.maxCalorieAdjustment)
