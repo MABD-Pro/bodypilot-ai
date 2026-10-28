@@ -10,7 +10,7 @@ struct OnDeviceMealModel: MealLanguageModel {
     /// Lecteur de repas de l'app : catalogue, puis modèle embarqué s'il est disponible.
     static func describer() -> MealDescriber {
         guard OnDeviceCommandModel.isAvailable else { return MealDescriber() }
-        return MealDescriber(router: AIRouter(availableTiers: [.deterministic, .onDevice]), model: OnDeviceMealModel())
+        return MealDescriber(router: AIRouter(availableTiers: [.deterministic, .onDevice]), model: OnDeviceMealModel(), usage: AIUsageStore.shared)
     }
 
     private static let instructions = """

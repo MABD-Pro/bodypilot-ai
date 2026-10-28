@@ -71,6 +71,20 @@ private struct FakeMealModel: MealLanguageModel {
     #expect(parse.foods.last?.isEstimate == true)
 }
 
+@Test func partialEstimateKeepsUnknownFoodsToClarify() async {
+    let text = "un tajine d'agneau et une pastilla"
+    #expect(MealTextParser.parse(text).unrecognized.count == 2)
+    let describer = MealDescriber(
+        router: AIRouter(availableTiers: [.deterministic, .onDevice]),
+        model: FakeMealModel(drafts: [
+            FoodEstimateDraft(name: "tajine d'agneau", grams: 350, kcal: 520, proteinG: 35, carbsG: 30, fatG: 28),
+        ])
+    )
+    let parse = await describer.describe(text)
+    #expect(parse.foods.map(\.name) == ["Tajine d'agneau"])
+    #expect(parse.unrecognized.count == 2)
+}
+
 @Test func withoutModelUnknownFoodsStayToClarify() async {
     let parse = await MealDescriber().describe("un tajine d'agneau")
     #expect(parse.foods.isEmpty)

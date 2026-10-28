@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import AIRouter
 
@@ -37,4 +38,41 @@ private let allTiers = Set(AITier.allCases)
     let router = AIRouter(availableTiers: [.deterministic, .onDevice])
     let request = AIRequest(feature: "meal-photo", minimumTier: .cloudEconomy)
     #expect(router.route(request, usage: .init()) == .unavailable(.noCapableTierAvailable))
+}
+
+private struct Failure: Error {}
+
+@Test func measuredRunRecordsTierLatencyAndOutcome() async {
+    let router = AIRouter(availableTiers: [.deterministic, .onDevice])
+    let ledger = AIUsageLedger()
+    let request = AIRequest(feature: "meal-description", minimumTier: .onDevice)
+    let answer = await router.run(request, on: .onDevice, recorder: ledger) { 42 }
+    let failed: Int? = await router.run(request, on: .onDevice, recorder: ledger) { throw Failure() }
+    #expect(answer == 42)
+    #expect(failed == nil)
+    let summary = await ledger.summaries()
+    #expect(summary.map(\.feature) == ["meal-description"])
+    #expect(summary.first?.calls == 2)
+    #expect(summary.first?.failures == 1)
+    #expect(summary.first?.callsByTier == [.onDevice: 2])
+}
+
+@Test func measuredRunSkipsWorkOnAnotherTier() async {
+    let router = AIRouter(availableTiers: [.deterministic])
+    let ledger = AIUsageLedger()
+    let answer = await router.run(AIRequest(feature: "command-parsing", minimumTier: .onDevice), on: .onDevice, recorder: ledger) { 1 }
+    #expect(answer == nil)
+    #expect(await ledger.records.isEmpty)
+}
+
+@Test func ledgerKeepsTheLatestCallsAndCountsTheMonthsCloudBudget() async {
+    let old = Date(timeIntervalSince1970: 0)
+    let records = (0..<(AIUsageLedger.capacity + 10)).map { index in
+        AIUsageRecord(feature: "f", tier: index.isMultiple(of: 2) ? .cloudEconomy : .onDevice, cost: 1, latency: .milliseconds(10), succeeded: true, date: old)
+    }
+    let ledger = AIUsageLedger(records: records)
+    #expect(await ledger.records.count == AIUsageLedger.capacity)
+    await ledger.record(AIUsageRecord(feature: "f", tier: .cloudEconomy, cost: 2, latency: .milliseconds(10), succeeded: true))
+    let thisMonth = await ledger.snapshot(since: Date(timeIntervalSinceNow: -60))
+    #expect(thisMonth == AIUsageSnapshot(cloudCalls: 1, cloudCost: 2))
 }

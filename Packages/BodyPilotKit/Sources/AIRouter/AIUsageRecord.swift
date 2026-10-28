@@ -10,6 +10,8 @@ public struct AIUsageRecord: Sendable, Equatable, Codable {
     public let cost: Decimal
     public let latency: Duration
     public let succeeded: Bool
+    /// Moment de l'appel : le budget cloud se compte sur une période.
+    public let date: Date
 
     public init(
         feature: String,
@@ -18,7 +20,8 @@ public struct AIUsageRecord: Sendable, Equatable, Codable {
         outputTokens: Int = 0,
         cost: Decimal = 0,
         latency: Duration,
-        succeeded: Bool
+        succeeded: Bool,
+        date: Date = .now
     ) {
         self.feature = feature
         self.tier = tier
@@ -27,5 +30,6 @@ public struct AIUsageRecord: Sendable, Equatable, Codable {
         self.cost = cost
         self.latency = latency
         self.succeeded = succeeded
+        self.date = date
     }
 }

@@ -13,7 +13,7 @@ struct OnDeviceCommandModel: CommandLanguageModel {
     /// Interpréteur de l'app : mots-clés, puis modèle embarqué s'il est disponible.
     static func interpreter() -> CommandInterpreter {
         guard isAvailable else { return CommandInterpreter() }
-        return CommandInterpreter(router: AIRouter(availableTiers: [.deterministic, .onDevice]), model: OnDeviceCommandModel())
+        return CommandInterpreter(router: AIRouter(availableTiers: [.deterministic, .onDevice]), model: OnDeviceCommandModel(), usage: AIUsageStore.shared)
     }
 
     private static let instructions = """
