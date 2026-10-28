@@ -37,6 +37,13 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Le repas décrit remplace le repas prévu et la saisie d'une touche. Les repas suivants s'ajustent comme pour un repas pris (×0,6 à ×1,4).
 - La carte Manger affiche, pour chaque macro, ce qui a été mangé sur l'objectif du jour, ainsi que les calories restantes.
 
+## Reprendre et améliorer un repas (`Nutrition/MealImprover`)
+
+- « Reprendre » : les repas décrits des 7 derniers jours (aujourd'hui exclu), ceux du même moment de la journée d'abord, du plus récent au plus ancien, sans doublon de titre, 8 au plus.
+- Plus léger : l'échange qui fait gagner le plus, s'il gagne au moins 50 kcal (frites → pommes de terre, soda → soda zéro, jus → fruit, carbonara → bolognaise, viennoiserie → pain complet, céréales → flocons d'avoine, saucisse → poulet, biscuits → fruit, glace → skyr ; sauce et fromage : moitié moins).
+- Plus de protéines : sous 20 g (12 g en collation), un skyr au petit-déjeuner et en collation, 100 g de poulet au déjeuner et au dîner, ou un skyr si le plat a déjà sa source de protéines (≥ 15 g / 100 g).
+- Une suggestion de chaque au plus ; elle s'applique d'une touche dans la feuille « Décrire ».
+
 ## Séance du jour (`Training/TrainingPlanner`)
 
 - Au jour le jour, sans planning : chaque jour, le coach propose 2 ou 3 activités et le repos, en recommande une et dit pourquoi ; l'utilisateur choisit d'une touche (le choix vaut pour la journée). Propositions : force (seulement si la dernière séance de force, cochée dans l'app ou renforcement d'au moins 20 min dans Santé, date d'au moins 48 h, ou s'il n'y en a jamais eu : full body lourd A puis B, ou test de force), « Cardio et marche inclinée » (à la maison « en côte » : cardio continu modéré et sans impact, puis marche inclinée), marche tranquille de 30 min, repos.
@@ -71,6 +78,12 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Fin de séance en salle : après la B, 10 minutes de technique (kettlebell swing 3 × 10 en phase 1, hang power clean 4 × 3 en phase 2, power clean 4 × 3 en phase 3, charges légères) ; après la A et la C, un conditioning sans saut à la place du cardio et de la marche : circuit rameur, kettlebell swings, step-ups (phase 1), EMOM swings et wall balls (phase 2), AMRAP wall balls, swings, rameur (phase 3). Durée par semaine : 8, 8, 10, 6, 10, 12, 12, 8, 12, 15, 15, 6 min. Genou sensible : rameur à la place. Le conditioning part en premier si le temps manque.
 - WOD de référence (salle, semaines 11 et 12, à la place du fractionné) : « Helen » adaptée, 3 tours de 500 m de rameur, 21 kettlebell swings, 12 rowings aux anneaux, au chrono. Le temps se note dans la carte (`DayLogRecord.benchmarkSeconds`), comparé à la fois précédente.
 - Fiches technique des nouveaux exercices ; vidéos à vérifier (recherche YouTube en attendant). Sauts et course restent exclus : les critères du plan (step-ups, corde à sauter) ne sont pas encore suivis dans l'app.
+
+## Séance retouchée (`Training/SessionEdits`)
+
+- Pour la journée : séries et répétitions (ou durée) par exercice, exercices retirés, exercices ajoutés parmi ceux qui ont une fiche (3 × 10, ou 3 × 1 min pour un atelier Hyrox). « Revenir à la proposition » efface tout ; changer de proposition aussi.
+- 5/3/1 : la vague garde ses 3 séries, seules les séries « First Set Last » se règlent.
+- Paliers (vague 5/3/1, test de force) : décalés ensemble de ± 2,5 kg à la barre (sinon le pas de charge), pour la journée seulement ; la prochaine charge part des séries vraiment notées.
 
 ## Séance sur l'Apple Watch (`Training/GuidedWorkout`)
 

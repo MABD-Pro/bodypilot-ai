@@ -46,6 +46,12 @@ struct TrainingCard: View {
     var benchmarkToday: Int?
     var previousBenchmark: Int?
     var logBenchmark: (Int) -> Void = { _ in }
+    /// Paliers décalés pour la journée (kg par exercice).
+    var loadShifts: [String: Double] = [:]
+    var shiftLoads: (_ exercise: String, _ kg: Double) -> Void = { _, _ in }
+    /// Séance retouchée pour la journée.
+    var edits = SessionEdits()
+    var editSession: (SessionEdits) -> Void = { _ in }
 
     @State private var isPreviewingWatch = false
     @State private var isLoggingCardioTest = false
@@ -54,6 +60,10 @@ struct TrainingCard: View {
     /// Fiche d'un atelier ou d'un exercice sans série à noter (traîneau, SkiErg…).
     @State private var station: StationItem?
     @State private var celebration: String?
+    /// Mode retouche : une touche sur un exercice ouvre ses séries, « Ajouter » en propose d'autres.
+    @State private var isEditing = false
+    @State private var editingExercise: ExerciseToEdit?
+    @State private var isAddingExercise = false
     private let calendar = Calendar.current
 
     var body: some View {
@@ -100,6 +110,10 @@ struct TrainingCard: View {
                 DurationBadge(minutes: training.estimatedMinutes)
             }
 
+            if !workout.isStrengthTest && !workout.isCardioTest {
+                editBar
+            }
+
             notes
 
             if let celebration {
@@ -124,11 +138,18 @@ struct TrainingCard: View {
                         detail: workout.isStrengthTest ? "5 rép." : workout.isCardioTest ? "1,6 km" : exercise.prescription,
                         isWarmup: false,
                         isSwapped: exercise.isSwapped,
-                        caption: toLog.map(caption) ?? exercise.recoveryCaption.map { ExerciseRow.Caption(text: $0, symbol: "figure.walk", tint: .secondary) },
-                        swap: exercise.alternatives.isEmpty ? nil : { swap(exercise.key) },
-                        log: toLog.map { item -> () -> Void in { logging = item } } ?? stationAction(exercise.name),
-                        logHint: toLog == nil ? "Voir la technique" : "Noter ta meilleure série"
+                        caption: isEditing
+                            ? ExerciseRow.Caption(text: "Modifier", symbol: "slider.horizontal.3", tint: Theme.training)
+                            : toLog.map(caption) ?? exercise.recoveryCaption.map { ExerciseRow.Caption(text: $0, symbol: "figure.walk", tint: .secondary) },
+                        swap: isEditing || exercise.alternatives.isEmpty ? nil : { swap(exercise.key) },
+                        log: isEditing
+                            ? { editingExercise = ExerciseToEdit(exercise: exercise) } as (() -> Void)?
+                            : toLog.map { item -> () -> Void in { logging = item } } ?? stationAction(exercise.name),
+                        logHint: isEditing ? "Modifier l'exercice" : toLog == nil ? "Voir la technique" : "Noter ta meilleure série"
                     )
+                }
+                if isEditing {
+                    addExerciseMenu(workout)
                 }
                 if workout.cooldownMinutes >= 5 {
                     ExerciseRow(index: workout.exercises.count + 1, name: "Retour au calme", detail: "\(workout.cooldownMinutes) min", isWarmup: true, warmupSymbol: "wind")
@@ -136,12 +157,37 @@ struct TrainingCard: View {
             }
             .sheet(item: $logging) { item in
                 // Une feuille par exercice : l'état ne passe pas d'un exercice au suivant.
-                LiftEntrySheet(item: item) { entry in save(entry) }
+                LiftEntrySheet(item: item, save: { entry in save(entry) }, shiftLoads: { shiftLoads(item.exercise, $0) })
                     .id(item.id)
+            }
+            .sheet(item: $editingExercise) { item in
+                ExerciseEditSheet(
+                    exercise: item.exercise,
+                    save: { volume in
+                        var next = edits
+                        next.volumes[item.exercise.key] = volume
+                        editSession(next)
+                    },
+                    remove: {
+                        var next = edits
+                        next.removed.insert(item.exercise.key)
+                        next.added.removeAll { $0 == item.exercise.key }
+                        next.volumes[item.exercise.key] = nil
+                        editSession(next)
+                    }
+                )
             }
             .sheet(item: $station) { item in
                 StationSheet(exercise: item.id)
                     .id(item.id)
+            }
+            .sheet(isPresented: $isAddingExercise) {
+                AddExerciseSheet(present: Set(workout.exercises.map(\.key))) { name in
+                    var next = edits
+                    next.removed.remove(name)
+                    if !next.added.contains(name) { next.added.append(name) }
+                    withAnimation(.snappy) { editSession(next) }
+                }
             }
             .sensoryFeedback(.success, trigger: celebration) { _, new in new != nil }
 
@@ -361,6 +407,44 @@ struct TrainingCard: View {
         }
     }
 
+    /// Retoucher la séance du jour, ou revenir à celle proposée.
+    private var editBar: some View {
+        HStack(spacing: Theme.Spacing.m) {
+            Button {
+                withAnimation(.snappy) { isEditing.toggle() }
+            } label: {
+                Label(isEditing ? "Terminé" : "Modifier la séance", systemImage: isEditing ? "checkmark.circle.fill" : "slider.horizontal.3")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Theme.training)
+            Spacer()
+            if !edits.isEmpty {
+                Button("Revenir à la proposition") {
+                    withAnimation(.snappy) { editSession(SessionEdits()) }
+                }
+                .font(.subheadline.weight(.semibold))
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// Ouvre la liste des exercices à ajouter, rangée et cherchable.
+    private func addExerciseMenu(_ workout: Workout) -> some View {
+        Button {
+            isAddingExercise = true
+        } label: {
+            Label("Ajouter un exercice", systemImage: "plus.circle.fill")
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
+                .padding(.leading, 40)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Theme.training)
+    }
+
     /// Ouvre la fiche quand l'exercice en a une (ateliers Hyrox, traîneau…).
     private func stationAction(_ name: String) -> (() -> Void)? {
         guard ExerciseGuide.guide(for: name) != nil else { return nil }
@@ -390,20 +474,26 @@ struct TrainingCard: View {
         if !exercise.wave.isEmpty, wave.count != exercise.wave.count, let startingKg {
             wave = zip(exercise.wave, StrengthCycle.waveLoads(exercise.wave, startingKg: startingKg, reps: 6)).map { RampStep(reps: $0.reps, kg: $1) }
         }
+        // Paliers décalés pour la journée : toutes les charges proposées bougent ensemble.
+        let shift = loadShifts[exercise.name] ?? 0
+        let shifted = { (kg: Double) in max(0, kg + shift) }
+        let ramp = isTest ? firstAttemptKg.map { StrengthCalibration.ramp(for: exercise.name, firstAttemptKg: $0) } ?? [] : []
         return LiftToLog(
             exercise: exercise.name,
             plannedReps: planned,
             today: today,
-            target: target,
+            target: target.map { LiftTarget(kg: $0.kg.map(shifted), reps: $0.reps, isIncrease: $0.isIncrease) },
             isRecord: today.map { StrengthProgress.isRecord($0, previous: earlier) } ?? false,
             usesLoads: usesLoads,
             guide: guide,
-            startingKg: startingKg,
+            startingKg: startingKg.map(shifted),
             isTest: isTest,
-            ramp: isTest ? firstAttemptKg.map { StrengthCalibration.ramp(for: exercise.name, firstAttemptKg: $0) } ?? [] : [],
-            wave: wave.count == exercise.wave.count ? wave : [],
+            ramp: ramp.map { RampStep(reps: $0.reps, kg: shifted($0.kg)) },
+            wave: wave.count == exercise.wave.count ? wave.map { RampStep(reps: $0.reps, kg: shifted($0.kg)) } : [],
             waveEndsWithMax: exercise.wave.last?.isPlus == true,
-            backoffSets: exercise.backoffSets
+            backoffSets: exercise.backoffSets,
+            loadShift: shift,
+            shiftStep: guide?.barbell == true ? 2.5 : StrengthProgress.loadStep(for: wave.last?.kg ?? target?.kg ?? startingKg ?? 20)
         )
     }
 
@@ -876,49 +966,175 @@ struct StationItem: Identifiable {
     let id: String
 }
 
-/// Fiche d'un atelier : technique et démonstration, sans série à noter.
+/// Fiche d'un atelier : technique et démonstration, en onglets, sans série à noter.
 private struct StationSheet: View {
     let exercise: String
 
-    @State private var showsVideo = false
-    @State private var detent: PresentationDetent = .medium
+    @State private var tab: ExerciseTab = .technique
 
     var body: some View {
         ScrollView {
-            VStack(spacing: Theme.Spacing.xl) {
+            VStack(spacing: Theme.Spacing.l) {
                 Text(exercise)
                     .font(.display(24))
                     .multilineTextAlignment(.center)
-                if let guide = ExerciseGuide.guide(for: exercise) {
-                    ExerciseSheetParts.technique(guide)
+                Picker("Affichage", selection: $tab.animation(.snappy)) {
+                    Text("Technique").tag(ExerciseTab.technique)
+                    Text("Vidéo").tag(ExerciseTab.video)
                 }
-                if let embed = ExerciseDemonstration.embedURL(for: exercise) {
-                    if showsVideo {
-                        ExerciseSheetParts.demonstration(embed, exercise: exercise)
-                            .transition(.opacity)
-                    } else {
-                        Button {
-                            // La vidéo passe sous la technique : la fiche s'agrandit pour la montrer.
-                            withAnimation(.snappy) { showsVideo = true; detent = .large }
-                        } label: {
-                            Label("Voir une démonstration", systemImage: "play.rectangle.fill")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Theme.training)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                } else {
-                    Link(destination: ExerciseDemonstration.url(for: exercise)) {
-                        Label("Chercher une démonstration", systemImage: "magnifyingglass")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.training)
-                    }
+                .pickerStyle(.segmented)
+                if tab == .video {
+                    ExerciseSheetParts.video(for: exercise)
+                } else if let guide = ExerciseGuide.guide(for: exercise) {
+                    ExerciseSheetParts.technique(guide)
                 }
             }
             .padding(Theme.Spacing.xxl)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .presentationDetents([.medium, .large], selection: $detent)
+        .presentationDetents([.medium, .large])
+    }
+}
+
+/// Exercices à ajouter à la séance : la force, puis les ateliers, avec une recherche.
+private struct AddExerciseSheet: View {
+    /// Déjà dans la séance : pas proposés.
+    let present: Set<String>
+    let add: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(sections, id: \.title) { section in
+                    Section(section.title) {
+                        ForEach(section.exercises, id: \.self) { name in
+                            Button {
+                                add(name)
+                                dismiss()
+                            } label: {
+                                HStack {
+                                    // Couleurs fixes : dans une List, un bouton teinte son texte.
+                                    Text(name)
+                                        .foregroundStyle(Color.primary)
+                                    Spacer()
+                                    Text(SessionEdits.addedExercise(name).prescription)
+                                        .font(.subheadline)
+                                        .monospacedDigit()
+                                        .foregroundStyle(Color.secondary)
+                                }
+                                .contentShape(.rect)
+                            }
+                        }
+                    }
+                }
+            }
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Chercher un exercice")
+            .navigationTitle("Ajouter un exercice")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler", role: .cancel) { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+
+    private var sections: [(title: String, exercises: [String])] {
+        SessionEdits.addableSections.compactMap { section in
+            let names = section.exercises.filter {
+                !present.contains($0) && (query.isEmpty || $0.localizedStandardContains(query))
+            }
+            return names.isEmpty ? nil : (section.title, names)
+        }
+    }
+}
+
+/// Exercice de la séance en cours de retouche.
+struct ExerciseToEdit: Identifiable {
+    let exercise: WorkoutExercise
+    var id: String { exercise.key }
+}
+
+/// Séries et répétitions (ou durée) d'un exercice, pour la journée ; ou le retirer.
+private struct ExerciseEditSheet: View {
+    let exercise: WorkoutExercise
+    let save: (SessionEdits.Volume) -> Void
+    let remove: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var sets: Int
+    @State private var amount: Int
+
+    init(exercise: WorkoutExercise, save: @escaping (SessionEdits.Volume) -> Void, remove: @escaping () -> Void) {
+        self.exercise = exercise
+        self.save = save
+        self.remove = remove
+        _sets = State(initialValue: exercise.wave.isEmpty ? exercise.sets : exercise.wave.count + exercise.backoffSets)
+        switch exercise.volume {
+        case .reps(let reps): _amount = State(initialValue: reps)
+        case .seconds(let seconds): _amount = State(initialValue: seconds)
+        }
+    }
+
+    private var isWave: Bool { !exercise.wave.isEmpty }
+    private var isTimed: Bool {
+        if case .seconds = exercise.volume { true } else { false }
+    }
+
+    var body: some View {
+        VStack(spacing: Theme.Spacing.l) {
+            Text(exercise.name)
+                .font(.display(24))
+                .multilineTextAlignment(.center)
+            Stepper(value: $sets, in: (isWave ? exercise.wave.count : 1)...12) {
+                HStack {
+                    Text(isWave ? "Séries en tout" : "Séries")
+                    Spacer()
+                    Text("\(sets)")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if isWave {
+                Text("5/3/1 : les 3 séries de la vague restent, tu règles les séries de 5 qui suivent.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Stepper(value: $amount, in: isTimed ? 10...3600 : 1...50, step: isTimed ? 15 : 1) {
+                    HStack {
+                        Text(isTimed ? "Durée" : "Répétitions")
+                        Spacer()
+                        Text(isTimed ? WorkoutExercise.duration(amount) : "\(amount)")
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Button {
+                save(SessionEdits.Volume(sets: sets, reps: isTimed ? nil : amount, seconds: isTimed ? amount : nil))
+                dismiss()
+            } label: {
+                Text("Enregistrer")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Theme.training)
+            Button("Retirer de la séance", systemImage: "minus.circle", role: .destructive) {
+                remove()
+                dismiss()
+            }
+            .font(.subheadline.weight(.semibold))
+        }
+        .font(.subheadline.weight(.medium))
+        .padding(Theme.Spacing.xxl)
+        .presentationDetents([.height(isWave ? 400 : 380)])
     }
 }
 
@@ -941,25 +1157,36 @@ struct LiftToLog: Identifiable {
     var wave: [RampStep] = []
     var waveEndsWithMax = false
     var backoffSets = 0
+    /// Décalage des paliers déjà appliqué aujourd'hui, et le pas d'un réglage.
+    var loadShift = 0.0
+    var shiftStep = 2.5
     var id: String { exercise }
 }
 
 /// Meilleure série en deux touches : charge et répétitions partent de l'objectif du jour.
+/// Onglets de la fiche d'un exercice : la série à noter, la technique, la démonstration.
+enum ExerciseTab: Hashable {
+    case log, technique, video
+}
+
 private struct LiftEntrySheet: View {
     let item: LiftToLog
     let save: (LiftEntry) -> Void
+    /// Décale les paliers proposés pour la journée (kg, total).
+    var shiftLoads: (Double) -> Void = { _ in }
 
     @Environment(\.dismiss) private var dismiss
     @State private var withLoad: Bool
     @State private var kg: Double
     @State private var reps: Int
-    @State private var showsTechnique = false
-    @State private var showsVideo = LaunchOptions.demoVideo
-    @State private var detent: PresentationDetent = LaunchOptions.demoVideo ? .large : .medium
+    @State private var tab: ExerciseTab = LaunchOptions.demoVideo ? .video : .log
+    /// Décalage des paliers pour la journée ; `item` porte celui déjà appliqué à l'ouverture.
+    @State private var shift: Double
 
-    init(item: LiftToLog, save: @escaping (LiftEntry) -> Void) {
+    init(item: LiftToLog, save: @escaping (LiftEntry) -> Void, shiftLoads: @escaping (Double) -> Void = { _ in }) {
         self.item = item
         self.save = save
+        self.shiftLoads = shiftLoads
         // 5/3/1 : la série à noter est la dernière de la vague (au max), pas l'objectif de progression.
         let waveTop = item.wave.last.map { LiftTarget(kg: $0.kg, reps: $0.reps, isIncrease: false) }
         let start = item.today.map { LiftTarget(kg: $0.kg, reps: $0.reps, isIncrease: false) } ?? waveTop ?? item.target
@@ -967,31 +1194,21 @@ private struct LiftEntrySheet: View {
         _withLoad = State(initialValue: kg != nil)
         _kg = State(initialValue: kg ?? 10)
         _reps = State(initialValue: start?.reps ?? item.plannedReps)
+        _shift = State(initialValue: item.loadShift)
     }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                content
-            }
-            .onChange(of: showsVideo) { _, shown in
-                guard shown else { return }
-                detent = .large
-                Task {
-                    // Le temps que le lecteur apparaisse et que la feuille s'agrandisse.
-                    try? await Task.sleep(for: .milliseconds(300))
-                    withAnimation(.snappy) { proxy.scrollTo("video", anchor: .bottom) }
-                }
-            }
+        ScrollView {
+            content
         }
         .scrollBounceBehavior(.basedOnSize)
-        .presentationDetents([.medium, .large], selection: $detent)
+        .presentationDetents([.medium, .large])
         .sensoryFeedback(.increase, trigger: kg)
         .sensoryFeedback(.increase, trigger: reps)
     }
 
     private var content: some View {
-        VStack(spacing: Theme.Spacing.xl) {
+        VStack(spacing: Theme.Spacing.l) {
             VStack(spacing: Theme.Spacing.xs) {
                 Text(item.exercise)
                     .font(.display(24))
@@ -1002,39 +1219,38 @@ private struct LiftEntrySheet: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+            }
+
+            Picker("Affichage", selection: $tab.animation(.snappy)) {
+                Text("Série").tag(ExerciseTab.log)
                 if item.guide != nil {
-                    Button {
-                        withAnimation(.snappy) { showsTechnique.toggle() }
-                    } label: {
-                        Label(showsTechnique ? "Masquer la technique" : "Voir la technique", systemImage: "figure.strengthtraining.traditional")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.training)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, Theme.Spacing.xs)
+                    Text("Technique").tag(ExerciseTab.technique)
                 }
-                if ExerciseDemonstration.embedURL(for: item.exercise) != nil {
-                    Button {
-                        withAnimation(.snappy) { showsVideo.toggle() }
-                    } label: {
-                        Label(showsVideo ? "Masquer la démonstration" : "Voir une démonstration", systemImage: "play.rectangle.fill")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.training)
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Link(destination: ExerciseDemonstration.url(for: item.exercise)) {
-                        Label("Chercher une démonstration", systemImage: "magnifyingglass")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.training)
-                    }
+                Text("Vidéo").tag(ExerciseTab.video)
+            }
+            .pickerStyle(.segmented)
+
+            switch tab {
+            case .log:
+                logTab
+            case .technique:
+                if let guide = item.guide {
+                    ExerciseSheetParts.technique(guide)
                 }
-                if !item.isTest, item.today == nil, item.target == nil, item.startingKg != nil {
-                    Text("Charge d'essai prudente : si tu pouvais faire plus de 3 répétitions de plus, monte la prochaine fois.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
+            case .video:
+                ExerciseSheetParts.video(for: item.exercise)
+            }
+        }
+        .padding(Theme.Spacing.xxl)
+    }
+
+    private var logTab: some View {
+        VStack(spacing: Theme.Spacing.xl) {
+            if !item.isTest, item.today == nil, item.target == nil, item.startingKg != nil {
+                Text("Charge d'essai prudente : si tu pouvais faire plus de 3 répétitions de plus, monte la prochaine fois.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
 
             if !item.ramp.isEmpty {
@@ -1042,11 +1258,6 @@ private struct LiftEntrySheet: View {
             }
             if !item.wave.isEmpty {
                 wave
-            }
-
-            if showsTechnique, let guide = item.guide {
-                ExerciseSheetParts.technique(guide)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             Toggle("Avec une charge", isOn: $withLoad.animation(.snappy))
@@ -1074,24 +1285,56 @@ private struct LiftEntrySheet: View {
             }
             .buttonStyle(.glassProminent)
             .tint(Theme.training)
-
-            // Sous la saisie : la vidéo ne repousse pas la série à noter.
-            if showsVideo, let embed = ExerciseDemonstration.embedURL(for: item.exercise) {
-                ExerciseSheetParts.demonstration(embed, exercise: item.exercise)
-                    .id("video")
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
         }
-        .padding(Theme.Spacing.xxl)
+    }
+
+    /// Palier affiché : celui calculé à l'ouverture, plus le réglage fait dans la feuille.
+    private func shifted(_ step: RampStep) -> RampStep {
+        RampStep(reps: step.reps, kg: max(0, step.kg + shift - item.loadShift))
+    }
+
+    /// − / + : tous les paliers bougent ensemble, pour la journée.
+    private var shiftControl: some View {
+        HStack(spacing: Theme.Spacing.s) {
+            shiftButton(symbol: "minus", by: -item.shiftStep)
+            Text(shift == 0 ? "Ajuster" : "\(shift > 0 ? "+" : "−")\(abs(shift).frenchCompact) kg")
+                .font(.caption.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(shift == 0 ? Color.secondary : Theme.training)
+                .frame(minWidth: 54)
+                .contentTransition(.numericText(value: shift))
+            shiftButton(symbol: "plus", by: item.shiftStep)
+        }
+    }
+
+    private func shiftButton(symbol: String, by delta: Double) -> some View {
+        Button {
+            withAnimation(.snappy) {
+                shift += delta
+                if withLoad { kg = max(0, kg + delta) }
+            }
+            shiftLoads(shift)
+        } label: {
+            Image(systemName: symbol)
+                .font(.caption.weight(.bold))
+                .frame(width: 30, height: 30)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .circle)
+        .accessibilityLabel(delta > 0 ? "Paliers plus lourds" : "Paliers plus légers")
     }
 
     /// Montée en charge du test : échauffements, premier essai, puis essais plus lourds.
     private var ramp: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            Label("Paliers", systemImage: "chart.line.uptrend.xyaxis")
-                .font(.headline)
-                .foregroundStyle(Theme.training)
-            ForEach(Array(item.ramp.enumerated()), id: \.offset) { index, step in
+            HStack {
+                Label("Paliers", systemImage: "chart.line.uptrend.xyaxis")
+                    .font(.headline)
+                    .foregroundStyle(Theme.training)
+                Spacer()
+                shiftControl
+            }
+            ForEach(Array(item.ramp.map(shifted).enumerated()), id: \.offset) { index, step in
                 let isAttempt = index == item.ramp.count - 1
                 HStack(spacing: Theme.Spacing.s) {
                     Text(isAttempt ? "Essai" : "Palier \(index + 1)")
@@ -1102,7 +1345,7 @@ private struct LiftEntrySheet: View {
                         .monospacedDigit()
                 }
             }
-            if let attempt = item.ramp.last {
+            if let attempt = item.ramp.last.map(shifted) {
                 Text("Si les 5 sont faciles, ajoute \(StrengthCalibration.attemptIncrement(for: item.exercise, from: attempt.kg).frenchCompact) kg et recommence, 2 min 30 de repos entre deux essais. Arrête quand la 5e répétition devient difficile ou que la technique se dégrade.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -1117,10 +1360,14 @@ private struct LiftEntrySheet: View {
     /// Séance 5/3/1 : les 3 séries qui montent, puis « First Set Last ».
     private var wave: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            Label("5/3/1", systemImage: "chart.bar.fill")
-                .font(.headline)
-                .foregroundStyle(Theme.training)
-            ForEach(Array(item.wave.enumerated()), id: \.offset) { index, step in
+            HStack {
+                Label("5/3/1", systemImage: "chart.bar.fill")
+                    .font(.headline)
+                    .foregroundStyle(Theme.training)
+                Spacer()
+                shiftControl
+            }
+            ForEach(Array(item.wave.map(shifted).enumerated()), id: \.offset) { index, step in
                 let isMax = item.waveEndsWithMax && index == item.wave.count - 1
                 HStack(spacing: Theme.Spacing.s) {
                     Text(isMax ? "Série \(index + 1), au max" : "Série \(index + 1)")
@@ -1131,7 +1378,7 @@ private struct LiftEntrySheet: View {
                         .monospacedDigit()
                 }
             }
-            if item.backoffSets > 0, let first = item.wave.first {
+            if item.backoffSets > 0, let first = item.wave.first.map(shifted) {
                 HStack(spacing: Theme.Spacing.s) {
                     Text("Puis \(item.backoffSets) séries")
                         .font(.subheadline)
@@ -1218,6 +1465,12 @@ extension WorkoutExercise {
     /// Cardio et marche inclinée, ajoutés après la force.
     var isConditioning: Bool { priority >= 4 }
 
+    /// Marche inclinée, en côte, tranquille ou escalier (pas la marche du fermier, un atelier).
+    var isWalking: Bool {
+        let name = self.name.lowercased()
+        return (name.contains("marche") && !name.contains("fermier")) || name.contains("escalier")
+    }
+
     /// « Récupération 2 min » sous le nom d'un fractionné.
     var recoveryCaption: String? {
         guard isConditioning, sets > 1, restSeconds > 0, case .seconds = volume else { return nil }
@@ -1237,9 +1490,12 @@ extension Workout {
         }
         let strength = exercises.filter { !$0.isConditioning }
         var parts: [String] = strength.isEmpty ? [] : ["\(strength.count) exercice\(strength.count > 1 ? "s" : "") de force"]
-        let conditioning = exercises.filter(\.isConditioning).count
-        if conditioning >= 1 { parts.append("cardio") }
-        if conditioning >= 2 { parts.append("marche") }
+        // La marche se reconnaît à son nom (marche inclinée, en côte, escalier) : un atelier
+        // ajouté (SkiErg, rameur) reste du cardio.
+        let conditioning = exercises.filter(\.isConditioning)
+        let walking = conditioning.filter(\.isWalking)
+        if conditioning.count > walking.count { parts.append("cardio") }
+        if !walking.isEmpty { parts.append("marche") }
         return parts.joined(separator: " · ")
     }
 }
@@ -1385,6 +1641,21 @@ private enum ExerciseSheetParts {
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Theme.training)
             }
+        }
+    }
+
+    /// Onglet Vidéo : la vidéo choisie, sinon une recherche YouTube.
+    @ViewBuilder
+    static func video(for exercise: String) -> some View {
+        if let embed = ExerciseDemonstration.embedURL(for: exercise) {
+            demonstration(embed, exercise: exercise)
+        } else {
+            Link(destination: ExerciseDemonstration.url(for: exercise)) {
+                Label("Chercher une démonstration sur YouTube", systemImage: "magnifyingglass")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.training)
+            }
+            .padding(.top, Theme.Spacing.l)
         }
     }
 

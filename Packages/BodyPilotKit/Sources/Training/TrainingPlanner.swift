@@ -21,6 +21,8 @@ public struct TrainingPlanner: TrainingPlanning {
     static let strengthShare = 0.6
     /// Repos minimal conservé sur les exercices principaux quand la séance est resserrée.
     static let mainLiftRestSeconds = 120
+    /// Début de la note d'une séance resserrée au temps disponible.
+    static let fittedNotePrefix = "Séance resserrée à"
     /// Jours entre deux séances de force lourde sur les mêmes muscles (48 h).
     public static let strengthRecoveryDays = 2
     /// Au-delà, le coach recommande un jour de repos complet.
@@ -311,7 +313,7 @@ public struct TrainingPlanner: TrainingPlanning {
         }
         if adapted.estimatedMinutes > budget {
             adapted = fit(adapted, toMinutes: budget)
-            notes.append("Séance resserrée à \(adapted.estimatedMinutes) min : l'essentiel est gardé.")
+            notes.append("\(Self.fittedNotePrefix) \(adapted.estimatedMinutes) min : l'essentiel est gardé.")
         }
         return TrainingDay(kind: .workout(adapted), estimatedMinutes: adapted.estimatedMinutes, notes: notes)
     }

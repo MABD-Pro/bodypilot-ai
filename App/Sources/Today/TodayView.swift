@@ -113,10 +113,14 @@ struct TodayView: View {
                         AdjustmentBar(active: todayAdjustments, toggle: toggle)
                         NutritionCard(targets: plan.targets, meals: plan.meals, logIntake: logIntake, describe: { slot in
                             describing = MealToDescribe(slot: slot, current: todayLog?.describedMeals[slot])
+                        }, recent: { slot in
+                            RecentMeals.list(for: slot, history: recentMealHistory(now: now), today: now, calendar: calendar)
+                        }, reuse: { slot, meal in
+                            saveDescribed(meal, for: slot)
                         })
                             .id("nutrition")
                         TrainingCard(
-                            training: plan.training,
+                            training: (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training),
                             options: plan.trainingOptions,
                             choice: todayLog?.trainingChoice ?? plan.trainingOptions.recommended,
                             choose: chooseTraining,
@@ -145,7 +149,19 @@ struct TodayView: View {
                             },
                             benchmarkToday: todayLog?.benchmarkSeconds,
                             previousBenchmark: dayLogs.filter { !calendar.isDateInToday($0.day) && $0.benchmarkSeconds != nil }.max { $0.day < $1.day }?.benchmarkSeconds,
-                            logBenchmark: logBenchmark
+                            logBenchmark: logBenchmark,
+                            loadShifts: todayLog?.loadShifts ?? [:],
+                            shiftLoads: { exercise, kg in
+                                let log = DayLogEditor.todayLog(in: context, calendar: calendar)
+                                log.loadShifts[exercise] = kg
+                                try? context.save()
+                            },
+                            edits: todayLog?.sessionEdits ?? SessionEdits(),
+                            editSession: { edits in
+                                let log = DayLogEditor.todayLog(in: context, calendar: calendar)
+                                withAnimation(Theme.springy) { log.sessionEdits = edits }
+                                try? context.save()
+                            }
                         )
                             .id("training")
                         ProgressCard(
@@ -358,7 +374,11 @@ struct TodayView: View {
 
     private func chooseTraining(_ choice: TrainingChoice) {
         let log = todayLog()
-        withAnimation(Theme.springy) { log.trainingChoice = choice }
+        withAnimation(Theme.springy) {
+            // Une autre proposition : la séance retouchée pour l'ancienne ne s'applique plus.
+            if log.trainingChoice != choice { log.sessionEdits = SessionEdits() }
+            log.trainingChoice = choice
+        }
         try? context.save()
     }
 
@@ -467,6 +487,14 @@ struct TodayView: View {
             log.mealIntakes[slot] = intake
             if intake == nil { log.describedMeals[slot] = nil }
         }
+    }
+
+    /// Repas décrits des 7 derniers jours (seuls ces journaux sont décodés).
+    private func recentMealHistory(now: Date) -> [(day: Date, meals: [MealSlot: DescribedMeal])] {
+        guard let since = calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: now)) else { return [] }
+        return dayLogs
+            .filter { $0.day >= since && $0.describedMealsData != nil }
+            .map { (day: $0.day, meals: $0.describedMeals) }
     }
 
     /// Repas décrit en texte : il remplace la saisie d'une touche pour ce repas.

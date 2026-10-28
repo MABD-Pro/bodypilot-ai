@@ -7,7 +7,7 @@ public struct ExerciseGuide: Sendable, Equatable {
     /// La charge notée est celle d'un seul haltère.
     public var perDumbbell: Bool
     /// À la barre : la charge se règle par paires de disques, donc de 2,5 en 2,5 kg.
-    var barbell: Bool
+    public var barbell: Bool
     /// Charge d'essai en fraction du poids du corps ; `nil` au poids du corps.
     var startRatioMale: Double?
     var startRatioFemale: Double?
