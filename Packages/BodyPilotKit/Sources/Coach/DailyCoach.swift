@@ -58,6 +58,7 @@ public struct DailyCoach: Sendable {
         lastStrengthDay: Date? = nil,
         calibratedLifts: Set<String>? = nil,
         sleepHours: Double? = nil,
+        averageSleepHours: Double? = nil,
         activeDays: Set<Date> = [],
         recentActivities: [ActivitySample] = [],
         trainingChoice: TrainingChoice? = nil,
@@ -81,14 +82,14 @@ public struct DailyCoach: Sendable {
         let composition = progress.compositionChange(of: compositions, on: date)
         let weight = trend.currentTrendKg ?? profile.startWeightKg
         var targets = nutrition.targets(for: profile, currentWeightKg: weight, exerciseKcalPerDay: exerciseKcalPerDay, on: date)
-        if phase.goal == profile.goal { targets.rationale += " " + phase.reason(for: profile, currentWeightKg: weight) }
+        if phase.goal == profile.goal { targets.rationale += " " + phase.reason(for: profile, currentWeightKg: weight, on: date) }
         let meals = nutrition.mealPlan(
             for: targets,
             profile: profile,
             on: date,
             constraints: MealConstraints(today: adjustments, at: date, calendar: calendar, eatingOutSlot: eatingOutSlot, eaten: mealIntakes, described: describedMeals)
         )
-        let constraints = DayConstraints(
+        var constraints = DayConstraints(
             today: adjustments,
             availableMinutes: availableMinutes,
             exerciseSwaps: exerciseSwaps,
@@ -104,6 +105,7 @@ public struct DailyCoach: Sendable {
             cycleWorkoutsThisWeek: cycleWorkoutsThisWeek,
             cyclePlan: cycle.flatMap { cycle in cycleSessionsPerWeek.map { CycleSessionPlan(sessions: $0, program: cycle.program) } }
         )
+        constraints.averageSleepHours = averageSleepHours
         let options = training.options(for: profile, on: date, constraints: constraints)
         let chosen = trainingChoice.flatMap { options.option($0) } ?? options.option(options.recommended)
         let trainingDay = chosen?.day ?? TrainingDay(kind: .rest, estimatedMinutes: 0)

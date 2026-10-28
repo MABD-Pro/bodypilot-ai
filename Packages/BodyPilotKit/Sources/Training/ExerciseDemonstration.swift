@@ -68,6 +68,15 @@ public enum ExerciseDemonstration {
         "Pont fessier une jambe": "EtfFV7THNh4",
         "Pont fessier pieds surélevés": "lpXC5v9TWXY",
         "Hip thrust une jambe": "qHaAALHvHCM",
+        // Compléments d'isolation et équilibre
+        "Élévations latérales haltères": "rtHgJXHMo7s",
+        "Curl haltères": "8wvflicHXXw",
+        "Extension triceps à la poulie": "jUUtHr42ra0",
+        "Mollets debout à la machine": "yQv9y1oHitc",
+        "Pompes diamant": "lp5MZ4XVbIA",
+        "Pompes pike": "GJtgPG1pSFc",
+        "Mollets sur une marche": "-hD4xqobyqk",
+        "Équilibre sur une jambe": "FlLsGUIR-hI",
         "Good morning sans charge": "61zbhuRiwQg",
         // Cycle CrossFit, vérifiés le 28 octobre 2026. En anglais : Push press, Rowing aux anneaux, Wall ball.
         "Squat avant": "H_d6oaCKG0U",

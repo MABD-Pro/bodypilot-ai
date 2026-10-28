@@ -140,3 +140,11 @@ private func compositions(from start: Double, to end: Double) -> [BodyCompositio
     let suggestion = try #require(coach.weeklyCheckIn(for: profile, weights: weights(start: 64, perDay: 0), on: today))
     #expect(suggestion.deltaKcal == 150)
 }
+
+@Test func noCheckInDuringAMaintenanceWeek() {
+    var profile = makeProfile()
+    let flat = weights(start: 88, perDay: 0)
+    #expect(coach.weeklyCheckIn(for: profile, weights: flat, on: today) != nil)
+    profile.maintenanceWeekUntil = utc.date(byAdding: .day, value: 3, to: today)
+    #expect(coach.weeklyCheckIn(for: profile, weights: flat, on: today) == nil)
+}

@@ -9,7 +9,7 @@ enum SchemaV1: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
 
     static var models: [any PersistentModel.Type] {
-        [SchemaV1.ProfileRecord.self, WeightRecord.self, SchemaV2.DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self]
+        [SchemaV1.ProfileRecord.self, WeightRecord.self, SchemaV2.DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, SchemaV3.LiftRecord.self, CardioTestRecord.self]
     }
 
     /// Profil tel qu'il était avant le questionnaire de santé.
@@ -45,7 +45,7 @@ enum SchemaV2: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
 
     static var models: [any PersistentModel.Type] {
-        [ProfileRecord.self, WeightRecord.self, SchemaV2.DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self]
+        [SchemaV3.ProfileRecord.self, WeightRecord.self, SchemaV2.DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, SchemaV3.LiftRecord.self, CardioTestRecord.self]
     }
 
     /// Journal du jour tel qu'il était avant les calories mangées (V1 et V2).
@@ -74,17 +74,71 @@ enum SchemaV3: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(3, 0, 0) }
 
     static var models: [any PersistentModel.Type] {
+        [SchemaV3.ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, SchemaV3.LiftRecord.self, CardioTestRecord.self]
+    }
+
+    /// Profil tel qu'il était avant la semaine à l'équilibre (V2 et V3).
+    @Model
+    final class ProfileRecord {
+        var entityID: UUID = UUID()
+        var createdAt: Date = Date.now
+        var sexRaw: String = BiologicalSex.male.rawValue
+        var birthDate: Date = Date.now
+        var heightCm: Double = 175
+        var startWeightKg: Double = 75
+        var targetWeightKg: Double?
+        var activityRaw: String = ActivityLevel.light.rawValue
+        var goalRaw: String = Goal.recomposition.rawValue
+        var trainingDaysPerWeek: Int = 3
+        var trainingWeekdaysRaw: [Int] = []
+        var sessionMinutes: Int = 45
+        var equipmentRaw: String = Equipment.bodyweight.rawValue
+        var calorieAdjustmentKcal: Double = 0
+        var lastCheckInAt: Date?
+        var strengthTestResetAt: Date?
+        var cycleProgramRaw: String?
+        var cycleStartDate: Date?
+        var cycleSessionsPerWeek: Int = 0
+        var cycleSessionsWeekStart: Date?
+        var screeningYesRaw: [String] = []
+        var screeningSituationsRaw: [String] = []
+        var screeningAnsweredAt: Date?
+        var medicalClearance: Bool = false
+
+        init() {}
+    }
+
+    /// Série notée telle qu'elle était avant l'effort ressenti (V1 à V3).
+    @Model
+    final class LiftRecord {
+        var day: Date = Date.now
+        var exercise: String = ""
+        var kg: Double?
+        var reps: Int = 0
+        var isTest: Bool = false
+
+        init() {}
+    }
+}
+
+/// V4 : effort ressenti sur les séries (`LiftRecord.effortRaw`) et semaine à l'équilibre
+/// (`ProfileRecord.maintenanceWeekUntil`, `maintenanceOfferDismissedAt`).
+enum SchemaV4: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(4, 0, 0) }
+
+    static var models: [any PersistentModel.Type] {
         [ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self]
     }
 }
 
 enum BodyPilotMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self, SchemaV3.self] }
+    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self] }
     /// Champs ajoutés avec une valeur par défaut : migrations légères, sans perte.
     static var stages: [MigrationStage] {
         [
             .lightweight(fromVersion: SchemaV1.self, toVersion: SchemaV2.self),
             .lightweight(fromVersion: SchemaV2.self, toVersion: SchemaV3.self),
+            .lightweight(fromVersion: SchemaV3.self, toVersion: SchemaV4.self),
         ]
     }
 }

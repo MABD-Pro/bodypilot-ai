@@ -1296,6 +1296,8 @@ private struct LiftEntrySheet: View {
     @State private var withLoad: Bool
     @State private var kg: Double
     @State private var reps: Int
+    /// Effort ressenti, une touche : la prochaine charge en tient compte.
+    @State private var effort: SetEffort?
     @State private var tab: ExerciseTab = LaunchOptions.demoVideo ? .video : .log
     /// Décalage des paliers pour la journée ; `item` porte celui déjà appliqué à l'ouverture.
     @State private var shift: Double
@@ -1426,8 +1428,27 @@ private struct LiftEntrySheet: View {
                 reps = max(1, reps + (up ? 1 : -1))
             }
 
+            // Le test cherche la série la plus lourde : l'effort n'y a pas de sens.
+            if !item.isTest {
+                VStack(spacing: Theme.Spacing.s) {
+                    Text("Comment était cette série ?")
+                        .font(.subheadline.weight(.medium))
+                    Picker("Effort", selection: $effort) {
+                        ForEach(SetEffort.allCases, id: \.self) { effort in
+                            Text(effort.title).tag(Optional(effort))
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    Text(Self.effortHint(effort))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .sensoryFeedback(.selection, trigger: effort)
+            }
+
             Button {
-                save(LiftEntry(exercise: item.exercise, date: Calendar.current.storedDay(for: .now), kg: withLoad && kg > 0 ? kg : nil, reps: reps, isTest: item.isTest))
+                save(LiftEntry(exercise: item.exercise, date: Calendar.current.storedDay(for: .now), kg: withLoad && kg > 0 ? kg : nil, reps: reps, isTest: item.isTest, effort: item.isTest ? nil : effort))
                 dismiss()
             } label: {
                 Text("Enregistrer")
@@ -1437,6 +1458,15 @@ private struct LiftEntrySheet: View {
             }
             .buttonStyle(.glassProminent)
             .tint(Theme.training)
+        }
+    }
+
+    static func effortHint(_ effort: SetEffort?) -> String {
+        switch effort {
+        case .easy: "3 répétitions ou plus en réserve : la charge monte la prochaine fois."
+        case .right: "1 à 2 répétitions en réserve : l'effort visé."
+        case .hard: "Plus rien en réserve : la charge attend, ou baisse un peu si la série n'est pas complète."
+        case nil: "Facultatif : une touche aide le coach à régler la prochaine charge."
         }
     }
 

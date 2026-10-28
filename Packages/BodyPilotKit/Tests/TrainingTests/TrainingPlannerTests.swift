@@ -142,8 +142,10 @@ private func workout(_ day: TrainingDay) -> Workout? {
     let result = planner.trainingDay(for: makeProfile(sessionMinutes: 60, equipment: .gym), on: monday, constraints: DayConstraints(traveling: true))
     let session = try #require(workout(result))
     #expect(result.estimatedMinutes <= TrainingPlanner.travelMaxMinutes)
-    let bodyweightNames = Set(WorkoutCatalog.sessions(for: .bodyweight).flatMap { $0.exercises.map(\.name) }
-        + WorkoutCatalog.cardio(for: .bodyweight).map(\.name) + WorkoutCatalog.incline(for: .bodyweight).map(\.name))
+    let sessions = WorkoutCatalog.sessions(for: .bodyweight)
+    let bodyweightNames = Set(sessions.flatMap { $0.exercises.map(\.name) }
+        + WorkoutCatalog.cardio(for: .bodyweight).map(\.name) + WorkoutCatalog.incline(for: .bodyweight).map(\.name)
+        + sessions.flatMap { WorkoutCatalog.accessories(after: $0.title, equipment: .bodyweight).map(\.name) } + [WorkoutCatalog.balance.name])
     #expect(session.exercises.allSatisfy { bodyweightNames.contains($0.name) })
 }
 
@@ -207,7 +209,8 @@ func aSessionChainsStrengthCardioAndInclineWalk(equipment: Equipment, minutes: I
     let session = try #require(workout(result))
     let cardioNames = Set(WorkoutCatalog.cardio(for: equipment).map(\.name))
     let inclineNames = Set(WorkoutCatalog.incline(for: equipment).map(\.name))
-    let strengthNames = Set(WorkoutCatalog.sessions(for: equipment).flatMap { $0.exercises.map(\.name) })
+    let sessions = WorkoutCatalog.sessions(for: equipment)
+    let strengthNames = Set(sessions.flatMap { $0.exercises.map(\.name) } + sessions.flatMap { WorkoutCatalog.accessories(after: $0.title, equipment: equipment).map(\.name) })
     #expect(session.exercises.dropLast(2).allSatisfy { strengthNames.contains($0.name) })
     #expect(cardioNames.contains(session.exercises[session.exercises.count - 2].name))
     #expect(inclineNames.contains(session.exercises[session.exercises.count - 1].name))
@@ -242,4 +245,66 @@ func aSessionChainsStrengthCardioAndInclineWalk(equipment: Equipment, minutes: I
     #expect(gym.notes.first?.hasPrefix("Reprise après 5 semaines") == true)
     let recent = planner.trainingDay(for: makeProfile(equipment: .gym), on: tuesday, constraints: DayConstraints(lastStrengthDay: utc.date(byAdding: .day, value: -3, to: tuesday)!))
     #expect(!recent.notes.contains { $0.hasPrefix("Reprise") })
+}
+
+@Test func fortyFiveMinutesAddIsolationBeforeTheCardio() throws {
+    let session = try #require(workout(planner.trainingDay(for: makeProfile(equipment: .gym), on: monday, constraints: DayConstraints())))
+    let isolation = session.exercises.filter { $0.priority == 3 }
+    #expect(isolation.map(\.name).contains("Élévations latérales haltères"))
+    // Le cardio et la marche gardent leur place, après l'isolation.
+    let lastIsolation = try #require(session.exercises.lastIndex { $0.priority == 3 })
+    #expect(session.exercises[(lastIsolation + 1)...].allSatisfy { $0.priority == 4 })
+    #expect(session.exercises.suffix(2).allSatisfy { $0.priority == 4 })
+}
+
+@Test func everyAccessoryHasAGuide() {
+    for equipment in Equipment.allCases {
+        for title in WorkoutCatalog.sessions(for: equipment).map(\.title) {
+            for exercise in WorkoutCatalog.accessories(after: title, equipment: equipment) + [WorkoutCatalog.balance] {
+                #expect(ExerciseGuide.guide(for: exercise.name) != nil, "\(exercise.name) sans fiche")
+            }
+        }
+    }
+}
+
+@Test func cycleSessionsHaveNoExtraIsolation() {
+    let week = CycleWeek(program: .crossfit, number: 2)
+    #expect(planner.accessories(for: makeProfile(equipment: .gym), after: "Full body A", cycleWeek: week, on: monday).isEmpty)
+}
+
+@Test func seniorsLiftTenRepsWithBalanceAndPower() throws {
+    var senior = makeProfile(equipment: .gym)
+    senior.birthDate = day(1958, 1, 1)
+    let result = planner.trainingDay(for: senior, on: monday, constraints: DayConstraints())
+    let session = try #require(workout(result))
+    let squat = try #require(session.exercises.first { $0.key == "Squat à la barre" })
+    #expect(squat.volume == .reps(10))
+    #expect(session.exercises.contains { $0.name == "Équilibre sur une jambe" })
+    #expect(session.intensityCue.contains("Monte vite"))
+    #expect(session.intensityCue.hasPrefix("Charge modérée"))
+    // L'isolation ne passe pas avant les mouvements principaux.
+    let mainKept = session.exercises.filter { $0.priority == 1 }.allSatisfy { $0.sets >= 3 }
+    #expect(mainKept || !session.exercises.contains { $0.name == "Élévations latérales haltères" })
+    #expect(result.notes.contains { $0.hasPrefix("À partir de 60 ans") })
+}
+
+@Test func highBMIGetsTenRepsWithoutBalance() throws {
+    let result = planner.trainingDay(for: makeProfile(weightKg: 110, equipment: .gym), on: monday, constraints: DayConstraints())
+    let session = try #require(workout(result))
+    #expect(session.exercises.first { $0.key == "Développé couché" }?.volume == .reps(10))
+    #expect(!session.exercises.contains { $0.name == "Équilibre sur une jambe" })
+    #expect(result.notes.contains { $0.hasPrefix("Avec ton IMC") })
+    // Profil de référence (IMC 27,8, 35 ans) : séries lourdes inchangées.
+    let usual = try #require(workout(planner.trainingDay(for: makeProfile(equipment: .gym), on: monday, constraints: DayConstraints())))
+    #expect(usual.exercises.first { $0.key == "Squat à la barre" }?.volume == .reps(6))
+}
+
+@Test func shortAverageSleepIsMentionedWithoutChangingTheSession() {
+    var constraints = DayConstraints(sleepHours: 7.5)
+    let rested = planner.options(for: makeProfile(), on: monday, constraints: constraints)
+    constraints.averageSleepHours = 6.25
+    let short = planner.options(for: makeProfile(), on: monday, constraints: constraints)
+    #expect(short.recommended == rested.recommended)
+    #expect(short.reason.contains("Sommeil moyen de 6 h 15"))
+    #expect(!rested.reason.contains("Sommeil moyen"))
 }

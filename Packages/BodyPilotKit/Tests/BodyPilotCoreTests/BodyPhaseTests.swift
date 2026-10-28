@@ -51,3 +51,22 @@ private func phase(_ profile: UserProfile, weight: Double, waist: Double? = nil,
     #expect(BodyPhase.maintenance.goal == .maintain)
     #expect(BodyPhase.leanGain.goal == .buildMuscle)
 }
+
+@Test func maintenanceWeekComesAfterTwelveWeeksOfDeficit() {
+    let start = utc.date(byAdding: .day, value: -84, to: today)!
+    #expect(MaintenanceWeek.isDue(deficitSince: start, dismissedAt: nil, on: today, calendar: utc))
+    #expect(!MaintenanceWeek.isDue(deficitSince: utc.date(byAdding: .day, value: 1, to: start)!, dismissedAt: nil, on: today, calendar: utc))
+    // « Pas maintenant » : proposée de nouveau 4 semaines plus tard.
+    let dismissed = utc.date(byAdding: .day, value: -27, to: today)!
+    #expect(!MaintenanceWeek.isDue(deficitSince: start, dismissedAt: dismissed, on: today, calendar: utc))
+    #expect(MaintenanceWeek.isDue(deficitSince: start, dismissedAt: utc.date(byAdding: .day, value: -28, to: today)!, on: today, calendar: utc))
+}
+
+@Test func maintenanceWeekHoldsTheDeficit() {
+    var onBreak = profile(weight: 90, target: 80)
+    onBreak.maintenanceWeekUntil = utc.date(byAdding: .day, value: 3, to: today)
+    #expect(phase(onBreak, weight: 90) == .maintenance)
+    #expect(BodyPhase.maintenance.reason(for: onBreak, currentWeightKg: 90, on: today).contains("semaine à l'équilibre"))
+    onBreak.maintenanceWeekUntil = today
+    #expect(phase(onBreak, weight: 90) == .fatLoss)
+}

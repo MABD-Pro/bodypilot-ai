@@ -42,6 +42,9 @@ final class ProfileRecord {
     var screeningSituationsRaw: [String] = []
     var screeningAnsweredAt: Date?
     var medicalClearance: Bool = false
+    /// Semaine à l'équilibre après un long déficit : fin prévue, et dernier « Pas maintenant ».
+    var maintenanceWeekUntil: Date?
+    var maintenanceOfferDismissedAt: Date?
 
     init(_ profile: UserProfile) {
         entityID = profile.id.rawValue
@@ -119,7 +122,7 @@ final class ProfileRecord {
     }
 
     var profile: UserProfile {
-        UserProfile(
+        var profile = UserProfile(
             id: EntityID(entityID),
             sex: BiologicalSex(rawValue: sexRaw) ?? .male,
             birthDate: birthDate,
@@ -136,6 +139,20 @@ final class ProfileRecord {
             calorieAdjustmentKcal: calorieAdjustmentKcal,
             screening: screening
         )
+        profile.maintenanceWeekUntil = maintenanceWeekUntil
+        return profile
+    }
+
+    /// Une semaine à l'équilibre à proposer : 12 semaines de déficit depuis la création du
+    /// profil ou la dernière semaine à l'équilibre.
+    func isMaintenanceWeekDue(phase: BodyPhase, on date: Date, calendar: Calendar = .current) -> Bool {
+        phase == .fatLoss && MaintenanceWeek.isDue(
+            deficitSince: maintenanceWeekUntil ?? createdAt, dismissedAt: maintenanceOfferDismissedAt, on: date, calendar: calendar
+        )
+    }
+
+    func startMaintenanceWeek(on date: Date, calendar: Calendar = .current) {
+        maintenanceWeekUntil = calendar.date(byAdding: .day, value: MaintenanceWeek.days, to: calendar.startOfDay(for: date))
     }
 }
 
@@ -299,6 +316,8 @@ final class LiftRecord {
     var reps: Int = 0
     /// Série de test du calibrage.
     var isTest: Bool = false
+    /// Effort ressenti (`SetEffort`) ; `nil` : non noté.
+    var effortRaw: String?
 
     init(_ entry: LiftEntry) {
         day = entry.date
@@ -306,9 +325,10 @@ final class LiftRecord {
         kg = entry.kg
         reps = entry.reps
         isTest = entry.isTest
+        effortRaw = entry.effort?.rawValue
     }
 
-    var entry: LiftEntry { LiftEntry(exercise: exercise, date: day, kg: kg, reps: reps, isTest: isTest) }
+    var entry: LiftEntry { LiftEntry(exercise: exercise, date: day, kg: kg, reps: reps, isTest: isTest, effort: effortRaw.flatMap(SetEffort.init(rawValue:))) }
 }
 
 /// Test de marche de 1,6 km : temps, pouls à l'arrivée et forme cardio qui en découle.

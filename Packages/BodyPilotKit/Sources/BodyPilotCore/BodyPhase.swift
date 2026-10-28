@@ -48,7 +48,7 @@ public enum BodyPhase: String, Sendable, Equatable {
     ///   - waistCm: dernier tour de taille au ruban, s'il est connu.
     ///   - fatPercent: taux de gras de la balance (Santé), s'il est connu.
     public static func resolve(for profile: UserProfile, currentWeightKg: Double, waistCm: Double?, fatPercent: Double?, on date: Date, calendar: Calendar) -> BodyPhase {
-        if profile.forbidsDeficit(on: date, calendar: calendar) { return .maintenance }
+        if profile.forbidsDeficit(on: date, calendar: calendar) || profile.isOnMaintenanceWeek(on: date) { return .maintenance }
         let bmi = bmi(weightKg: currentWeightKg, heightCm: profile.heightCm)
         if bmi < underweightBMI { return .leanGain }
         if let target = profile.targetWeightKg {
@@ -63,11 +63,13 @@ public enum BodyPhase: String, Sendable, Equatable {
     }
 
     /// Une phrase sur la phase, pour l'explication des besoins.
-    public func reason(for profile: UserProfile, currentWeightKg: Double) -> String {
+    public func reason(for profile: UserProfile, currentWeightKg: Double, on date: Date? = nil) -> String {
         let bmi = Self.bmi(weightKg: currentWeightKg, heightCm: profile.heightCm)
         switch self {
         case .fatLoss:
             return "Phase : perte de gras."
+        case .maintenance where date.map { profile.isOnMaintenanceWeek(on: $0) } == true:
+            return "Phase : semaine à l'équilibre, pour souffler après le déficit. La perte de gras reprend ensuite."
         case .maintenance:
             return "Phase : équilibre, la force et les protéines font progresser."
         case .leanGain where bmi < Self.underweightBMI:
@@ -75,5 +77,31 @@ public enum BodyPhase: String, Sendable, Equatable {
         case .leanGain:
             return "Phase : légère prise pour gagner du muscle, 0,25 à 0,5 % de poids en plus par semaine."
         }
+    }
+}
+
+/// Semaine à l'équilibre proposée après un long déficit. Elle n'accélère pas la perte de gras
+/// (ICECAP, Peos et al., 2021) mais calme la faim et aide à tenir : l'utilisateur choisit.
+public enum MaintenanceWeek {
+    /// Semaines de perte de gras sans pause avant de la proposer.
+    public static let afterWeeks = 12
+    public static let days = 7
+    /// Refusée : proposée de nouveau 4 semaines plus tard.
+    public static let retryWeeks = 4
+
+    /// - Parameters:
+    ///   - deficitSince: début du déficit en cours (création du profil, ou fin de la dernière semaine à l'équilibre).
+    ///   - dismissedAt: dernier « Pas maintenant ».
+    public static func isDue(deficitSince: Date, dismissedAt: Date?, on date: Date, calendar: Calendar) -> Bool {
+        guard let due = calendar.date(byAdding: .day, value: 7 * afterWeeks, to: deficitSince), date >= due else { return false }
+        guard let dismissedAt, let retry = calendar.date(byAdding: .day, value: 7 * retryWeeks, to: dismissedAt) else { return true }
+        return date >= retry
+    }
+}
+
+extension UserProfile {
+    /// Semaine à l'équilibre en cours.
+    public func isOnMaintenanceWeek(on date: Date) -> Bool {
+        maintenanceWeekUntil.map { date < $0 } ?? false
     }
 }

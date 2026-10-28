@@ -34,6 +34,17 @@ public struct TrainingPlanner: TrainingPlanning {
     static let intenseKinds: Set<ActivityKind> = [.intervals, .sport, .combat, .cardio, .running]
     /// Durée de la marche tranquille proposée.
     static let lightWalkMinutes = 30
+    /// Sommeil moyen conseillé aux adultes (Watson et al., 2015, AASM et SRS).
+    static let recommendedSleepHours = 7.0
+    /// Temps gardé pour le cardio et la marche quand des compléments d'isolation s'ajoutent.
+    static let conditioningMinimumMinutes = 12
+    /// À partir de cet âge, ou de cet IMC, séries de 10 au lieu de 5 à 6 (hors cycle).
+    static let moderateRepsAge = 60
+    static let moderateRepsBMI = 30.0
+    static let moderateReps = 10
+    /// À partir de cet âge : équilibre et puissance (prévention des chutes).
+    static let seniorAge = 65
+    static let moderateCue = "Charge modérée : 8 à 12 répétitions, garde 1 à 2 répétitions en réserve et récupère bien entre les séries."
 
     public init(calendar: Calendar = .current) {
         self.calendar = calendar
@@ -69,6 +80,11 @@ public struct TrainingPlanner: TrainingPlanning {
         let hasCardioTest = cardioTest(budget: budget, constraints: constraints) != nil
         let recommendation = recommend(on: date, constraints: constraints, strengthOK: strengthOK, isTest: test != nil, cardioTest: hasCardioTest)
         var reason = recommendation.reason
+        // Nuit correcte mais sommeil moyen court : le coach le signale sans changer la séance.
+        if let average = constraints.averageSleepHours, average < Self.recommendedSleepHours,
+           (constraints.sleepHours ?? Self.recommendedSleepHours) >= Self.shortSleepHours {
+            reason += " Sommeil moyen de \(Self.hours(average)) sur 7 nuits : vise au moins 7 h, la récupération et la perte de gras en dépendent."
+        }
         if recommendation.choice == .conditioning, !hasCardioTest, let week = constraints.cycleWeek, week.program == .hyrox {
             reason = HyroxCycle.reason(HyroxCycle.session(for: week, constraints: constraints), week: week, strengthOK: strengthOK) ?? reason
         } else if recommendation.choice == .conditioning, !hasCardioTest, let week = constraints.cycleWeek,
@@ -208,8 +224,11 @@ public struct TrainingPlanner: TrainingPlanning {
                 ])
             }
             var strength = nextWorkout(after: constraints.lastWorkoutTitle, for: profile, on: date, cycleWeek: constraints.cycleWeek)
+            var moderateNote: String?
             if let week = constraints.cycleWeek {
                 strength = StrengthCycle.apply(week, to: strength, usesLoads: profile.equipment == .gym)
+            } else {
+                (strength, moderateNote) = moderated(strength, for: profile, on: date)
             }
             // Semaine allégée du cycle : séance plus courte, plutôt que plus de cardio.
             let sessionBudget = constraints.cycleWeek?.isDeload == true
@@ -233,9 +252,12 @@ public struct TrainingPlanner: TrainingPlanning {
                 withIntervals.exercises.append(intervals)
                 composed = withIntervals
             } else {
-                composed = sessionBudget >= Self.threeAxisMinutes ? withConditioning(strength, budget: sessionBudget, equipment: profile.equipment, on: date) : strength
+                composed = sessionBudget >= Self.threeAxisMinutes
+                    ? withConditioning(strength, budget: sessionBudget, equipment: profile.equipment, on: date, accessories: accessories(for: profile, after: strength.title, cycleWeek: constraints.cycleWeek, on: date))
+                    : strength
             }
             var day = adapt(composed, budget: sessionBudget, constraints: constraints)
+            if let moderateNote { day.notes.insert(moderateNote, at: 0) }
             if let postponed = postponedTest(for: profile, constraints: constraints) {
                 day.notes.insert(postponed, at: 0)
             }
@@ -369,17 +391,30 @@ public struct TrainingPlanner: TrainingPlanning {
             title: title, warmupMinutes: 5, cooldownMinutes: 0, exercises: [],
             intensityCue: "Tout à allure modérée : tu peux parler, avec un léger essoufflement."
         )
-        // Muscles en récupération : cardio continu, modéré et sans impact (moins d'interférence, Wilson et al., 2012).
+        // Muscles en récupération : cardio continu, modéré et sans impact (articulations et récupération ménagées ; le cardio ne freine pas l'hypertrophie, Schumann et al., 2022).
         return withConditioning(base, budget: budget, equipment: equipment, on: date, recovery: true)
     }
 
     /// Force d'abord (60 % du temps), puis un cardio qui change d'une séance à l'autre,
     /// puis la marche inclinée ou l'escalier, qui fait aussi office de retour au calme.
-    func withConditioning(_ strength: Workout, budget: Int, equipment: Equipment, on date: Date, recovery: Bool = false) -> Workout {
+    func withConditioning(_ strength: Workout, budget: Int, equipment: Equipment, on date: Date, recovery: Bool = false, accessories: [WorkoutExercise] = []) -> Workout {
         var result = fit(strength, toMinutes: Int(Double(budget) * Self.strengthShare))
         result.cooldownMinutes = 0
+        guard budget - result.estimatedMinutes >= 8 else { return strength }
+        // Compléments d'isolation, tant que le cardio et la marche gardent au moins 12 min et que
+        // les mouvements principaux gardent 3 séries : l'isolation ne passe pas avant eux.
+        // L'équilibre des seniors reste proposé : court, il compte contre les chutes.
+        let mainKept = result.exercises.filter { $0.priority == 1 && $0.wave.isEmpty }.allSatisfy { $0.sets >= 3 }
+        let allowed = mainKept ? accessories : accessories.filter { $0.key == WorkoutCatalog.balance.key }
+        for count in stride(from: allowed.count, to: 0, by: -1) {
+            var withAccessories = result
+            withAccessories.exercises += allowed.prefix(count)
+            if budget - withAccessories.estimatedMinutes >= Self.conditioningMinimumMinutes {
+                result = withAccessories
+                break
+            }
+        }
         let remaining = budget - result.estimatedMinutes
-        guard remaining >= 8 else { return strength }
 
         let index = calendar.ordinality(of: .day, in: .era, for: date) ?? 0
         let cardioFormats = recovery ? WorkoutCatalog.recoveryCardio(for: equipment) : WorkoutCatalog.cardio(for: equipment)
@@ -420,6 +455,41 @@ public struct TrainingPlanner: TrainingPlanning {
         }
         result.exercises.append(walk)
         return result
+    }
+
+    /// Compléments d'isolation de la séance (hors cycle) ; à partir de 65 ans, l'équilibre d'abord.
+    func accessories(for profile: UserProfile, after title: String, cycleWeek: CycleWeek?, on date: Date) -> [WorkoutExercise] {
+        guard cycleWeek == nil else { return [] }
+        let senior = profile.age(on: date, calendar: calendar) >= Self.seniorAge
+        return (senior ? [WorkoutCatalog.balance] : []) + WorkoutCatalog.accessories(after: title, equipment: profile.equipment)
+    }
+
+    /// À partir de 60 ans ou d'un IMC de 30 : séries de 10 à charge modérée plutôt que 5 à 6
+    /// lourdes. La prise de muscle est comparable sur une large plage de répétitions (Schoenfeld
+    /// et al., 2017) et l'ACSM conseille 8 à 12 répétitions à ces publics (ACSM, 2009). À partir
+    /// de 65 ans, la montée se fait vite : la puissance compte contre les chutes (Fragala et al., 2019).
+    func moderated(_ workout: Workout, for profile: UserProfile, on date: Date) -> (Workout, String?) {
+        let age = profile.age(on: date, calendar: calendar)
+        let meters = profile.heightCm / 100
+        let bmi = profile.startWeightKg / (meters * meters)
+        guard age >= Self.moderateRepsAge || bmi >= Self.moderateRepsBMI else { return (workout, nil) }
+        var result = workout
+        result.exercises = workout.exercises.map { exercise in
+            guard exercise.wave.isEmpty, case .reps(let reps) = exercise.volume, reps < 8 else { return exercise }
+            var moderate = exercise
+            moderate.volume = .reps(Self.moderateReps)
+            return moderate
+        }
+        let changedReps = result.exercises != workout.exercises
+        if changedReps, result.intensityCue == WorkoutCatalog.heavyCue {
+            result.intensityCue = Self.moderateCue
+        }
+        if age >= Self.seniorAge {
+            result.intensityCue += " Monte vite, redescends en 3 secondes : la puissance aide au quotidien et contre les chutes."
+        }
+        guard changedReps else { return (result, nil) }
+        let who = age >= Self.moderateRepsAge ? "À partir de 60 ans" : "Avec ton IMC"
+        return (result, "\(who), 8 à 12 répétitions à charge modérée : autant de muscle qu'en lourd, moins de contraintes pour les articulations.")
     }
 
     /// La séance de force qui suit la dernière faite (A puis B, ou A, B, C pendant un cycle

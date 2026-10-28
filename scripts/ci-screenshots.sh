@@ -62,6 +62,11 @@ shoot 2b-repas-pris -demoData YES -demoMeals breakfast=asPlanned,lunch=hearty -d
 shoot 2c-repas-decrit -demoData YES -demoMeals breakfast=asPlanned -demoDescribed "lunch=une grande assiette de pâtes carbo et un coca" -demoScrollTo nutrition
 shoot 2d-depense-mesuree -demoData YES -demoIntake YES -demoScrollTo nutrition
 shoot 2e-phase-prise -demoData YES -demoTarget 92 -demoScrollTo nutrition
+shoot 3i-isolation -demoData YES -demoScrollTo training
+shoot 3k-senior -demoData YES -demoLifts YES -demoAge 68 -demoScrollTo training
+shoot 3j-sommeil-moyen -demoData YES -demoSleepAverage 6.25 -demoScrollTo training
+shoot 4g-semaine-equilibre -demoData YES -demoMaintenanceOffer YES -demoScrollTo progress
+shoot 5a-conseils-sources -demoData YES -demoGuides YES
 shoot 4f-phase-progresser -demoData YES -demoTarget 92 -demoScrollTo progress
 shoot 3-aujourdhui-seance -demoData YES -demoScrollTo training
 shoot 3b-seance-exercice-remplace -demoData YES -demoSwap YES -demoScrollTo training

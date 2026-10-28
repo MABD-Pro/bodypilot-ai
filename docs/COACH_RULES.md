@@ -25,7 +25,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
   - Sans poids visé : perte de gras si le tour de taille atteint la moitié de la taille (Ashwell et al., 2012), sinon si le taux de gras de la balance atteint 25 % (homme) / 32 % (femme), sinon si l'IMC atteint 25 ; équilibre sinon.
   - La phase s'affiche dans Progresser à côté du poids visé, et une phrase l'explique dans les besoins du jour.
 - Déficit selon l'écart au poids visé : 20 % à 10 kg ou plus, proportionnel en dessous (5 % au minimum), aucun à moins de 0,5 kg du poids visé. Sans poids visé : 10 %. Plafonné à 600 kcal. **Plancher** : jamais sous le métabolisme de base, ni sous 1 500 kcal (homme) / 1 200 kcal (femme). Pas de surplus en perte de gras.
-- Protéines : 2,0 g/kg dans toutes les phases (au-dessus du plateau de 1,6 g/kg, Morton et al., 2018 ; dans la fourchette conseillée en déficit, Helms et al., 2014). Au-delà d'un IMC de 30, calculées sur le poids à IMC 30 (plafond continu : un kilo de plus ne fait jamais baisser l'objectif).
+- Protéines : 2,0 g/kg dans toutes les phases (au-dessus du plateau de 1,6 g/kg, Morton et al., 2018 ; dans la fourchette conseillée en déficit, Helms et al., 2014, Int J Sport Nutr Exerc Metab). Au-delà d'un IMC de 30, calculées sur le poids à IMC 30 (plafond continu : un kilo de plus ne fait jamais baisser l'objectif).
 - Lipides : 27 % des calories. Glucides : le reste.
 - Le poids utilisé est la **tendance mesurée** dès qu'elle existe, sinon le poids déclaré.
 
@@ -69,6 +69,9 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Fondements scientifiques et références : `docs/TRAINING_EVIDENCE.md`.
 - Chaque séance enchaîne trois axes : musculation lourde en full body (A et B alternés : à la salle 4 × 5 à 8 répétitions sur les polyarticulaires, repos 2 à 3 min ; au poids du corps, variantes difficiles et tempo lent), puis un cardio varié qui change d'une séance à l'autre (rameur, vélo, corde, elliptique ; à la maison burpees, mountain climbers, jumping jacks, boxe), puis la marche inclinée ou l'escalier (tapis 10 à 12 %, stepper ; à la maison côte ou escaliers), qui sert aussi de retour au calme.
 - Répartition : 60 % du temps pour la force, le reste partagé entre cardio et marche. Sous 30 minutes, la force seule.
+- Compléments d'isolation (hors cycle, `WorkoutCatalog.accessories`) : après la force, 2 séries courtes (12 à 20 répétitions, repos 45 s) sur ce que les polyarticulaires travaillent peu. Salle : A → élévations latérales et curl, B → extension triceps à la poulie et mollets ; maison : A → pompes pike et mollets, B → pompes diamant et rowing serviette. Ils s'ajoutent tant que le cardio et la marche gardent 12 min et que les mouvements principaux gardent 3 séries (sinon seul l'équilibre des seniors reste), et partent en premier quand le temps manque.
+- À partir de 60 ans ou d'un IMC de 30 (poids de départ), hors cycle : séries de 10 au lieu de 5 à 6, consigne de charge modérée (8 à 12 répétitions) et note dans la séance. À partir de 65 ans : « Équilibre sur une jambe » en premier complément et consigne de puissance (monter vite, redescendre en 3 s).
+- Sommeil moyen des 7 dernières nuits (au moins 4 mesurées) sous 7 h, avec une nuit passée correcte : la raison du jour le signale, sans changer la séance. La nuit de moins de 6 h garde sa règle.
 - « Je n'ai que 20 minutes » : on raccourcit les repos, puis l'échauffement, puis les séries, puis on retire les accessoires. Les exercices essentiels restent. Sous 12 minutes, marche rapide.
 - « Je suis fatigué » : une série de moins (minimum 2), variantes sans impact, effort modéré. Nutrition inchangée.
 - « J'ai mal au genou » : variantes sans flexion chargée ni impact (pont fessier, hip thrust, bird dog…), et conseil de consulter si la douleur est vive, gonfle ou dure. Jour de cardio : la marche en pente devient une marche à plat (ou vélo à la salle).
@@ -116,6 +119,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Max de référence : le meilleur 1RM estimé de l'exercice, pondéré par son ancienneté au moment de la dernière séance de force, puis par la pause depuis cette séance (dernière série notée, séance cochée ou entraînement de force dans Santé). Même barème pour les deux : jusqu'à 21 jours 100 %, jusqu'à 6 semaines 95 %, jusqu'à 3 mois 90 %, au-delà 85 %. La force maximale se maintient environ 3 semaines sans entraînement (Bosquet et al., 2013) ; les paliers suivants sont un choix prudent.
 - Objectif suivant : la plus haute des deux charges, celle tirée du max de référence (répétitions prévues plus 2 en réserve, arrondie vers le bas) et la progression de la dernière série (charge + ~5 % si elle a dépassé les répétitions prévues, sinon même charge ; pas de 2,5 kg, 1 kg sous 30 kg).
 - Pause de plus de 3 semaines : charge tirée du max de référence seulement, sans hausse, et une note de reprise en tête de la séance de force. Plus de 3 mois sans force : le test de force revient, son premier essai part du max pondéré. Au poids du corps : une répétition de plus que la dernière fois, une fois les répétitions prévues atteintes.
+- Effort ressenti (facultatif, une touche sous la série, hors test) : Facile (3 répétitions ou plus en réserve), Juste (1 à 2), Dur (aucune). Facile aux répétitions prévues → la charge monte sans attendre une répétition de plus ; Dur → la charge attend, et baisse d'un cran (~5 %) si la série n'est pas complète ; au poids du corps, Dur garde le même nombre de répétitions. Juste ou non noté : la règle habituelle. Pas pendant les vagues 5/3/1, qui fixent la charge par le cycle.
 - Chaque variante (remplacement, genou) a ses propres records : le nom affiché sert de clé.
 - Fiche exercice (`Training/ExerciseGuide`) : muscles travaillés et 4 consignes de technique pour chaque exercice de force du catalogue et ses variantes, dans la feuille de saisie. Pour les haltères, la charge notée est celle d'un haltère.
 - Démonstration (`Training/ExerciseDemonstration`) : « Voir une démonstration » lit dans la fiche une vidéo YouTube choisie et vérifiée à la main, en français quand une bonne existe. Lecteur intégré youtube-nocookie (pas de cookies publicitaires tant que la vidéo n'est pas lancée), « Ouvrir dans YouTube » en secours. Sans vidéo choisie, « Chercher une démonstration » ouvre une recherche YouTube « <exercice> technique ». Aucune vidéo n'est stockée dans l'app.
@@ -158,6 +162,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Corrections cumulées limitées à ±450 kcal ; jamais sous le plancher de sécurité, jamais de surplus. Sans effet réel, pas de proposition.
 - Cycle menstruel (femmes, suivi de cycle noté dans Santé) : pas de baisse proposée pendant les 5 premiers jours des règles ni les 5 jours qui les précèdent (prévus d'après la durée moyenne des 3 derniers cycles de 21 à 35 jours). La rétention d'eau y masque la perte de gras (White et al., 2011). Une hausse pour perte trop rapide reste proposée.
 - L'objectif proposé tient compte de la dépense des séances, comme celui du jour.
+- Semaine à l'équilibre (`BodyPilotCore/MaintenanceWeek`) : après 12 semaines en perte de gras sans pause (depuis la création du profil ou la dernière semaine à l'équilibre), Progresser propose une semaine à la dépense. Oui → 7 jours en phase d'équilibre, sans bilan, puis le déficit reprend ; Pas maintenant → reproposée 4 semaines plus tard. Présentée honnêtement : elle aide à tenir (faim, fatigue), elle ne fait pas perdre plus de gras.
 
 ## Pesées importées de Santé (`ProgressInsights/WeightImportPlanner`)
 
@@ -200,3 +205,11 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Séances : jour par jour, les séances cochées dans l'app et les entraînements lus dans Santé (durée, calories).
 - Repas : jour par jour, la saisie d'une touche de chaque repas ou le repas décrit avec ses calories. Les calories d'un repas « comme prévu » ne sont pas gardées : le plan d'un jour passé n'est pas recalculé.
 - Démo : `-demoHistory Force` ouvre l'historique sur une partie.
+
+## Conseils et sources (`App/Today/CoachGuidesSheet`)
+
+- Menu Mon profil > « Conseils et sources » : texte fixe, rien à saisir.
+- Créatine : monohydrate 3 à 5 g par jour, sans phase de charge, facultative ; prévient de la prise d'eau (1 à 2 kg) que la tendance du poids absorbe. Pas avant 18 ans, ni enceinte, ni avec une maladie des reins ; avec un oui au questionnaire de santé, avis du médecin d'abord (Kreider et al., 2017).
+- Fibres : 30 g par jour (ANSES, 2016) et produits peu transformés (Hall et al., 2019 : environ 500 kcal de plus par jour avec des ultra-transformés, essai sur 20 adultes pendant 2 semaines). Les repas décrits ne comptent pas encore les fibres.
+- Sommeil : au moins 7 h (Watson et al., 2015).
+- Sources : les références principales des règles, par thème. La liste complète reste dans ce fichier et dans `docs/TRAINING_EVIDENCE.md`.

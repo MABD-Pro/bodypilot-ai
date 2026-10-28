@@ -248,6 +248,43 @@ public struct ExerciseGuide: Sendable, Equatable {
             muscles: "Fessiers, ischio-jambiers",
             cues: ["Sur le dos, talons sur une chaise.", "Monte le bassin en serrant les fessiers.", "Tiens une seconde en haut.", "Épargne le genou : pas de flexion chargée."]
         ),
+        // Compléments d'isolation
+        "Élévations latérales haltères": ExerciseGuide(
+            muscles: "Épaules (faisceau latéral)",
+            cues: ["Debout, haltères le long du corps, coudes très légèrement fléchis.", "Monte les bras sur les côtés jusqu'à hauteur d'épaules, pas plus haut.", "Pouces légèrement vers le bas ou à l'horizontale, sans hausser les épaules.", "Redescends lentement, en 2 à 3 secondes."],
+            perDumbbell: true, start: (0.05, 0.03)
+        ),
+        "Curl haltères": ExerciseGuide(
+            muscles: "Biceps, avant-bras",
+            cues: ["Debout, coudes collés au corps.", "Monte en tournant les paumes vers le haut, sans élan du buste.", "Serre en haut une seconde.", "Redescends bras presque tendus, lentement."],
+            perDumbbell: true, start: (0.1, 0.06)
+        ),
+        "Extension triceps à la poulie": ExerciseGuide(
+            muscles: "Triceps",
+            cues: ["Face à la poulie haute, coudes collés aux côtes.", "Pousse vers le bas jusqu'aux bras tendus.", "Seuls les avant-bras bougent.", "Remonte lentement jusqu'à 90° aux coudes."],
+            start: (0.2, 0.12)
+        ),
+        "Mollets debout à la machine": ExerciseGuide(
+            muscles: "Mollets",
+            cues: ["Avant des pieds sur la marche, talons dans le vide.", "Descends les talons le plus bas possible, une seconde en bas.", "Monte sur la pointe des pieds au maximum.", "Genoux tendus mais pas verrouillés."],
+            start: (0.5, 0.35)
+        ),
+        "Pompes diamant": ExerciseGuide(
+            muscles: "Triceps, pectoraux",
+            cues: ["Mains rapprochées sous la poitrine, pouces et index qui se touchent.", "Corps gainé de la tête aux pieds.", "Descends en gardant les coudes près du corps.", "Trop dur : genoux au sol."]
+        ),
+        "Pompes pike": ExerciseGuide(
+            muscles: "Épaules, triceps",
+            cues: ["Hanches hautes, corps en V inversé, mains largeur d'épaules.", "Descends le haut de la tête vers le sol, entre les mains.", "Coudes vers l'arrière, pas sur les côtés.", "Pousse jusqu'aux bras tendus."]
+        ),
+        "Mollets sur une marche": ExerciseGuide(
+            muscles: "Mollets",
+            cues: ["Avant des pieds sur une marche, une main au mur.", "Talons le plus bas possible, une seconde en bas.", "Monte sur la pointe des pieds.", "Trop facile : sur une jambe."]
+        ),
+        "Équilibre sur une jambe": ExerciseGuide(
+            muscles: "Chevilles, hanches, gainage (équilibre)",
+            cues: ["Près d'un mur ou d'un dossier de chaise, pour te rattraper.", "Tiens 30 secondes sur une jambe, regard fixe devant toi.", "Change de jambe à chaque série.", "Trop facile : yeux fermés ou sur un coussin."]
+        ),
         "Hip thrust une jambe": ExerciseGuide(
             muscles: "Fessiers, ischio-jambiers",
             cues: ["Haut du dos sur un canapé, un pied au sol.", "Monte le bassin en serrant le fessier.", "Tibia vertical en haut du mouvement.", "Compte les répétitions par jambe."]

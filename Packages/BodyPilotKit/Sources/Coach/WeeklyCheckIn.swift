@@ -43,6 +43,8 @@ extension DailyCoach {
         }
         let trend = progress.trend(of: weights, for: profile, on: date)
         guard let weekly = trend.weeklyChangeKg else { return nil }
+        // Semaine à l'équilibre : rien à corriger, le déficit reprend ensuite.
+        if profile.isOnMaintenanceWeek(on: date) { return nil }
         let weekAgo = calendar.date(byAdding: .day, value: -7, to: date) ?? date
         let previous = progress.trend(of: weights, for: profile, on: weekAgo).status
         let persistent = trend.status == previous

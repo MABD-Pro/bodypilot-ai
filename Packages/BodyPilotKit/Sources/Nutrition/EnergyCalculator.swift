@@ -61,7 +61,7 @@ public struct EnergyCalculator: Sendable {
             if kcal > maintenance - deficit {
                 explanation = "\(spent). Déficit limité pour ne pas descendre sous \(floor.frenchInteger) kcal, le minimum sûr pour toi."
             } else {
-                explanation = "\(spent), moins \(deficit.frenchInteger) kcal pour perdre du gras sans sacrifier le muscle."
+                explanation = "\(spent), moins \(Self.shownGap(maintenance - deficit, from: maintenance).frenchInteger) kcal pour perdre du gras sans sacrifier le muscle."
             }
         case .maintain:
             kcal = maintenance
@@ -76,12 +76,12 @@ public struct EnergyCalculator: Sendable {
             } else if kcal > maintenance - deficit {
                 explanation = "\(spent). Déficit limité pour ne pas descendre sous \(floor.frenchInteger) kcal, le minimum sûr pour toi."
             } else {
-                explanation = "\(spent), moins \(deficit.frenchInteger) kcal : assez pour perdre du gras, pas trop pour garder de quoi construire du muscle. Le déficit se réduit à l'approche de ton poids visé."
+                explanation = "\(spent), moins \(Self.shownGap(maintenance - deficit, from: maintenance).frenchInteger) kcal : assez pour perdre du gras, pas trop pour garder de quoi construire du muscle. Le déficit se réduit à l'approche de ton poids visé."
             }
         case .buildMuscle:
             let surplus = min(maintenance * SafetyLimits.surplusRatio, SafetyLimits.maxSurplusKcal)
             kcal = maintenance + surplus
-            explanation = "\(spent), plus \(surplus.frenchInteger) kcal pour construire du muscle en limitant le gras."
+            explanation = "\(spent), plus \(Self.shownGap(maintenance + surplus, from: maintenance).frenchInteger) kcal pour construire du muscle en limitant le gras."
         }
         // Les corrections des bilans s'effacent à mesure que la dépense est mesurée : elles
         // compensaient l'erreur de l'équation, que la mesure corrige déjà.
@@ -118,6 +118,12 @@ public struct EnergyCalculator: Sendable {
         let noSurplus = profile.goal == .loseFat || profile.goal == .recomposition
         let ceiling = max(planned, noSurplus ? maintenance : maintenance + SafetyLimits.maxSurplusKcal)
         return min(max(kcal, floor), ceiling)
+    }
+
+    /// Écart affiché entre la dépense et l'objectif arrondi aux 10 kcal : la somme lue tombe juste
+    /// (2 623 + 267 = 2 890, et non 2 623 + 262).
+    static func shownGap(_ target: Double, from maintenance: Double) -> Double {
+        abs((target / 10).rounded() * 10 - maintenance.rounded())
     }
 
     /// 2,0 g/kg quelle que soit la phase : au-dessus du plateau de 1,6 g/kg (Morton et al., 2018),

@@ -26,6 +26,16 @@ enum HealthSleep {
         return seconds > 0 ? seconds / 3600 : nil
     }
 
+    /// Moyenne des 7 dernières nuits mesurées ; `nil` sous 4 nuits.
+    static func averageHours(nights: Int = 7, now: Date = .now, calendar: Calendar = .current) async throws -> Double? {
+        var hours: [Double] = []
+        for offset in 0..<nights {
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
+            if let night = try await lastNightHours(now: day, calendar: calendar) { hours.append(night) }
+        }
+        return hours.count >= 4 ? hours.reduce(0, +) / Double(hours.count) : nil
+    }
+
     static func merged(_ intervals: [DateInterval]) -> [DateInterval] {
         intervals.sorted { $0.start < $1.start }.reduce(into: []) { result, interval in
             if let last = result.last, interval.start <= last.end {

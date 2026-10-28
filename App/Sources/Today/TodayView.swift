@@ -24,6 +24,7 @@ struct TodayView: View {
     @State private var isAddingWeight = false
     @State private var isEditingProfile = false
     @State private var isManagingData = false
+    @State private var isShowingGuides = LaunchOptions.demoGuides
     @State private var isManagingCycle = false
     @State private var isAnsweringScreening = false
     @State private var isShowingHistory = LaunchOptions.demoHistory != nil
@@ -33,6 +34,8 @@ struct TodayView: View {
     @State private var healthActivities: [ActivitySample] = []
     /// Sommeil de la nuit passée, lu dans Santé.
     @State private var sleepHours: Double?
+    /// Sommeil moyen des 7 dernières nuits (Santé).
+    @State private var averageSleepHours: Double?
     /// Forme cardio estimée par la Watch et pouls au repos, lus dans Santé.
     @State private var watchCardio: CardioMeasure?
     @State private var restingHeartRate: Double?
@@ -84,6 +87,7 @@ struct TodayView: View {
             lastStrengthDay: lastStrength.day,
             calibratedLifts: DayLogEditor.calibratedLifts(lifts, before: now, since: profileRecord.strengthTestResetAt, lastStrengthDay: lastStrength.day, calendar: calendar),
             sleepHours: sleepHours,
+            averageSleepHours: averageSleepHours,
             activeDays: activeDays,
             recentActivities: healthActivities,
             trainingChoice: todayLog?.trainingChoice,
@@ -201,6 +205,9 @@ struct TodayView: View {
                             sleepHours: sleepHours,
                             steps: steps(average: averageSteps, now: now),
                             phase: plan.phase,
+                            maintenanceOffer: profileRecord.isMaintenanceWeekDue(phase: plan.phase, on: now, calendar: calendar) || (LaunchOptions.demoMaintenanceOffer && profileRecord.maintenanceWeekUntil == nil),
+                            acceptMaintenance: { withAnimation(Theme.springy) { profileRecord.startMaintenanceWeek(on: now, calendar: calendar) } },
+                            dismissMaintenance: { withAnimation(Theme.springy) { profileRecord.maintenanceOfferDismissedAt = .now } },
                             addWeight: { isAddingWeight = true },
                             addWaist: { isAddingWaist = true },
                             acceptCheckIn: { acceptCheckIn(checkIn) },
@@ -221,6 +228,7 @@ struct TodayView: View {
                     if LaunchOptions.demoComposition { compositions = DemoData.compositions() }
                     if LaunchOptions.demoSteps { dailySteps = DemoData.steps() }
                     if let hours = LaunchOptions.demoSleepHours { sleepHours = hours }
+                    if let hours = LaunchOptions.demoSleepAverage { averageSleepHours = hours }
                     if LaunchOptions.demoData && !LaunchOptions.demoCardioTest {
                         watchCardio = DemoData.watchCardio()
                         restingHeartRate = 58
@@ -236,6 +244,7 @@ struct TodayView: View {
                     Menu("Mon profil", systemImage: "person.crop.circle") {
                         Button("Mon profil", systemImage: "person") { isEditingProfile = true }
                         Button("Mes données", systemImage: "externaldrive") { isManagingData = true }
+                        Button("Conseils et sources", systemImage: "books.vertical") { isShowingGuides = true }
                     }
                 }
             }
@@ -285,6 +294,9 @@ struct TodayView: View {
             }
             .sheet(isPresented: $isManagingCycle) {
                 CycleSheet(profile: profileRecord)
+            }
+            .sheet(isPresented: $isShowingGuides) {
+                CoachGuidesSheet(screening: profileRecord.screening)
             }
             .sheet(isPresented: $isManagingData) {
                 DataBackupSheet()
@@ -340,13 +352,14 @@ struct TodayView: View {
         async let weightSamples = try? HealthWeight.samples(since: weightsSince)
         async let activities = try? HealthWorkouts.samples(since: activitiesSince)
         async let sleep = try? HealthSleep.lastNightHours(calendar: calendar)
+        async let averageSleep = try? HealthSleep.averageHours(calendar: calendar)
         async let measure = try? HealthCardio.latestVO2max()
         async let resting = try? HealthCardio.restingHeartRate()
         async let values = HealthProfile.read(calendar: calendar)
         async let starts: [Date]? = readsCycle ? (try? HealthCycle.periodStarts(calendar: calendar)) : nil
         async let entries = HealthBodyComposition.entries(calendar: calendar)
         async let steps = try? HealthSteps.daily(calendar: calendar)
-        let read = await (weights: weightSamples, activities: activities, sleep: sleep, measure: measure,
+        let read = await (weights: weightSamples, activities: activities, sleep: sleep, averageSleep: averageSleep, measure: measure,
                           resting: resting, values: values, starts: starts, entries: entries, steps: steps)
 
         let toImport = read.weights.map {
@@ -362,6 +375,7 @@ struct TodayView: View {
             }
             if let activities = read.activities { healthActivities = activities }
             if let hours = read.sleep { sleepHours = hours }
+            if let hours = read.averageSleep { averageSleepHours = hours }
             watchCardio = read.measure
             restingHeartRate = read.resting
             if let starts = read.starts { periodStarts = starts }
@@ -583,6 +597,7 @@ struct TodayView: View {
                 existing.kg = entry.kg
                 existing.reps = entry.reps
                 existing.isTest = entry.isTest
+                existing.effortRaw = entry.effort?.rawValue
             } else {
                 context.insert(LiftRecord(entry))
             }

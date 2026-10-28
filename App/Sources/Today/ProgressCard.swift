@@ -42,6 +42,10 @@ struct ProgressCard: View {
     var steps: StepsToday?
     /// Phase choisie par le coach : perte de gras, équilibre ou légère prise.
     var phase: BodyPhase = .fatLoss
+    /// 12 semaines de déficit : une semaine à l'équilibre est proposée.
+    var maintenanceOffer = false
+    var acceptMaintenance: () -> Void = {}
+    var dismissMaintenance: () -> Void = {}
     let addWeight: () -> Void
     let addWaist: () -> Void
     let acceptCheckIn: () -> Void
@@ -81,6 +85,15 @@ struct ProgressCard: View {
                 if let weekly = trend.weeklyChangeKg {
                     Tag(text: "\(weekly.frenchSignedOneDecimal) kg/sem.", symbol: weekly < 0 ? "arrow.down.right" : "arrow.up.right", tint: trend.status.tint)
                 }
+            }
+
+            if maintenanceOffer {
+                offerBox(
+                    title: "Une semaine à l'équilibre ?", symbol: "pause.circle.fill",
+                    message: "12 semaines de déficit : une semaine à ta dépense calme la faim et la fatigue. Elle ne fait pas perdre plus de gras, mais aide à tenir sur la durée. Tu reprends ensuite là où tu en étais.",
+                    acceptTitle: "Oui, une semaine", accept: acceptMaintenance, dismiss: dismissMaintenance
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             // Le bilan reprend le constat de la tendance : on ne le répète pas au-dessus.
@@ -149,22 +162,27 @@ struct ProgressCard: View {
 
     /// Bilan de la semaine : une proposition claire, deux réponses, aucune obligation.
     private func checkInBox(_ suggestion: CalorieSuggestion) -> some View {
+        offerBox(title: "Bilan de la semaine", symbol: "calendar.badge.checkmark", message: suggestion.message, acceptTitle: "Appliquer", accept: acceptCheckIn, dismiss: dismissCheckIn)
+    }
+
+    /// Une proposition du coach : deux réponses, aucune obligation.
+    private func offerBox(title: String, symbol: String, message: String, acceptTitle: String, accept: @escaping () -> Void, dismiss: @escaping () -> Void) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            Label("Bilan de la semaine", systemImage: "calendar.badge.checkmark")
+            Label(title, systemImage: symbol)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Theme.progress)
-            Text(suggestion.message)
+            Text(message)
                 .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: Theme.Spacing.s) {
-                Button(action: acceptCheckIn) {
-                    Text("Appliquer")
+                Button(action: accept) {
+                    Text(acceptTitle)
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.glassProminent)
                 .tint(Theme.progress)
-                Button(action: dismissCheckIn) {
+                Button(action: dismiss) {
                     Text("Pas maintenant")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)

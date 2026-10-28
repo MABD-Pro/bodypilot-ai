@@ -45,6 +45,14 @@ enum LaunchOptions {
     /// `-demoActivities YES` : quelques activités Santé dans la semaine (course, vélo, marche).
     static var demoActivities: Bool { defaults.bool(forKey: "demoActivities") }
     /// `-demoSleep 5.5` : nuit passée lue dans Santé, en heures.
+    /// `-demoGuides YES` : « Conseils et sources » s'ouvre au lancement.
+    static var demoGuides: Bool { defaults.bool(forKey: "demoGuides") }
+    /// `-demoMaintenanceOffer YES` : la semaine à l'équilibre est proposée dans Progresser.
+    static var demoMaintenanceOffer: Bool { defaults.bool(forKey: "demoMaintenanceOffer") }
+    /// `-demoAge 68` : âge du profil de démo (séries de 10, équilibre à partir de 65 ans).
+    static var demoAge: Int? { defaults.object(forKey: "demoAge") == nil ? nil : defaults.integer(forKey: "demoAge") }
+    /// `-demoSleepAverage 6.25` : sommeil moyen des 7 dernières nuits.
+    static var demoSleepAverage: Double? { defaults.object(forKey: "demoSleepAverage") == nil ? nil : defaults.double(forKey: "demoSleepAverage") }
     static var demoSleepHours: Double? { defaults.object(forKey: "demoSleep") == nil ? nil : defaults.double(forKey: "demoSleep") }
     /// `-demoCycle 4` : cycle CrossFit en cours, aujourd'hui dans cette semaine (1 à 12).
     static var demoCycleWeek: Int? { defaults.object(forKey: "demoCycle") == nil ? nil : defaults.integer(forKey: "demoCycle") }
@@ -76,7 +84,7 @@ enum LaunchOptions {
 }
 
 enum AppContainer {
-    static let schema = Schema(versionedSchema: SchemaV3.self)
+    static let schema = Schema(versionedSchema: SchemaV4.self)
 
     /// Raison pour laquelle la base locale n'a pas pu s'ouvrir : l'app l'affiche au lieu de
     /// planter à chaque lancement (Siri compris), sans jamais effacer les données.
@@ -171,7 +179,8 @@ enum DemoData {
         }
         guard case .workout(let workout) = CoachFactory.coach.plan(for: profile, weights: [], on: now).training.kind else { return }
         let loads: [Double] = [80, 60, 50, 70]
-        let strength = workout.exercises.filter { $0.priority < 4 }
+        // Mouvements principaux seulement : les compléments d'isolation gardent leur charge d'essai.
+        let strength = workout.exercises.filter { $0.priority < 3 }
         for (index, exercise) in strength.enumerated() {
             guard case .reps(let planned) = exercise.volume else { continue }
             let kg = loads[index % loads.count]
@@ -195,7 +204,7 @@ enum DemoData {
 
     @MainActor
     static func seed(_ context: ModelContext, now: Date = .now, calendar: Calendar = .current) {
-        let birthDate = calendar.date(byAdding: .year, value: -34, to: now) ?? now
+        let birthDate = calendar.date(byAdding: .year, value: -(LaunchOptions.demoAge ?? 34), to: now) ?? now
         let profile = UserProfile(
             sex: .male,
             birthDate: birthDate,
@@ -221,7 +230,8 @@ enum DemoData {
         for offset in 0..<24 {
             let index = 23 - offset
             guard index % 5 != 3, let date = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
-            let perDay = LaunchOptions.demoCheckIn ? 0.17 : 0.09
+            // Poids visé au-dessus (-demoTarget) : prise lente, environ 0,2 kg par semaine.
+            let perDay = (LaunchOptions.demoTargetKg ?? 0) > 88 ? -0.03 : LaunchOptions.demoCheckIn ? 0.17 : 0.09
             let kg = 88.0 - perDay * Double(index) + noise[index % noise.count]
             context.insert(WeightRecord(date: date, kg: (kg * 10).rounded() / 10))
         }

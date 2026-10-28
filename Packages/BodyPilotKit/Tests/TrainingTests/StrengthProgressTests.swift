@@ -151,3 +151,20 @@ private func lift(_ kg: Double?, _ reps: Int, on dayOfMonth: Int, _ exercise: St
     #expect(!hipThrust.keepingWaveOnlyAtTheBarbell().wave.isEmpty)
     #expect(hipThrust.withoutWave().wave.isEmpty)
 }
+
+private func lift(_ kg: Double?, _ reps: Int, on dayOfMonth: Int, effort: SetEffort, _ exercise: String = "Squat à la barre") -> LiftEntry {
+    LiftEntry(exercise: exercise, date: day(2026, 10, dayOfMonth), kg: kg, reps: reps, effort: effort)
+}
+
+@Test func feltEffortSteersTheNextLoad() {
+    // « Facile » aux répétitions prévues : la charge monte sans attendre une répétition de plus.
+    #expect(StrengthProgress.target(for: "Squat à la barre", plannedReps: 6, history: [lift(100, 6, on: 19, effort: .easy)]) == LiftTarget(kg: 105, reps: 6, isIncrease: true))
+    // « Juste » : la règle habituelle.
+    #expect(StrengthProgress.target(for: "Squat à la barre", plannedReps: 6, history: [lift(100, 6, on: 19, effort: .right)]) == LiftTarget(kg: 100, reps: 6, isIncrease: false))
+    // « Dur » : la charge attend, même avec une répétition de plus.
+    #expect(StrengthProgress.target(for: "Squat à la barre", plannedReps: 6, history: [lift(100, 7, on: 19, effort: .hard)]) == LiftTarget(kg: 100, reps: 6, isIncrease: false))
+    // « Dur » sans les répétitions prévues : un cran plus léger.
+    #expect(StrengthProgress.target(for: "Squat à la barre", plannedReps: 6, history: [lift(100, 4, on: 19, effort: .hard)]) == LiftTarget(kg: 95, reps: 6, isIncrease: false))
+    // Au poids du corps, « Dur » garde le même nombre de répétitions.
+    #expect(StrengthProgress.target(for: "Pompes", plannedReps: 12, history: [lift(nil, 14, on: 19, effort: .hard, "Pompes")]) == LiftTarget(kg: nil, reps: 14, isIncrease: false))
+}
