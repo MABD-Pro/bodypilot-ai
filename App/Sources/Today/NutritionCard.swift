@@ -114,7 +114,11 @@ private struct MealRow: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             Button(action: toggle) {
                 HStack(spacing: Theme.Spacing.m) {
-                    IconBadge(symbol: meal.isEatingOut ? "fork.knife" : meal.slot.symbol, tint: meal.isEatingOut ? Theme.nutrition : meal.slot.tint, size: 38)
+                    // Très grand texte : sans icône et avec les kcal sous le titre, le nom du repas
+                    // garde toute la largeur au lieu d'être coupé syllabe par syllabe.
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        IconBadge(symbol: meal.isEatingOut ? "fork.knife" : meal.slot.symbol, tint: meal.isEatingOut ? Theme.nutrition : meal.slot.tint, size: 38)
+                    }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(meal.slot.title)
                             .font(.caption.weight(.semibold))
@@ -122,13 +126,10 @@ private struct MealRow: View {
                         Text(meal.title)
                             .font(.subheadline.weight(.semibold))
                             .multilineTextAlignment(.leading)
+                        if dynamicTypeSize.isAccessibilitySize { kcalLabel }
                     }
                     Spacer(minLength: Theme.Spacing.s)
-                    Text("\(meal.isEatingOut || meal.isEaten ? "≈ " : "")\(meal.macros.kcal.frenchInteger) kcal")
-                        .font(.footnote.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                        .contentTransition(.numericText(value: meal.macros.kcal))
+                    if !dynamicTypeSize.isAccessibilitySize { kcalLabel }
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.tertiary)
@@ -203,6 +204,14 @@ private struct MealRow: View {
 }
 
 extension MealRow {
+    var kcalLabel: some View {
+        Text("\(meal.isEatingOut || meal.isEaten ? "≈ " : "")\(meal.macros.kcal.frenchInteger) kcal")
+            .font(.footnote.weight(.semibold))
+            .monospacedDigit()
+            .foregroundStyle(.secondary)
+            .contentTransition(.numericText(value: meal.macros.kcal))
+    }
+
     /// Repas pas encore noté : comme prévu, décrit, repris d'un jour récent ou autrement.
     func pendingActions(iconOnly: Bool, stacked: Bool = false) -> some View {
         let layout = stacked
