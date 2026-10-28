@@ -24,6 +24,7 @@ struct TodayView: View {
     @State private var isAddingWeight = false
     @State private var isEditingProfile = false
     @State private var isManagingData = false
+    @State private var isShowingGuides = LaunchOptions.demoGuides
     @State private var isManagingCycle = false
     @State private var isAnsweringScreening = false
     @State private var isShowingHistory = LaunchOptions.demoHistory != nil
@@ -243,6 +244,7 @@ struct TodayView: View {
                     Menu("Mon profil", systemImage: "person.crop.circle") {
                         Button("Mon profil", systemImage: "person") { isEditingProfile = true }
                         Button("Mes données", systemImage: "externaldrive") { isManagingData = true }
+                        Button("Conseils et sources", systemImage: "books.vertical") { isShowingGuides = true }
                     }
                 }
             }
@@ -292,6 +294,9 @@ struct TodayView: View {
             }
             .sheet(isPresented: $isManagingCycle) {
                 CycleSheet(profile: profileRecord)
+            }
+            .sheet(isPresented: $isShowingGuides) {
+                CoachGuidesSheet(screening: profileRecord.screening)
             }
             .sheet(isPresented: $isManagingData) {
                 DataBackupSheet()

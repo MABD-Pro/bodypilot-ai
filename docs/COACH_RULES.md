@@ -205,3 +205,11 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Séances : jour par jour, les séances cochées dans l'app et les entraînements lus dans Santé (durée, calories).
 - Repas : jour par jour, la saisie d'une touche de chaque repas ou le repas décrit avec ses calories. Les calories d'un repas « comme prévu » ne sont pas gardées : le plan d'un jour passé n'est pas recalculé.
 - Démo : `-demoHistory Force` ouvre l'historique sur une partie.
+
+## Conseils et sources (`App/Today/CoachGuidesSheet`)
+
+- Menu Mon profil > « Conseils et sources » : texte fixe, rien à saisir.
+- Créatine : monohydrate 3 à 5 g par jour, sans phase de charge, facultative ; prévient de la prise d'eau (1 à 2 kg) que la tendance du poids absorbe. Pas avant 18 ans, ni enceinte, ni avec une maladie des reins ; avec un oui au questionnaire de santé, avis du médecin d'abord (Kreider et al., 2017).
+- Fibres : 30 g par jour (ANSES, 2016) et produits peu transformés (Hall et al., 2019 : environ 500 kcal de plus par jour avec des ultra-transformés). Les repas décrits ne comptent pas encore les fibres.
+- Sommeil : au moins 7 h (Watson et al., 2015).
+- Sources : les références principales des règles, par thème. La liste complète reste dans ce fichier et dans `docs/TRAINING_EVIDENCE.md`.

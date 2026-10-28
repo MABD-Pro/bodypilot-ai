@@ -66,6 +66,7 @@ shoot 3i-isolation -demoData YES -demoScrollTo training
 shoot 3k-senior -demoData YES -demoLifts YES -demoAge 68 -demoScrollTo training
 shoot 3j-sommeil-moyen -demoData YES -demoSleepAverage 6.25 -demoScrollTo training
 shoot 4g-semaine-equilibre -demoData YES -demoMaintenanceOffer YES -demoScrollTo progress
+shoot 5a-conseils-sources -demoData YES -demoGuides YES
 shoot 4f-phase-progresser -demoData YES -demoTarget 92 -demoScrollTo progress
 shoot 3-aujourdhui-seance -demoData YES -demoScrollTo training
 shoot 3b-seance-exercice-remplace -demoData YES -demoSwap YES -demoScrollTo training

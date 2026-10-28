@@ -45,6 +45,8 @@ enum LaunchOptions {
     /// `-demoActivities YES` : quelques activités Santé dans la semaine (course, vélo, marche).
     static var demoActivities: Bool { defaults.bool(forKey: "demoActivities") }
     /// `-demoSleep 5.5` : nuit passée lue dans Santé, en heures.
+    /// `-demoGuides YES` : « Conseils et sources » s'ouvre au lancement.
+    static var demoGuides: Bool { defaults.bool(forKey: "demoGuides") }
     /// `-demoMaintenanceOffer YES` : la semaine à l'équilibre est proposée dans Progresser.
     static var demoMaintenanceOffer: Bool { defaults.bool(forKey: "demoMaintenanceOffer") }
     /// `-demoAge 68` : âge du profil de démo (séries de 10, équilibre à partir de 65 ans).
@@ -227,7 +229,8 @@ enum DemoData {
         for offset in 0..<24 {
             let index = 23 - offset
             guard index % 5 != 3, let date = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
-            let perDay = LaunchOptions.demoCheckIn ? 0.17 : 0.09
+            // Poids visé au-dessus (-demoTarget) : prise lente, environ 0,2 kg par semaine.
+            let perDay = (LaunchOptions.demoTargetKg ?? 0) > 88 ? -0.03 : LaunchOptions.demoCheckIn ? 0.17 : 0.09
             let kg = 88.0 - perDay * Double(index) + noise[index % noise.count]
             context.insert(WeightRecord(date: date, kg: (kg * 10).rounded() / 10))
         }
