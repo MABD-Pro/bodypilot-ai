@@ -12,6 +12,7 @@ struct DataBackupSheet: View {
     @State private var isImporting = false
     @State private var pending: BackupArchive?
     @State private var message: String?
+    @State private var isError = false
 
     var body: some View {
         NavigationStack {
@@ -46,7 +47,7 @@ struct DataBackupSheet: View {
                     .buttonStyle(.glass)
 
                     if let message {
-                        CoachNote(text: message, tint: Theme.progress)
+                        CoachNote(text: message, tint: isError ? .orange : Theme.progress)
                     }
 
                     Text("Les données lues dans Santé (pesées de la balance, séances de la Watch, composition) y restent aussi : Santé les garde de son côté.")
@@ -90,7 +91,7 @@ struct DataBackupSheet: View {
             exportURL = url
             exportSummary = archive.summary + "."
         } catch {
-            message = "Impossible de préparer la sauvegarde : \(error.localizedDescription)"
+            show("Impossible de préparer la sauvegarde : \(error.localizedDescription)", isError: true)
         }
     }
 
@@ -103,18 +104,25 @@ struct DataBackupSheet: View {
             let archive = try Backup.decode(Data(contentsOf: url))
             guard !archive.isEmpty else { throw BackupError.empty }
             pending = archive
+        } catch is DecodingError {
+            show("Ce fichier n'est pas une sauvegarde BodyPilot.", isError: true)
         } catch {
-            message = "Ce fichier n'a pas pu être lu : \(error.localizedDescription)"
+            show("Ce fichier n'a pas pu être lu : \(error.localizedDescription)", isError: true)
         }
     }
 
     private func restore(_ archive: BackupArchive) {
         do {
             try Backup.restore(archive, into: context)
-            message = "Sauvegarde restaurée : \(archive.summary)."
+            show("Sauvegarde restaurée : \(archive.summary).", isError: false)
             prepareExport()
         } catch {
-            message = "La restauration a échoué, tes données n'ont pas changé : \(error.localizedDescription)"
+            show("La restauration a échoué, tes données n'ont pas changé : \(error.localizedDescription)", isError: true)
         }
+    }
+
+    private func show(_ text: String, isError: Bool) {
+        message = text
+        self.isError = isError
     }
 }
