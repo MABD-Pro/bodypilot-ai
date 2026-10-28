@@ -1,4 +1,5 @@
 import ARKit
+import BodyPilotCore
 import ProgressInsights
 import SceneKit
 import SwiftData
@@ -123,7 +124,7 @@ struct WaistScanView: View {
                     ?? "Mesure aussi au ruban aujourd'hui : l'historique compare les deux.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                Text("Le scan reste à part : ta tendance utilise le ruban tant que l'écart n'est pas sous \(WaistScan.adoptionThresholdCm.frenchOneDecimal) cm.")
+                Text("Le scan reste à part : ta tendance utilise le ruban tant que l'écart n'est pas sous \(WaistScan.adoptionThresholdCm.frenchCompact) cm.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

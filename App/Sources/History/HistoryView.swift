@@ -125,7 +125,7 @@ struct HistoryView: View {
         return historyCard(title: "Scan LiDAR (expérimental)", symbol: "camera.metering.matrix", tint: Theme.progress) {
             Text(gap.map { "Écart moyen avec le ruban : \($0.frenchOneDecimal) cm." } ?? "Mesure aussi au ruban le jour du scan pour comparer.")
                 .font(.headline)
-            Text("Le scan remplacera le ruban seulement si l'écart reste sous \(WaistScan.adoptionThresholdCm.frenchOneDecimal) cm pendant deux semaines. En attendant, ta tendance utilise le ruban.")
+            Text("Le scan remplacera le ruban seulement si l'écart reste sous \(WaistScan.adoptionThresholdCm.frenchCompact) cm pendant deux semaines. En attendant, ta tendance utilise le ruban.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
