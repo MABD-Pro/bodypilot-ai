@@ -9,10 +9,16 @@ struct DataBackupSheet: View {
 
     @State private var exportURL: URL?
     @State private var exportSummary = ""
-    @State private var isImporting = false
+    @State private var importing: ImportKind?
     @State private var pending: BackupArchive?
     @State private var message: String?
     @State private var isError = false
+    @State private var autoFolder: String?
+    @State private var lastAuto: Date?
+    @State private var autoError: String?
+
+    /// Un seul sélecteur de fichiers : deux sur la même vue se gênent.
+    private enum ImportKind { case backup, folder }
 
     var body: some View {
         NavigationStack {
@@ -36,8 +42,10 @@ struct DataBackupSheet: View {
                             .foregroundStyle(.secondary)
                     }
 
+                    automatic
+
                     Button {
-                        isImporting = true
+                        importing = .backup
                     } label: {
                         Label("Restaurer une sauvegarde", systemImage: "arrow.counterclockwise")
                             .font(.headline)
@@ -66,9 +74,15 @@ struct DataBackupSheet: View {
             }
             .background { AppBackground() }
         }
-        .task { prepareExport() }
-        .fileImporter(isPresented: $isImporting, allowedContentTypes: [.json]) { result in
-            read(result)
+        .task {
+            prepareExport()
+            refreshAutomatic()
+        }
+        .fileImporter(
+            isPresented: Binding(get: { importing != nil }, set: { if !$0 { importing = nil } }),
+            allowedContentTypes: importing == .folder ? [.folder] : [.json]
+        ) { [importing] result in
+            if importing == .folder { chooseFolder(result) } else { read(result) }
         }
         .confirmationDialog(
             "Remplacer toutes tes données ?",
@@ -80,6 +94,65 @@ struct DataBackupSheet: View {
         } message: { archive in
             Text("Sauvegarde du \(archive.exportedAt.formatted(.dateTime.day().month(.wide).year().locale(Theme.locale))) : \(archive.summary). Ce qui est dans l'app aujourd'hui sera remplacé.")
         }
+    }
+
+    /// Copie quotidienne dans un dossier choisi une fois.
+    private var automatic: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Text("Sauvegarde automatique")
+                .font(.headline)
+            if let autoFolder {
+                Text("Chaque jour, une copie dans « \(autoFolder) ». Les \(AutoBackup.keptCopies) plus récentes sont gardées.")
+                    .font(.subheadline)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let lastAuto {
+                    Text("Dernière copie : \(lastAuto.formatted(.dateTime.weekday(.wide).day().month(.wide).hour().minute().locale(Theme.locale)))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Button("Changer de dossier") { importing = .folder }
+                        .buttonStyle(.glass)
+                    Button("Arrêter", role: .destructive) {
+                        AutoBackup.disable()
+                        refreshAutomatic()
+                    }
+                    .buttonStyle(.glass)
+                }
+            } else {
+                Text("Choisis un dossier une fois, par exemple dans Fichiers ou sur un disque : BodyPilot y écrira une copie chaque jour et gardera les \(AutoBackup.keptCopies) plus récentes. Tu peux l'arrêter quand tu veux.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button {
+                    importing = .folder
+                } label: {
+                    Label("Choisir un dossier", systemImage: "folder.badge.plus")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Theme.Spacing.s)
+                }
+                .buttonStyle(.glass)
+            }
+            if let autoError {
+                CoachNote(text: autoError, tint: .orange)
+            }
+        }
+    }
+
+    private func chooseFolder(_ result: Result<URL, Error>) {
+        do {
+            try AutoBackup.enable(folder: result.get(), context: context)
+        } catch {
+            show("Ce dossier n'a pas pu être utilisé : \(error.localizedDescription)", isError: true)
+        }
+        refreshAutomatic()
+    }
+
+    private func refreshAutomatic() {
+        autoFolder = AutoBackup.isOn ? AutoBackup.folderName ?? "ton dossier" : nil
+        lastAuto = AutoBackup.lastBackup
+        autoError = AutoBackup.lastError
     }
 
     /// Le fichier est écrit à l'ouverture : « Exporter » le partage aussitôt.

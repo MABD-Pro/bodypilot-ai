@@ -225,6 +225,8 @@ struct TodayView: View {
             .onChange(of: scenePhase) { _, phase in
                 // Tout ce qui a été touché est écrit avant que l'app ne passe en arrière-plan.
                 if phase != .active { try? context.save() }
+                // Copie du jour dans le dossier choisi, si l'utilisateur l'a demandée.
+                if phase == .background, !LaunchOptions.demoData { AutoBackup.runIfDue(context: context) }
             }
             .sensoryFeedback(.selection, trigger: todayLog?.exerciseSwapsRaw.count ?? 0)
             .task(id: scenePhase) {
