@@ -179,7 +179,8 @@ enum DemoData {
         }
         guard case .workout(let workout) = CoachFactory.coach.plan(for: profile, weights: [], on: now).training.kind else { return }
         let loads: [Double] = [80, 60, 50, 70]
-        let strength = workout.exercises.filter { $0.priority < 4 }
+        // Mouvements principaux seulement : les compléments d'isolation gardent leur charge d'essai.
+        let strength = workout.exercises.filter { $0.priority < 3 }
         for (index, exercise) in strength.enumerated() {
             guard case .reps(let planned) = exercise.volume else { continue }
             let kg = loads[index % loads.count]

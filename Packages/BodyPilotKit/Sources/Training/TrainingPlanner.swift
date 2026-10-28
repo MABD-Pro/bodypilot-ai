@@ -44,6 +44,7 @@ public struct TrainingPlanner: TrainingPlanning {
     static let moderateReps = 10
     /// À partir de cet âge : équilibre et puissance (prévention des chutes).
     static let seniorAge = 65
+    static let moderateCue = "Charge modérée : 8 à 12 répétitions, garde 1 à 2 répétitions en réserve et récupère bien entre les séries."
 
     public init(calendar: Calendar = .current) {
         self.calendar = calendar
@@ -400,10 +401,14 @@ public struct TrainingPlanner: TrainingPlanning {
         var result = fit(strength, toMinutes: Int(Double(budget) * Self.strengthShare))
         result.cooldownMinutes = 0
         guard budget - result.estimatedMinutes >= 8 else { return strength }
-        // Compléments d'isolation, tant que le cardio et la marche gardent au moins 12 min.
-        for count in stride(from: accessories.count, to: 0, by: -1) {
+        // Compléments d'isolation, tant que le cardio et la marche gardent au moins 12 min et que
+        // les mouvements principaux gardent 3 séries : l'isolation ne passe pas avant eux.
+        // L'équilibre des seniors reste proposé : court, il compte contre les chutes.
+        let mainKept = result.exercises.filter { $0.priority == 1 && $0.wave.isEmpty }.allSatisfy { $0.sets >= 3 }
+        let allowed = mainKept ? accessories : accessories.filter { $0.key == WorkoutCatalog.balance.key }
+        for count in stride(from: allowed.count, to: 0, by: -1) {
             var withAccessories = result
-            withAccessories.exercises += accessories.prefix(count)
+            withAccessories.exercises += allowed.prefix(count)
             if budget - withAccessories.estimatedMinutes >= Self.conditioningMinimumMinutes {
                 result = withAccessories
                 break
@@ -476,12 +481,15 @@ public struct TrainingPlanner: TrainingPlanning {
             return moderate
         }
         let changedReps = result.exercises != workout.exercises
+        if changedReps, result.intensityCue == WorkoutCatalog.heavyCue {
+            result.intensityCue = Self.moderateCue
+        }
         if age >= Self.seniorAge {
             result.intensityCue += " Monte vite, redescends en 3 secondes : la puissance aide au quotidien et contre les chutes."
         }
         guard changedReps else { return (result, nil) }
         let who = age >= Self.moderateRepsAge ? "À partir de 60 ans" : "Avec ton IMC"
-        return (result, "\(who), séries de 10 à charge modérée : autant de muscle qu'en lourd, moins de contraintes pour les articulations.")
+        return (result, "\(who), 8 à 12 répétitions à charge modérée : autant de muscle qu'en lourd, moins de contraintes pour les articulations.")
     }
 
     /// La séance de force qui suit la dernière faite (A puis B, ou A, B, C pendant un cycle

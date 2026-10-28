@@ -142,8 +142,10 @@ private func workout(_ day: TrainingDay) -> Workout? {
     let result = planner.trainingDay(for: makeProfile(sessionMinutes: 60, equipment: .gym), on: monday, constraints: DayConstraints(traveling: true))
     let session = try #require(workout(result))
     #expect(result.estimatedMinutes <= TrainingPlanner.travelMaxMinutes)
-    let bodyweightNames = Set(WorkoutCatalog.sessions(for: .bodyweight).flatMap { $0.exercises.map(\.name) }
-        + WorkoutCatalog.cardio(for: .bodyweight).map(\.name) + WorkoutCatalog.incline(for: .bodyweight).map(\.name))
+    let sessions = WorkoutCatalog.sessions(for: .bodyweight)
+    let bodyweightNames = Set(sessions.flatMap { $0.exercises.map(\.name) }
+        + WorkoutCatalog.cardio(for: .bodyweight).map(\.name) + WorkoutCatalog.incline(for: .bodyweight).map(\.name)
+        + sessions.flatMap { WorkoutCatalog.accessories(after: $0.title, equipment: .bodyweight).map(\.name) } + [WorkoutCatalog.balance.name])
     #expect(session.exercises.allSatisfy { bodyweightNames.contains($0.name) })
 }
 
@@ -279,6 +281,10 @@ func aSessionChainsStrengthCardioAndInclineWalk(equipment: Equipment, minutes: I
     #expect(squat.volume == .reps(10))
     #expect(session.exercises.contains { $0.name == "Équilibre sur une jambe" })
     #expect(session.intensityCue.contains("Monte vite"))
+    #expect(session.intensityCue.hasPrefix("Charge modérée"))
+    // L'isolation ne passe pas avant les mouvements principaux.
+    let mainKept = session.exercises.filter { $0.priority == 1 }.allSatisfy { $0.sets >= 3 }
+    #expect(mainKept || !session.exercises.contains { $0.name == "Élévations latérales haltères" })
     #expect(result.notes.contains { $0.hasPrefix("À partir de 60 ans") })
 }
 
