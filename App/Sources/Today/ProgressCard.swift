@@ -37,6 +37,7 @@ struct ProgressCard: View {
     let dismissCheckIn: () -> Void
     let connectHealth: () -> Void
     let disconnectHealth: () -> Void
+    let showHistory: () -> Void
 
     var body: some View {
         CoachCard(eyebrow: "Progresser", symbol: "chart.line.downtrend.xyaxis", tint: Theme.progress) {
@@ -87,6 +88,16 @@ struct ProgressCard: View {
             }
 
             healthRow
+
+            Button(action: showHistory) {
+                Label("Historique : mesures, force, séances, repas", systemImage: "clock.arrow.circlepath")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(Theme.Spacing.m)
+                    .background(Theme.progress.opacity(0.10), in: .rect(cornerRadius: Theme.Radius.inner))
+                    .foregroundStyle(Theme.progress)
+            }
+            .buttonStyle(.plain)
 
             HStack {
                 if let target = profile.targetWeightKg {

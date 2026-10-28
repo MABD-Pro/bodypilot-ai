@@ -38,6 +38,8 @@ enum LaunchOptions {
         guard parts.count == 2, let slot = MealSlot(rawValue: parts[0]) else { return nil }
         return (slot, parts[1])
     }
+    /// `-demoHistory Force` : ouvre l'historique sur cette partie (Mesures, Force, Séances, Repas).
+    static var demoHistory: String? { defaults.string(forKey: "demoHistory") }
     /// `-demoComposition YES` : 4 semaines de taux de gras et de masse maigre lus dans Santé.
     static var demoComposition: Bool { defaults.bool(forKey: "demoComposition") }
     /// `-demoActivities YES` : quelques activités Santé dans la semaine (course, vélo, marche).

@@ -23,6 +23,7 @@ struct TodayView: View {
     @State private var describing: MealToDescribe?
     @State private var isAddingWeight = false
     @State private var isEditingProfile = false
+    @State private var isShowingHistory = LaunchOptions.demoHistory != nil
     /// Entraînements lus dans Santé (Watch, autres apps), pour la semaine et la régularité.
     @State private var healthActivities: [ActivitySample] = []
     /// Sommeil de la nuit passée, lu dans Santé.
@@ -146,7 +147,8 @@ struct TodayView: View {
                             acceptCheckIn: { acceptCheckIn(checkIn) },
                             dismissCheckIn: { withAnimation(Theme.springy) { profileRecord.lastCheckInAt = .now } },
                             connectHealth: { Task { await connectHealth() } },
-                            disconnectHealth: { healthSync = false }
+                            disconnectHealth: { healthSync = false },
+                            showHistory: { isShowingHistory = true }
                         )
                         .id("progress")
                     }
@@ -195,6 +197,9 @@ struct TodayView: View {
             .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
                 // Un repas pris, décrit, modifié ou annulé : Santé suit aussitôt.
                 await exportMeals(plan.meals, on: now)
+            }
+            .navigationDestination(isPresented: $isShowingHistory) {
+                HistoryView(healthActivities: healthActivities, compositions: bodyCompositions)
             }
             .sheet(isPresented: $isAddingWeight) {
                 WeightEntrySheet(initialKg: weights.last?.kg ?? profileRecord.startWeightKg)

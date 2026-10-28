@@ -140,3 +140,12 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Si les mots-clés ne reconnaissent rien, le modèle Apple embarqué (Foundation Models) prend le relais, s'il est disponible sur l'iPhone : gratuit, hors ligne, jamais de cloud. Phrases de plus de 280 caractères ignorées.
 - Sa réponse est structurée (oui/non par ajustement, minutes, repas) puis contrôlée comme les mots-clés : temps entre 5 et 120 min, repas seulement si restaurant.
 - Phrase toujours non comprise : le coach le dit et propose les ajustements en une touche.
+
+## Historique (`App/History/HistoryView`, `ProgressInsights/SessionHistory`)
+
+- Depuis Progresser, « Historique » ouvre quatre parties : Mesures, Force, Séances, Repas.
+- Mesures : courbe des pesées, puis jour par jour le poids, le tour de taille et le taux de gras (balance dans Santé).
+- Force : par exercice, courbe du 1RM estimé (Epley) de la meilleure série de chaque séance, puis toutes les séries notées, tests compris.
+- Séances : jour par jour, les séances cochées dans l'app et les entraînements lus dans Santé (durée, calories).
+- Repas : jour par jour, la saisie d'une touche de chaque repas ou le repas décrit avec ses calories. Les calories d'un repas « comme prévu » ne sont pas gardées : le plan d'un jour passé n'est pas recalculé.
+- Démo : `-demoHistory Force` ouvre l'historique sur une partie.
