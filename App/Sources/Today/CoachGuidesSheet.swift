@@ -112,14 +112,16 @@ struct CoachGuidesSheet: View {
             "Tudor-Locke & Bassett, 2004, paliers de pas, Sports Med",
             "Paluch et al., 2022, pas et mortalité, Lancet Public Health",
             "Ainsworth et al., 2011, Compendium des activités, Med Sci Sports Exerc",
+            "Tudor-Locke et al., 2019, cadence de marche et intensité, Int J Behav Nutr Phys Act",
         ]),
         ("Protéines et phase", [
             "Morton et al., 2018, protéines et muscle, Br J Sports Med",
-            "Helms et al., 2014, protéines en déficit, J Int Soc Sports Nutr",
+            "Helms et al., 2014, protéines en déficit, Int J Sport Nutr Exerc Metab",
             "Barakat et al., 2020, recomposition, Strength Cond J",
             "Iraki et al., 2019, prise de muscle sèche, Sports",
             "Ashwell et al., 2012, tour de taille / taille, Obes Rev",
             "Peos et al., 2021, pauses à l'équilibre (ICECAP), Med Sci Sports Exerc",
+            "Byrne et al., 2018, pauses à l'équilibre (MATADOR), Int J Obes",
         ]),
         ("Musculation", [
             "ACSM, 2009, progression en musculation, Med Sci Sports Exerc",
@@ -127,15 +129,19 @@ struct CoachGuidesSheet: View {
             "Schoenfeld, Ogborn & Krieger, 2017, volume par muscle, J Sports Sci",
             "Refalo et al., 2023, proximité de l'échec, Sports Med",
             "Helms et al., 2016, répétitions en réserve, Strength Cond J",
+            "Graham & Cleather, 2021, charges ajustées aux répétitions en réserve, J Strength Cond Res",
+            "Grgic et al., 2018, durée des repos et force, Sports Med",
             "Schumann et al., 2022, cardio et musculation, Sports Med",
             "Fragala et al., 2019, musculation des seniors, J Strength Cond Res",
+            "Sherrington et al., 2019, exercice et prévention des chutes, Cochrane",
         ]),
         ("Récupération et compléments", [
             "Watson et al., 2015, durée de sommeil, Sleep",
             "Nedeltcheva et al., 2010, sommeil et perte de gras, Ann Intern Med",
+            "Knowles et al., 2018, manque de sommeil et force, J Sci Med Sport",
             "Kreider et al., 2017, créatine (ISSN), J Int Soc Sports Nutr",
             "Hall et al., 2019, aliments ultra-transformés, Cell Metab",
-            "ANSES, 2016, repères de consommation (fibres)",
+            "ANSES, 2016, références nutritionnelles (fibres)",
         ]),
     ]
 }

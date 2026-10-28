@@ -25,7 +25,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
   - Sans poids visé : perte de gras si le tour de taille atteint la moitié de la taille (Ashwell et al., 2012), sinon si le taux de gras de la balance atteint 25 % (homme) / 32 % (femme), sinon si l'IMC atteint 25 ; équilibre sinon.
   - La phase s'affiche dans Progresser à côté du poids visé, et une phrase l'explique dans les besoins du jour.
 - Déficit selon l'écart au poids visé : 20 % à 10 kg ou plus, proportionnel en dessous (5 % au minimum), aucun à moins de 0,5 kg du poids visé. Sans poids visé : 10 %. Plafonné à 600 kcal. **Plancher** : jamais sous le métabolisme de base, ni sous 1 500 kcal (homme) / 1 200 kcal (femme). Pas de surplus en perte de gras.
-- Protéines : 2,0 g/kg dans toutes les phases (au-dessus du plateau de 1,6 g/kg, Morton et al., 2018 ; dans la fourchette conseillée en déficit, Helms et al., 2014). Au-delà d'un IMC de 30, calculées sur le poids à IMC 30 (plafond continu : un kilo de plus ne fait jamais baisser l'objectif).
+- Protéines : 2,0 g/kg dans toutes les phases (au-dessus du plateau de 1,6 g/kg, Morton et al., 2018 ; dans la fourchette conseillée en déficit, Helms et al., 2014, Int J Sport Nutr Exerc Metab). Au-delà d'un IMC de 30, calculées sur le poids à IMC 30 (plafond continu : un kilo de plus ne fait jamais baisser l'objectif).
 - Lipides : 27 % des calories. Glucides : le reste.
 - Le poids utilisé est la **tendance mesurée** dès qu'elle existe, sinon le poids déclaré.
 
@@ -210,6 +210,6 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 - Menu Mon profil > « Conseils et sources » : texte fixe, rien à saisir.
 - Créatine : monohydrate 3 à 5 g par jour, sans phase de charge, facultative ; prévient de la prise d'eau (1 à 2 kg) que la tendance du poids absorbe. Pas avant 18 ans, ni enceinte, ni avec une maladie des reins ; avec un oui au questionnaire de santé, avis du médecin d'abord (Kreider et al., 2017).
-- Fibres : 30 g par jour (ANSES, 2016) et produits peu transformés (Hall et al., 2019 : environ 500 kcal de plus par jour avec des ultra-transformés). Les repas décrits ne comptent pas encore les fibres.
+- Fibres : 30 g par jour (ANSES, 2016) et produits peu transformés (Hall et al., 2019 : environ 500 kcal de plus par jour avec des ultra-transformés, essai sur 20 adultes pendant 2 semaines). Les repas décrits ne comptent pas encore les fibres.
 - Sommeil : au moins 7 h (Watson et al., 2015).
 - Sources : les références principales des règles, par thème. La liste complète reste dans ce fichier et dans `docs/TRAINING_EVIDENCE.md`.
