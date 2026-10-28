@@ -1016,13 +1016,14 @@ private struct AddExerciseSheet: View {
                                 dismiss()
                             } label: {
                                 HStack {
+                                    // Couleurs fixes : dans une List, un bouton teinte son texte.
                                     Text(name)
-                                        .foregroundStyle(.primary)
+                                        .foregroundStyle(Color.primary)
                                     Spacer()
                                     Text(SessionEdits.addedExercise(name).prescription)
                                         .font(.subheadline)
                                         .monospacedDigit()
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Color.secondary)
                                 }
                                 .contentShape(.rect)
                             }
