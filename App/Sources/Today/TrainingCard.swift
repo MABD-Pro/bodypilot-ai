@@ -100,7 +100,9 @@ struct TrainingCard: View {
             }
 
             VStack(spacing: 0) {
-                ExerciseRow(index: 0, name: "Échauffement", detail: "\(workout.warmupMinutes) min", isWarmup: true)
+                if workout.warmupMinutes > 0 {
+                    ExerciseRow(index: 0, name: "Échauffement", detail: "\(workout.warmupMinutes) min", isWarmup: true)
+                }
                 ForEach(Array(workout.exercises.enumerated()), id: \.offset) { index, exercise in
                     let toLog = liftToLog(exercise, isTest: workout.isStrengthTest)
                     ExerciseRow(
@@ -113,6 +115,9 @@ struct TrainingCard: View {
                         swap: exercise.alternatives.isEmpty ? nil : { swap(exercise.key) },
                         log: toLog.map { item -> () -> Void in { logging = item } }
                     )
+                }
+                if workout.cooldownMinutes >= 5 {
+                    ExerciseRow(index: workout.exercises.count + 1, name: "Retour au calme", detail: "\(workout.cooldownMinutes) min", isWarmup: true, warmupSymbol: "wind")
                 }
             }
             .sheet(item: $logging) { item in
@@ -649,6 +654,8 @@ private struct ExerciseRow: View {
     var swap: (() -> Void)?
     /// Ouvre la saisie de la meilleure série.
     var log: (() -> Void)?
+    /// Icône des lignes d'échauffement et de retour au calme.
+    var warmupSymbol = "flame.fill"
 
     struct Caption {
         let text: String
@@ -662,7 +669,7 @@ private struct ExerciseRow: View {
                 Circle()
                     .fill(isWarmup ? Theme.carbs.opacity(0.18) : Theme.training.opacity(0.14))
                 if isWarmup {
-                    Image(systemName: "flame.fill")
+                    Image(systemName: warmupSymbol)
                         .font(.caption.weight(.bold))
                         .foregroundStyle(Theme.carbs)
                 } else {
@@ -993,9 +1000,15 @@ extension WorkoutExercise {
         // Effort continu (marche inclinée, cardio tempo) : en minutes.
         case .seconds(let seconds) where sets == 1 && seconds >= 120: "\(Int((Double(seconds) / 60).rounded())) min"
         // Fractionné : effort puis récupération.
-        case .seconds(let seconds) where isConditioning && restSeconds > 0: "\(sets) × \(seconds) s / \(restSeconds) s"
-        case .seconds(let seconds): "\(sets) × \(seconds) s"
+        case .seconds(let seconds) where isConditioning && restSeconds > 0: "\(sets) × \(Self.duration(seconds)) / \(Self.duration(restSeconds))"
+        case .seconds(let seconds): "\(sets) × \(Self.duration(seconds))"
         }
+    }
+
+    /// « 30 s », « 4 min », « 1 min 30 ».
+    static func duration(_ seconds: Int) -> String {
+        guard seconds >= 60 else { return "\(seconds) s" }
+        return seconds % 60 == 0 ? "\(seconds / 60) min" : "\(seconds / 60) min \(seconds % 60)"
     }
 
     /// Cardio et marche inclinée, ajoutés après la force.
