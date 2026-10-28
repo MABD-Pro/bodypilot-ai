@@ -31,8 +31,11 @@ extension DailyCoach {
         compositions: [BodyCompositionEntry] = [],
         exerciseKcalPerDay: Double = 0,
         retainsWater: Bool = false,
+        averageDailySteps: Double? = nil,
         on date: Date
     ) -> CalorieSuggestion? {
+        var profile = profile
+        if let averageDailySteps { profile.averageDailySteps = averageDailySteps }
         let trend = progress.trend(of: weights, for: profile, on: date)
         guard let weekly = trend.weeklyChangeKg else { return nil }
         let weekAgo = calendar.date(byAdding: .day, value: -7, to: date) ?? date

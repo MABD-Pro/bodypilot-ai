@@ -1,7 +1,8 @@
 import BodyPilotCore
 import Foundation
 
-/// Calcul déterministe des besoins : Mifflin-St Jeor, facteur d'activité, ajustement à l'objectif.
+/// Calcul déterministe des besoins : Mifflin-St Jeor, facteur d'activité (pas mesurés, sinon
+/// niveau déclaré), ajustement à l'objectif.
 public struct EnergyCalculator: Sendable {
     public var calendar: Calendar
 
@@ -20,7 +21,7 @@ public struct EnergyCalculator: Sendable {
         let age = profile.age(on: date, calendar: calendar)
         let bmr = basalMetabolicRate(sex: profile.sex, weightKg: currentWeightKg, heightCm: profile.heightCm, age: age)
         let exercise = max(exerciseKcalPerDay, 0)
-        let maintenance = bmr * profile.activity.factor + exercise
+        let maintenance = bmr * profile.dailyActivity.factor + exercise
         let spent = exercise >= 1
             ? "Dépense estimée \(maintenance.frenchInteger) kcal, dont \(exercise.frenchInteger) kcal pour tes séances (moyenne de 14 jours)"
             : "Dépense estimée \(maintenance.frenchInteger) kcal"
@@ -60,6 +61,9 @@ public struct EnergyCalculator: Sendable {
             let surplus = min(maintenance * SafetyLimits.surplusRatio, SafetyLimits.maxSurplusKcal)
             kcal = maintenance + surplus
             explanation = "\(spent), plus \(surplus.frenchInteger) kcal pour construire du muscle en limitant le gras."
+        }
+        if let steps = profile.averageDailySteps {
+            explanation += " Vie quotidienne d'après tes pas : \(steps.frenchInteger) par jour en moyenne sur 14 jours."
         }
         if profile.calorieAdjustmentKcal != 0 {
             let adjusted = clampAdjusted(kcal + profile.calorieAdjustmentKcal, planned: kcal, bmr: bmr, maintenance: maintenance, profile: profile, on: date)

@@ -64,8 +64,12 @@ public struct DailyCoach: Sendable {
         cycle: TrainingCycle? = nil,
         cycleWorkoutsThisWeek: [String] = [],
         cycleSessionsPerWeek: Int? = nil,
+        averageDailySteps: Double? = nil,
         on date: Date
     ) -> TodayPlan {
+        // Pas mesurés dans Santé : ils remplacent le niveau d'activité déclaré.
+        var profile = profile
+        if let averageDailySteps { profile.averageDailySteps = averageDailySteps }
         let trend = progress.trend(of: weights, for: profile, on: date)
         let waistChange = progress.waistChange(of: waists, on: date)
         let composition = progress.compositionChange(of: compositions, on: date)

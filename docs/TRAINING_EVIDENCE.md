@@ -27,6 +27,7 @@ Objectif unique de l'app : la recomposition corporelle, c'est-à-dire perdre du 
 | Fréquence maximale = 208 − 0,7 × âge. | Formule issue d'une méta-analyse, plus juste que 220 − âge chez l'adulte. | Tanaka, Monahan & Seals, 2001, *J Am Coll Cardiol* |
 | Cardio modéré : 40 à 59 % de la réserve cardiaque (pouls au repos connu), sinon 64 à 76 % de la fréquence maximale. | Zones d'intensité modérée de l'ACSM. | Garber et al., 2011, *Med Sci Sports Exerc* (position de l'ACSM) |
 | Questionnaire de santé à l'inscription ; un oui retire tests, fractionné et séries au maximum jusqu'à l'accord du médecin. | Le PAR-Q+ repère les personnes qui doivent demander un avis médical avant d'augmenter leur activité. L'ACSM réserve l'effort intense à l'accord médical quand une maladie cardiovasculaire, métabolique ou rénale est connue. | Warburton et al., 2011, *Health Fit J Can* ; Riebe et al., 2015, *Med Sci Sports Exerc* |
+| Objectif de pas qui monte de 1 000 au-dessus de la moyenne, jusqu'à 8 000-10 000 (6 000-8 000 après 60 ans) ; les pas fixent aussi la dépense de la vie quotidienne. | La mortalité baisse avec les pas jusqu'à environ 8 000 à 10 000 par jour avant 60 ans et 6 000 à 8 000 ensuite. | Paluch et al., 2022, *Lancet Public Health* ; paliers de Tudor-Locke & Bassett, 2004, *Sports Med* |
 
 ## Limites connues
 
@@ -37,4 +38,5 @@ Objectif unique de l'app : la recomposition corporelle, c'est-à-dire perdre du 
 - Le repos recommandé après 6 jours d'activité d'affilée et la marche tranquille après une séance intense de 45 min la veille sont des choix prudents, pas des seuils validés par une étude.
 - Les ratios qui déduisent une variante (haltères, machine, hip thrust…) du mouvement de référence sont des repères prudents, pas des résultats d'étude : la première série notée sur la variante les remplace.
 - Le record compare des 1RM estimés, pas des 1RM testés : c'est un indicateur de progression, pas une charge à tenter.
+- Une marche enregistrée comme entraînement compte à la fois dans les pas et dans la dépense des séances : la dépense peut être un peu surestimée chez qui marche beaucoup en séance.
 - Le volume réel dépend des séances faites : une semaine à 2 séances de force descend sous les 10 séries par muscle.

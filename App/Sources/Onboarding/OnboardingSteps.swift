@@ -32,6 +32,9 @@ struct RhythmStep: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 Text("Au quotidien, hors sport").font(.headline)
+                Text("Santé reliée, tes pas le remplacent dès 7 jours mesurés.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 ForEach(ActivityLevel.allCases, id: \.self) { level in
                     ChoiceCard(title: level.title, subtitle: level.subtitle, symbol: level.symbol, tint: Theme.progress, isSelected: draft.activity == level, compact: true) {
                         withAnimation(Theme.springy) { draft.activity = level }

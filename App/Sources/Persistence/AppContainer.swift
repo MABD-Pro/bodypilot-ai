@@ -65,6 +65,8 @@ enum LaunchOptions {
     static var demoScreening: String? { defaults.string(forKey: "demoScreening") }
     /// `-demoOnboardingStep 1` : l'accueil s'ouvre sur cette étape (0 à 3).
     static var demoOnboardingStep: Int? { defaults.object(forKey: "demoOnboardingStep") == nil ? nil : defaults.integer(forKey: "demoOnboardingStep") }
+    /// `-demoSteps YES` : deux semaines de pas lus dans Santé (environ 6 500 par jour).
+    static var demoSteps: Bool { defaults.bool(forKey: "demoSteps") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }
@@ -116,6 +118,15 @@ enum AppContainer {
 }
 
 enum DemoData {
+    /// Pas des 14 derniers jours et d'aujourd'hui (matinée) : environ 6 500 par jour.
+    static func steps(now: Date = .now, calendar: Calendar = .current) -> [DailySteps] {
+        let today = calendar.startOfDay(for: now)
+        let counts = [5_800, 7_200, 6_100, 8_400, 5_200, 6_900, 7_600, 4_800, 6_300, 7_100, 5_900, 6_700, 8_000, 5_400, 3_200]
+        return counts.enumerated().compactMap { index, steps in
+            calendar.date(byAdding: .day, value: index - (counts.count - 1), to: today).map { DailySteps(day: $0, steps: steps) }
+        }
+    }
+
     /// Balance à impédance sur 4 semaines : le gras baisse d'environ un point, la masse maigre monte un peu.
     static func compositions(now: Date = .now, calendar: Calendar = .current) -> [BodyCompositionEntry] {
         stride(from: 27, through: 0, by: -1).compactMap { daysAgo in

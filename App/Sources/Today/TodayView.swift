@@ -40,6 +40,8 @@ struct TodayView: View {
     @State private var periodStarts: [Date] = []
     /// Taux de gras et masse maigre écrits dans Santé par la balance.
     @State private var compositions: [BodyCompositionEntry] = []
+    /// Pas par jour lus dans Santé (14 jours et aujourd'hui).
+    @State private var dailySteps: [DailySteps] = []
 
     private let calendar = Calendar.current
 
@@ -57,6 +59,7 @@ struct TodayView: View {
         let lifts = liftRecords.map(\.entry)
         let cardioMeasures = cardioTests.map(\.measure) + [watchCardio].compactMap { $0 }
         let cardio = DayLogEditor.cardioStatus(for: profileRecord.profile, measures: cardioMeasures, restingHeartRate: restingHeartRate, on: now, calendar: calendar)
+        let averageSteps = StepActivity.average(dailySteps, before: now, calendar: calendar)
         let exerciseKcal = ExerciseEnergy.dailyAverage(
             samples: healthActivities, completed: completed,
             sessionMinutes: profileRecord.profile.sessionMinutes,
@@ -85,6 +88,7 @@ struct TodayView: View {
             cycle: profileRecord.cycle,
             cycleWorkoutsThisWeek: profileRecord.cycle?.workoutsThisWeek(completed, on: now, calendar: calendar) ?? [],
             cycleSessionsPerWeek: cycleSessions?.sessions,
+            averageDailySteps: averageSteps,
             on: now
         )
 
@@ -104,6 +108,7 @@ struct TodayView: View {
                 exerciseKcalPerDay: exerciseKcal,
                 retainsWater: profileRecord.profile.sex == .female
                     && MenstrualCycle.retainsWater(periodStarts: periodStarts, on: now, calendar: calendar),
+                averageDailySteps: averageSteps,
                 on: now
             )
             : nil
@@ -186,6 +191,7 @@ struct TodayView: View {
                             cardio: CardioTest.latest(cardioMeasures),
                             cardioZone: cardio.moderateHeartRate,
                             sleepHours: sleepHours,
+                            steps: steps(average: averageSteps, now: now),
                             addWeight: { isAddingWeight = true },
                             addWaist: { isAddingWaist = true },
                             acceptCheckIn: { acceptCheckIn(checkIn) },
@@ -204,6 +210,7 @@ struct TodayView: View {
                 .task {
                     if LaunchOptions.demoActivities { healthActivities = DemoData.activities() }
                     if LaunchOptions.demoComposition { compositions = DemoData.compositions() }
+                    if LaunchOptions.demoSteps { dailySteps = DemoData.steps() }
                     if let hours = LaunchOptions.demoSleepHours { sleepHours = hours }
                     if LaunchOptions.demoData && !LaunchOptions.demoCardioTest {
                         watchCardio = DemoData.watchCardio()
@@ -325,8 +332,9 @@ struct TodayView: View {
         async let values = HealthProfile.read(calendar: calendar)
         async let starts: [Date]? = readsCycle ? (try? HealthCycle.periodStarts(calendar: calendar)) : nil
         async let entries = HealthBodyComposition.entries(calendar: calendar)
+        async let steps = try? HealthSteps.daily(calendar: calendar)
         let read = await (weights: weightSamples, activities: activities, sleep: sleep, measure: measure,
-                          resting: resting, values: values, starts: starts, entries: entries)
+                          resting: resting, values: values, starts: starts, entries: entries, steps: steps)
 
         let toImport = read.weights.map {
             WeightImportPlanner(calendar: calendar).samplesToImport(
@@ -345,6 +353,7 @@ struct TodayView: View {
             restingHeartRate = read.resting
             if let starts = read.starts { periodStarts = starts }
             compositions = read.entries
+            if let steps = read.steps { dailySteps = steps }
             // Taille, date de naissance et sexe de Santé : le profil suit, les besoins se recalculent.
             if let height = read.values.heightCm, abs(height - profileRecord.heightCm) >= 1 {
                 profileRecord.heightCm = height
@@ -360,6 +369,17 @@ struct TodayView: View {
     }
 
     private var tracksCycle: Bool { profileRecord.profile.sex == .female }
+
+    /// Pas du jour et objectif, une fois des pas lus dans Santé.
+    private func steps(average: Double?, now: Date) -> StepsToday? {
+        guard !dailySteps.isEmpty else { return nil }
+        let age = profileRecord.profile.age(on: now, calendar: calendar)
+        return StepsToday(
+            today: dailySteps.last { calendar.isDate($0.day, inSameDayAs: now) }?.steps ?? 0,
+            goal: StepActivity.goal(averageSteps: average, age: age),
+            average: average
+        )
+    }
 
     /// Une balance qui n'écrit que le taux de gras : la masse maigre se déduit de la pesée du même jour.
     /// Une masse maigre incohérente avec le poids et le taux de gras (plus de 5 kg d'écart) est écartée.

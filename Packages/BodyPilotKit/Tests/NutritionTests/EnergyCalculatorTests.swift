@@ -122,3 +122,12 @@ private let today = day(2026, 10, 27)
     #expect(targets.macros.kcal == (targets.maintenanceKcal / 10).rounded() * 10)
     #expect(targets.rationale.contains("moins de 18 ans"))
 }
+
+@Test func measuredStepsReplaceDeclaredActivity() {
+    var profile = makeProfile()
+    profile.averageDailySteps = 4_200
+    let targets = calculator.targets(for: profile, currentWeightKg: 90, on: today)
+    // BMR 1855 × 1,2 (moins de 5 000 pas) au lieu de 1,4 déclaré.
+    #expect(targets.maintenanceKcal.rounded() == 2226)
+    #expect(targets.rationale.contains("4\u{202F}200"))
+}
