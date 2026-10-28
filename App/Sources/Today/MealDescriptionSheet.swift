@@ -192,8 +192,11 @@ struct MealDescriptionSheet: View {
             }
 
             ForEach(kept(of: parse), id: \.index) { item in
+                // La question disparaît dès qu'une quantité est choisie : le menu sous le nom reste là pour la changer.
+                let unanswered = portions[item.index] == nil && scales[item.index] == nil
                 foodRow(item.food, base: base(of: parse, at: item.index),
-                        question: replacements[item.index] == nil && parse.foods[item.index].needsPortion, index: item.index)
+                        question: unanswered && replacements[item.index] == nil && parse.foods[item.index].needsPortion,
+                        index: item.index)
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
 
@@ -330,7 +333,10 @@ struct MealDescriptionSheet: View {
             if !alternatives.isEmpty {
                 Section("Remplacer par") {
                     ForEach(alternatives, id: \.name) { alternative in
-                        Button("\(alternative.name) · \(alternative.macros.kcal.frenchInteger) kcal") {
+                        // L'écart avec l'aliment saisi : un remplaçant peut être plus calorique.
+                        let delta = alternative.macros.kcal - base.macros.kcal
+                        let effect = abs(delta) < 5 ? "même apport" : "\(delta < 0 ? "−" : "+")\(abs(delta).frenchInteger) kcal"
+                        Button("\(alternative.name) · \(effect)") {
                             withAnimation(Theme.springy) {
                                 replacements[index] = alternative
                                 scales[index] = nil
