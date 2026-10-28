@@ -172,19 +172,7 @@ struct MealDescriptionSheet: View {
     @ViewBuilder
     private func result(_ parse: MealParse) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            ForEach(kept(of: parse), id: \.index) { item in
-                foodRow(item.food, base: base(of: parse, at: item.index),
-                        question: replacements[item.index] == nil && parse.foods[item.index].needsPortion, index: item.index)
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            }
-
-            if !parse.unrecognized.isEmpty {
-                CoachNote(
-                    text: "Je ne connais pas « \(parse.unrecognized.joined(separator: " », « ")) ». Précise les aliments (« agneau, semoule, légumes ») ou une quantité en grammes.",
-                    tint: slot.tint
-                )
-            }
-
+            // Le total et les suggestions d'abord : sous les aliments, ils passaient sous le pli.
             if let meal {
                 HStack(alignment: .firstTextBaseline) {
                     Text("≈ \(meal.macros.kcal.frenchInteger) kcal")
@@ -197,11 +185,23 @@ struct MealDescriptionSheet: View {
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                 }
-                .padding(.top, Theme.Spacing.xs)
                 Text("Une estimation, pas une pesée : la suite de ta journée s'ajuste à ce total.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 suggestions(for: meal)
+            }
+
+            ForEach(kept(of: parse), id: \.index) { item in
+                foodRow(item.food, base: base(of: parse, at: item.index),
+                        question: replacements[item.index] == nil && parse.foods[item.index].needsPortion, index: item.index)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            }
+
+            if !parse.unrecognized.isEmpty {
+                CoachNote(
+                    text: "Je ne connais pas « \(parse.unrecognized.joined(separator: " », « ")) ». Précise les aliments (« agneau, semoule, légumes ») ou une quantité en grammes.",
+                    tint: slot.tint
+                )
             }
         }
     }

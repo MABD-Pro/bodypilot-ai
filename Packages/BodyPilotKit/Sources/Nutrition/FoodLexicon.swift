@@ -91,7 +91,7 @@ enum FoodLexicon {
         LexiconEntry(Food("Orange", kcal: 47, protein: 0.9, carbs: 11.8, fat: 0.1, unit: FoodUnit(grams: 150, singular: "orange", plural: "oranges")), ["orange", "clementine", "mandarine"], portion: 150, "1 orange"),
         LexiconEntry(Food("Fruit", kcal: 55, protein: 0.7, carbs: 13, fat: 0.3, unit: FoodUnit(grams: 150, singular: "fruit", plural: "fruits")), ["fruit", "poire", "peche", "kiwi", "raisin", "compote", "salade de fruit"], portion: 150, "1 fruit"),
         LexiconEntry(Foods.berries, ["fruit rouge", "fraise", "framboise", "myrtille"], portion: 100),
-        LexiconEntry(Food("Dattes", kcal: 282, protein: 2.5, carbs: 75, fat: 0.4, unit: FoodUnit(grams: 8, singular: "datte", plural: "dattes")), ["datte", "fruit sec", "figue seche", "abricot sec", "pruneau"], portion: 24, "3 dattes"),
+        LexiconEntry(Food("Dattes", kcal: 282, protein: 2.5, carbs: 75, fat: 0.4, unit: FoodUnit(grams: 8, singular: "datte", plural: "dattes")), ["datte", "date", "fruit sec", "figue seche", "abricot sec", "pruneau"], portion: 24, "3 dattes"),
         LexiconEntry(Foods.avocado, ["avocat"], portion: 100, "½ avocat"),
         LexiconEntry(Food("Légumes", kcal: 30, protein: 1.5, carbs: 5, fat: 0.3), ["legume", "carotte", "poivron", "epinard", "chou", "ratatouille", "poelee de legume"], portion: 200),
         LexiconEntry(Foods.broccoli, ["brocoli"], portion: 150),

@@ -133,7 +133,8 @@ public enum MealImprover {
     /// une portion de poulet au déjeuner et au dîner (un skyr si le plat a déjà sa viande).
     static func moreProtein(_ meal: DescribedMeal, slot: MealSlot) -> MealSuggestion? {
         guard meal.macros.proteinG < minimumProtein(for: slot) else { return nil }
-        let hasMainProtein = meal.foods.contains { $0.grams > 0 && $0.macros.proteinG / $0.grams * 100 >= 15 }
+        // Une vraie portion de viande, de poisson ou d'œufs : un morceau de fromage n'en tient pas lieu.
+        let hasMainProtein = meal.foods.contains { $0.macros.proteinG >= 15 }
         let useMeat = (slot == .lunch || slot == .dinner) && !hasMainProtein
         guard let entry = entry(useMeat ? "poulet" : "skyr") else { return nil }
         let grams = useMeat ? 100.0 : 150

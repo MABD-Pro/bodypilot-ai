@@ -57,6 +57,14 @@ import Testing
     #expect(lighter.first?.meal.foods.contains { $0.name == "Beurre" } == false)
 }
 
+@Test func cheeseIsNotTheMainProteinOfALunch() throws {
+    // « date » au singulier, tel que dicté, est bien lu comme des dattes.
+    let meal = MealTextParser.parse("pain fromage beurre huile d'olive date et les olives").meal
+    #expect(meal.foods.contains { $0.name == "Dattes" })
+    let protein = try #require(MealImprover.suggestions(for: meal, slot: .lunch).first { $0.goal == .moreProtein })
+    #expect(protein.title == "Ajoute 100 g de poulet")
+}
+
 @Test func alternativesStayInTheFamilyLightestFirst() {
     let cheese = MealTextParser.parse("du fromage").meal.foods[0]
     let alternatives = MealImprover.alternatives(for: cheese)
