@@ -313,7 +313,7 @@ public struct TrainingPlanner: TrainingPlanning {
         }
         if adapted.estimatedMinutes > budget {
             adapted = fit(adapted, toMinutes: budget)
-            notes.append("\(fittedNotePrefix) \(adapted.estimatedMinutes) min : l'essentiel est gardé.")
+            notes.append("\(Self.fittedNotePrefix) \(adapted.estimatedMinutes) min : l'essentiel est gardé.")
         }
         return TrainingDay(kind: .workout(adapted), estimatedMinutes: adapted.estimatedMinutes, notes: notes)
     }
