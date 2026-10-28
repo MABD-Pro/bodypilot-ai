@@ -57,12 +57,13 @@ public struct DailyCoach: Sendable {
         recentActivities: [ActivitySample] = [],
         trainingChoice: TrainingChoice? = nil,
         cardio: CardioStatus = CardioStatus(),
+        exerciseKcalPerDay: Double = 0,
         on date: Date
     ) -> TodayPlan {
         let trend = progress.trend(of: weights, for: profile, on: date)
         let waistChange = progress.waistChange(of: waists, on: date)
         let weight = trend.currentTrendKg ?? profile.startWeightKg
-        let targets = nutrition.targets(for: profile, currentWeightKg: weight, on: date)
+        let targets = nutrition.targets(for: profile, currentWeightKg: weight, exerciseKcalPerDay: exerciseKcalPerDay, on: date)
         let meals = nutrition.mealPlan(
             for: targets,
             profile: profile,

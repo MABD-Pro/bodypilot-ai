@@ -61,6 +61,11 @@ struct TodayView: View {
             recentActivities: healthActivities,
             trainingChoice: todayLog?.trainingChoice,
             cardio: cardio,
+            exerciseKcalPerDay: ExerciseEnergy.dailyAverage(
+                samples: healthActivities, completed: completed,
+                sessionMinutes: profileRecord.profile.sessionMinutes,
+                weightKg: weights.last?.kg ?? profileRecord.startWeightKg, on: now, calendar: calendar
+            ),
             on: now
         )
 

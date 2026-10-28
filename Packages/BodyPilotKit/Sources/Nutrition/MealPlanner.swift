@@ -14,8 +14,8 @@ public struct MealPlanner: NutritionPlanning {
         self.calculator = calculator
     }
 
-    public func targets(for profile: UserProfile, currentWeightKg: Double, on date: Date) -> NutritionTargets {
-        calculator.targets(for: profile, currentWeightKg: currentWeightKg, on: date)
+    public func targets(for profile: UserProfile, currentWeightKg: Double, exerciseKcalPerDay: Double, on date: Date) -> NutritionTargets {
+        calculator.targets(for: profile, currentWeightKg: currentWeightKg, exerciseKcalPerDay: exerciseKcalPerDay, on: date)
     }
 
     /// Pas faim : on vise 85 % des calories, sans descendre sous le plancher de sécurité.

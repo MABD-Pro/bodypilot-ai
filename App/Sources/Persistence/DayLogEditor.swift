@@ -1,6 +1,7 @@
 import BodyPilotCore
 import Coach
 import Foundation
+import ProgressInsights
 import SwiftData
 import Training
 
@@ -61,6 +62,10 @@ enum DayLogEditor {
             activeDays: activeDays(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar),
             trainingChoice: today?.trainingChoice,
             cardio: cardioStatus(for: profile.profile, measures: cardioTests.map(\.measure), restingHeartRate: nil, on: now, calendar: calendar),
+            exerciseKcalPerDay: ExerciseEnergy.dailyAverage(
+                samples: [], completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) },
+                sessionMinutes: profile.sessionMinutes, weightKg: weights.last?.kg ?? profile.startWeightKg, on: now, calendar: calendar
+            ),
             on: now
         )
     }
