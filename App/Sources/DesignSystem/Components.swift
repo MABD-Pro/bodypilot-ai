@@ -5,18 +5,43 @@ struct CoachCard<Content: View>: View {
     let eyebrow: String
     let symbol: String
     let tint: Color
-    @ViewBuilder let content: Content
+    /// Ouvre l'historique de cette partie, depuis l'en-tête de la carte.
+    var history: (() -> Void)?
+    let content: Content
+
+    init(eyebrow: String, symbol: String, tint: Color, history: (() -> Void)? = nil, @ViewBuilder content: () -> Content) {
+        self.eyebrow = eyebrow
+        self.symbol = symbol
+        self.tint = tint
+        self.history = history
+        self.content = content()
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-            Label {
-                Text(eyebrow)
-                    .font(.footnote.weight(.semibold))
-                    .textCase(.uppercase)
-                    .kerning(0.8)
-            } icon: {
-                Image(systemName: symbol)
-                    .font(.footnote.weight(.bold))
+            HStack {
+                Label {
+                    Text(eyebrow)
+                        .font(.footnote.weight(.semibold))
+                        .textCase(.uppercase)
+                        .kerning(0.8)
+                } icon: {
+                    Image(systemName: symbol)
+                        .font(.footnote.weight(.bold))
+                }
+                Spacer()
+                if let history {
+                    Button(action: history) {
+                        Label("Historique", systemImage: "clock.arrow.circlepath")
+                            .font(.footnote.weight(.semibold))
+                            .labelStyle(.iconOnly)
+                            .frame(width: 32, height: 32)
+                            .contentShape(.circle)
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive(), in: .circle)
+                    .accessibilityLabel("Historique : \(eyebrow.lowercased())")
+                }
             }
             .foregroundStyle(tint)
 

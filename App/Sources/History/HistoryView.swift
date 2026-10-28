@@ -18,20 +18,27 @@ struct HistoryView: View {
     /// Entraînements et composition corporelle lus dans Santé par l'écran Aujourd'hui.
     var healthActivities: [ActivitySample] = []
     var compositions: [BodyCompositionEntry] = []
+    /// Partie ouverte au départ : celle de la carte d'où l'on vient.
+    var initialSection: Section = .measures
 
     @Query(sort: \WeightRecord.date, order: .reverse) private var weights: [WeightRecord]
     @Query(sort: \WaistRecord.date, order: .reverse) private var waists: [WaistRecord]
     @Query(sort: \LiftRecord.day, order: .reverse) private var lifts: [LiftRecord]
     @Query(sort: \DayLogRecord.day, order: .reverse) private var dayLogs: [DayLogRecord]
-    @State private var section: Section = LaunchOptions.demoHistory.flatMap(Section.init(rawValue:)) ?? .measures
+    /// `nil` tant que l'utilisateur n'a pas changé de partie.
+    @State private var chosenSection: Section?
     @State private var exercise: String?
 
     private let calendar = Calendar.current
 
+    private var section: Section {
+        chosenSection ?? LaunchOptions.demoHistory.flatMap(Section.init(rawValue:)) ?? initialSection
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                Picker("Historique", selection: $section) {
+                Picker("Historique", selection: Binding(get: { section }, set: { chosenSection = $0 })) {
                     ForEach(Section.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)

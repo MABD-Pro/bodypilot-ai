@@ -13,12 +13,13 @@ struct NutritionCard: View {
     /// Repas décrits ces 7 derniers jours, à reprendre d'une touche.
     var recent: (MealSlot) -> [RecentMeal] = { _ in [] }
     var reuse: (MealSlot, DescribedMeal) -> Void = { _, _ in }
+    var showHistory: (() -> Void)?
 
     @State private var expanded: MealSlot?
     @State private var showsRationale = false
 
     var body: some View {
-        CoachCard(eyebrow: "Manger", symbol: "fork.knife", tint: Theme.nutrition) {
+        CoachCard(eyebrow: "Manger", symbol: "fork.knife", tint: Theme.nutrition, history: showHistory) {
             HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.xs) {
                 Text(targets.macros.kcal.frenchInteger)
                     .font(.display(44))
