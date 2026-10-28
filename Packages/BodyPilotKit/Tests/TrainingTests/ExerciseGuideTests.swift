@@ -4,8 +4,10 @@ import Testing
 @testable import Training
 
 @Test func everyStrengthExerciseOfTheCatalogHasAGuide() {
-    let workouts = WorkoutCatalog.sessions(for: .gym) + WorkoutCatalog.sessions(for: .bodyweight)
-    let names = workouts.flatMap(\.exercises)
+    let cycle = (1...3).flatMap { WorkoutCatalog.cycleSessions(phase: $0) }
+    let technique = (1...3).map { CycleConditioning.technique(for: CycleWeek(program: .crossfit, number: 4 * $0 - 3)) }
+    let workouts = WorkoutCatalog.sessions(for: .gym) + WorkoutCatalog.sessions(for: .bodyweight) + cycle
+    let names = (workouts.flatMap(\.exercises) + technique)
         .filter { if case .reps = $0.volume { true } else { false } }
         .flatMap { [$0.name] + $0.alternatives + [$0.kneeFriendlyAlternative].compactMap { $0 } }
     let missing = Set(names).filter { ExerciseGuide.guide(for: $0) == nil }
@@ -16,8 +18,9 @@ import Testing
     let squat = try #require(ExerciseGuide.guide(for: "Squat à la barre"))
     // 80 kg × 0,6 = 48 → arrondi vers le bas au disque : 47,5 kg.
     #expect(squat.startingLoad(bodyweightKg: 80, sex: .male) == 47.5)
-    // Sous 30 kg, pas d'1 kg : 60 × 0,4 = 24 kg.
-    #expect(squat.startingLoad(bodyweightKg: 60, sex: .female) == 24)
+    // À la barre, toujours de 2,5 en 2,5 kg : 60 × 0,4 = 24 → 22,5 kg ; 84 × 0,35 = 29,4 → 27,5 kg.
+    #expect(squat.startingLoad(bodyweightKg: 60, sex: .female) == 22.5)
+    #expect(ExerciseGuide.guide(for: "Push press")?.startingLoad(bodyweightKg: 84, sex: .male) == 27.5)
     let lunge = try #require(ExerciseGuide.guide(for: "Fentes bulgares haltères"))
     #expect(lunge.perDumbbell)
     #expect(lunge.startingLoad(bodyweightKg: 80, sex: .male) == 8)

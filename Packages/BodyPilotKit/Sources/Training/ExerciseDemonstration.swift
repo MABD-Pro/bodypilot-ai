@@ -64,5 +64,15 @@ public enum ExerciseDemonstration {
         "Pont fessier pieds surélevés": "lpXC5v9TWXY",
         "Hip thrust une jambe": "qHaAALHvHCM",
         "Good morning sans charge": "61zbhuRiwQg",
+        // Cycle CrossFit, vérifiés le 28 octobre 2026. En anglais : Push press, Rowing aux anneaux, Wall ball.
+        "Squat avant": "H_d6oaCKG0U",
+        "Push press": "iaBVSJm78ko",
+        "Tractions assistées": "WO5olJ6NASQ",
+        "Rowing aux anneaux": "sEAOZc77wk8",
+        "Thruster léger": "N0dtRABhraY",
+        "Wall ball": "fpUD0mcFp_0",
+        "Kettlebell swing": "gA5klxc7YrY",
+        "Hang power clean": "wYnBdzF9Ixk",
+        "Power clean": "Io4QsuRnhZg",
     ]
 }

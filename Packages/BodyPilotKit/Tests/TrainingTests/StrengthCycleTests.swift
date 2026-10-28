@@ -100,6 +100,29 @@ private let tuesday = day(2026, 10, 27)
     #expect(try #require(workout(cycleDay(week: 10, done: [CycleCardio.intervalsTitle], minutes: 30))).estimatedMinutes <= 30)
 }
 
-@Test func lastCycleWeekHasNoIntervals() throws {
-    #expect(try #require(workout(cycleDay(week: 12))).title == CycleCardio.aerobicTitle)
+@Test func lastCycleWeeksReplaceIntervalsWithTheBenchmark() throws {
+    #expect(try #require(workout(cycleDay(week: 11))).title == CycleConditioning.benchmarkTitle)
+    #expect(try #require(workout(cycleDay(week: 12))).title == CycleConditioning.benchmarkTitle)
+    #expect(try #require(workout(cycleDay(week: 12, done: [CycleConditioning.benchmarkTitle]))).title == CycleCardio.aerobicTitle)
+}
+
+@Test func cycleRotatesThroughForceC() {
+    let profile = makeProfile(equipment: .gym)
+    let week6 = CycleWeek(program: .crossfit, number: 6)
+    #expect(planner.nextWorkout(after: "Full body B", for: profile, on: monday, cycleWeek: week6).title == "Full body C")
+    #expect(planner.nextWorkout(after: "Full body C", for: profile, on: monday, cycleWeek: week6).title == "Full body A")
+    #expect(planner.nextWorkout(after: "Full body B", for: profile, on: monday).title == "Full body A")
+    #expect(TrainingPlanner.isStrengthSession("Full body C"))
+    let forceC = planner.nextWorkout(after: "Full body B", for: profile, on: monday, cycleWeek: week6)
+    #expect(forceC.exercises.map(\.name).contains("Squat avant"))
+}
+
+@Test func forceBEndsWithTechniqueAndForceAWithConditioning() throws {
+    var constraints = DayConstraints(lastWorkoutTitle: "Full body A", cycleWeek: CycleWeek(program: .crossfit, number: 6))
+    let forceB = try #require(workout(planner.trainingDay(for: makeProfile(sessionMinutes: 90, equipment: .gym), on: monday, constraints: constraints)))
+    #expect(forceB.exercises.last?.name == "Hang power clean")
+    constraints.lastWorkoutTitle = "Full body C"
+    let forceA = try #require(workout(planner.trainingDay(for: makeProfile(sessionMinutes: 90, equipment: .gym), on: monday, constraints: constraints)))
+    #expect(forceA.exercises.last?.name.hasPrefix("EMOM") == true)
+    #expect(forceA.exercises.last?.volume == .seconds(12 * 60))
 }

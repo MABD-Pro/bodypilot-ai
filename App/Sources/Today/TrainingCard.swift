@@ -39,9 +39,14 @@ struct TrainingCard: View {
     var cycleWeek: CycleWeek?
     var canStartCycle = false
     var manageCycle: () -> Void = {}
+    /// WOD de référence : temps noté aujourd'hui, et celui de la fois précédente.
+    var benchmarkToday: Int?
+    var previousBenchmark: Int?
+    var logBenchmark: (Int) -> Void = { _ in }
 
     @State private var isPreviewingWatch = false
     @State private var isLoggingCardioTest = false
+    @State private var isLoggingBenchmark = false
     @State private var logging: LiftToLog?
     @State private var celebration: String?
     private let calendar = Calendar.current
@@ -128,6 +133,9 @@ struct TrainingCard: View {
             if workout.isCardioTest {
                 cardioTestResult
             }
+            if workout.title == CycleConditioning.benchmarkTitle {
+                benchmarkResult
+            }
 
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Label(workout.intensityCue, systemImage: "gauge.with.dots.needle.33percent")
@@ -207,6 +215,52 @@ struct TrainingCard: View {
             CardioTestSheet(save: logCardioTest)
         }
         .sensoryFeedback(.success, trigger: cardioTestToday?.vo2max)
+    }
+
+    /// WOD de référence : noter son temps, et le comparer à la fois précédente.
+    private var benchmarkResult: some View {
+        Button {
+            isLoggingBenchmark = true
+        } label: {
+            HStack(spacing: Theme.Spacing.m) {
+                IconBadge(symbol: benchmarkToday == nil ? "stopwatch" : "flag.checkered", tint: benchmarkToday == nil ? Theme.training : Theme.progress, size: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    if let benchmarkToday {
+                        Text("Ton temps : \(Self.clock(benchmarkToday))")
+                            .font(.subheadline.weight(.semibold))
+                        Text(previousBenchmark.map { previous in
+                            let gain = previous - benchmarkToday
+                            return gain > 0 ? "\(Self.clock(gain)) de mieux que la dernière fois (\(Self.clock(previous)))." : "La dernière fois : \(Self.clock(previous))."
+                        } ?? "Première mesure : refais-le en fin de cycle pour comparer.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Noter mon temps")
+                            .font(.subheadline.weight(.semibold))
+                        Text(previousBenchmark.map { "La dernière fois : \(Self.clock($0))." } ?? "Du premier coup de rame au dernier rowing.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(Theme.Spacing.m)
+            .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $isLoggingBenchmark) {
+            BenchmarkTimeSheet(initial: benchmarkToday ?? previousBenchmark ?? 15 * 60, save: logBenchmark)
+        }
+        .sensoryFeedback(.success, trigger: benchmarkToday)
+    }
+
+    /// « 14 min 05 ».
+    static func clock(_ seconds: Int) -> String {
+        "\(seconds / 60) min \(String(format: "%02d", seconds % 60))"
     }
 
     /// Semaine du cycle (la semaine allégée se voit), ou de quoi en commencer un.
@@ -1001,6 +1055,9 @@ extension WorkoutExercise {
         case .seconds(let seconds) where sets == 1 && seconds >= 120: "\(Int((Double(seconds) / 60).rounded())) min"
         // Fractionné : effort puis récupération.
         case .seconds(let seconds) where isConditioning && restSeconds > 0: "\(sets) × \(Self.duration(seconds)) / \(Self.duration(restSeconds))"
+        // Tours enchaînés sans pause (WOD au chrono) : la durée n'est qu'un ordre d'idée, déjà
+        // dans la durée de la séance ; un volume court laisse la place au contenu du tour.
+        case .seconds where isConditioning && sets > 1: "\(sets) tours"
         case .seconds(let seconds): "\(sets) × \(Self.duration(seconds))"
         }
     }
@@ -1089,5 +1146,56 @@ private struct CardioTestSheet: View {
         .padding(Theme.Spacing.xxl)
         .frame(maxHeight: .infinity, alignment: .top)
         .presentationDetents([.height(600), .large])
+    }
+}
+
+/// Temps du WOD de référence, lu sur le chrono.
+private struct BenchmarkTimeSheet: View {
+    let save: (Int) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var minutes: Int
+    @State private var seconds: Int
+
+    init(initial: Int, save: @escaping (Int) -> Void) {
+        self.save = save
+        _minutes = State(initialValue: min(max(initial / 60, 5), 60))
+        _seconds = State(initialValue: initial % 60 / 5 * 5)
+    }
+
+    var body: some View {
+        VStack(spacing: Theme.Spacing.xl) {
+            VStack(spacing: Theme.Spacing.xs) {
+                Text(CycleConditioning.benchmarkTitle)
+                    .font(.display(24))
+                Text("Ton temps pour les 3 tours.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 0) {
+                Picker("Minutes", selection: $minutes) {
+                    ForEach(5...60, id: \.self) { Text("\($0) min").tag($0) }
+                }
+                Picker("Secondes", selection: $seconds) {
+                    ForEach(Array(stride(from: 0, to: 60, by: 5)), id: \.self) { Text(String(format: "%02d s", $0)).tag($0) }
+                }
+            }
+            .pickerStyle(.wheel)
+            .frame(height: 120)
+
+            Button {
+                save(minutes * 60 + seconds)
+                dismiss()
+            } label: {
+                Text("Enregistrer")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Theme.training)
+        }
+        .padding(Theme.Spacing.xxl)
+        .presentationDetents([.height(400)])
     }
 }

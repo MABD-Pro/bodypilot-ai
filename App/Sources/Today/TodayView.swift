@@ -132,7 +132,10 @@ struct TodayView: View {
                             logCardioTest: logCardioTest,
                             cycleWeek: profileRecord.cycle?.week(on: now, calendar: calendar),
                             canStartCycle: profileRecord.profile.equipment == .gym,
-                            manageCycle: { isManagingCycle = true }
+                            manageCycle: { isManagingCycle = true },
+                            benchmarkToday: todayLog?.benchmarkSeconds,
+                            previousBenchmark: dayLogs.filter { !calendar.isDateInToday($0.day) && $0.benchmarkSeconds != nil }.max { $0.day < $1.day }?.benchmarkSeconds,
+                            logBenchmark: logBenchmark
                         )
                             .id("training")
                         ProgressCard(
@@ -478,6 +481,13 @@ struct TodayView: View {
             }
         }
         try? context.save()
+    }
+
+    private func logBenchmark(_ seconds: Int) {
+        let log = todayLog()
+        withAnimation(Theme.springy) {
+            log.benchmarkSeconds = seconds
+        }
     }
 
     private func toggleWorkoutDone(title: String?) {

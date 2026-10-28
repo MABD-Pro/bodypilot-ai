@@ -44,7 +44,8 @@ public struct TrainingPlanner: TrainingPlanning {
 
     /// Titre d'une séance de force du catalogue (et non d'une séance cardio et marche).
     public static func isStrengthSession(_ title: String) -> Bool {
-        title.hasPrefix("Test de force") || (WorkoutCatalog.sessions(for: .gym) + WorkoutCatalog.sessions(for: .bodyweight)).contains { $0.title == title }
+        title.hasPrefix("Test de force") || title == WorkoutCatalog.gymCTitle
+            || (WorkoutCatalog.sessions(for: .gym) + WorkoutCatalog.sessions(for: .bodyweight)).contains { $0.title == title }
     }
 
     /// Force possible ce jour-là : jamais faite, ou faite il y a au moins 48 h.
@@ -63,8 +64,11 @@ public struct TrainingPlanner: TrainingPlanning {
         let hasCardioTest = cardioTest(budget: budget, constraints: constraints) != nil
         let recommendation = recommend(on: date, constraints: constraints, strengthOK: strengthOK, isTest: test != nil, cardioTest: hasCardioTest)
         var reason = recommendation.reason
-        if recommendation.choice == .conditioning, !hasCardioTest, let week = constraints.cycleWeek, CycleCardio.intervalsDue(week, constraints: constraints) {
-            reason = "Force faite hier : c'est le jour du fractionné de la semaine \(week.number), sans impact. Les jambes récupèrent pendant que le cœur travaille."
+        if recommendation.choice == .conditioning, !hasCardioTest, let week = constraints.cycleWeek,
+           CycleCardio.intervalsDue(week, equipment: profile.equipment, constraints: constraints) {
+            reason = CycleCardio.benchmarkWeeks.contains(week.number) && profile.equipment == .gym
+                ? "Force faite hier : c'est le jour du WOD de référence de la semaine \(week.number). Note ton temps pour mesurer ta progression."
+                : "Force faite hier : c'est le jour du fractionné de la semaine \(week.number), sans impact. Les jambes récupèrent pendant que le cœur travaille."
         }
         return TrainingOptions(
             options: choices.map { TrainingOption(choice: $0, day: day(for: $0, profile: profile, budget: budget, test: test, on: date, constraints: constraints)) },
@@ -165,7 +169,7 @@ public struct TrainingPlanner: TrainingPlanning {
                     "Test de force : monte par paliers jusqu'à une série de 5 lourde et propre, puis note-la. Toutes tes charges de travail en découlent.",
                 ])
             }
-            var strength = nextWorkout(after: constraints.lastWorkoutTitle, for: profile, on: date)
+            var strength = nextWorkout(after: constraints.lastWorkoutTitle, for: profile, on: date, cycleWeek: constraints.cycleWeek)
             if let week = constraints.cycleWeek {
                 strength = StrengthCycle.apply(week, to: strength, usesLoads: profile.equipment == .gym)
             }
@@ -173,7 +177,13 @@ public struct TrainingPlanner: TrainingPlanning {
             let sessionBudget = constraints.cycleWeek?.isDeload == true
                 ? max(Int(Double(budget) * StrengthCycle.deloadTimeShare), min(budget, Self.threeAxisMinutes))
                 : budget
-            let composed = sessionBudget >= Self.threeAxisMinutes ? withConditioning(strength, budget: sessionBudget, equipment: profile.equipment, on: date) : strength
+            let composed: Workout
+            if let week = constraints.cycleWeek, profile.equipment == .gym {
+                // Cycle en salle : technique après la B, conditioning court après la A et la C.
+                composed = CycleConditioning.compose(strength, week: week)
+            } else {
+                composed = sessionBudget >= Self.threeAxisMinutes ? withConditioning(strength, budget: sessionBudget, equipment: profile.equipment, on: date) : strength
+            }
             var day = adapt(composed, budget: sessionBudget, constraints: constraints)
             if let postponed = postponedTest(for: profile, constraints: constraints) {
                 day.notes.insert(postponed, at: 0)
@@ -195,8 +205,8 @@ public struct TrainingPlanner: TrainingPlanning {
             }
             if let week = constraints.cycleWeek {
                 let dayIndex = calendar.ordinality(of: .day, in: .era, for: date) ?? 0
-                let workout = CycleCardio.intervalsDue(week, constraints: constraints)
-                    ? CycleCardio.intervals(for: week).map { CycleCardio.intervalsWorkout($0, week: week, budget: budget, equipment: profile.equipment) }
+                let workout = CycleCardio.intervalsDue(week, equipment: profile.equipment, constraints: constraints)
+                    ? CycleCardio.hardWorkout(for: week, budget: budget, equipment: profile.equipment)
                     : nil
                 var day = adapt(
                     workout ?? CycleCardio.aerobicWorkout(week: week, budget: budget, equipment: profile.equipment, dayIndex: dayIndex, zone: constraints.cardio.moderateHeartRate),
@@ -341,9 +351,11 @@ public struct TrainingPlanner: TrainingPlanning {
         return result
     }
 
-    /// La séance de force qui suit la dernière faite (A puis B) ; sans historique, la A.
-    func nextWorkout(after title: String?, for profile: UserProfile, on date: Date) -> Workout {
-        let sessions = WorkoutCatalog.sessions(for: profile.equipment)
+    /// La séance de force qui suit la dernière faite (A puis B, ou A, B, C pendant un cycle
+    /// en salle) ; sans historique, la A.
+    func nextWorkout(after title: String?, for profile: UserProfile, on date: Date, cycleWeek: CycleWeek? = nil) -> Workout {
+        let sessions = cycleWeek.flatMap { profile.equipment == .gym ? WorkoutCatalog.cycleSessions(phase: $0.phase) : nil }
+            ?? WorkoutCatalog.sessions(for: profile.equipment)
         guard let title, let index = sessions.firstIndex(where: { $0.title == title }) else { return sessions[0] }
         return sessions[(index + 1) % sessions.count]
     }

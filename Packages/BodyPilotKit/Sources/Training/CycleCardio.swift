@@ -38,11 +38,23 @@ public enum CycleCardio {
         intervalsByWeek[min(max(week.number, 1), TrainingCycle.weeks) - 1]
     }
 
-    /// Le fractionné de la semaine reste à faire, et le jour s'y prête : ni fatigue, ni
+    /// Séance dure de la semaine : le WOD de référence en semaines 11 et 12 (salle), sinon le fractionné.
+    static func hardWorkout(for week: CycleWeek, budget: Int, equipment: Equipment) -> Workout? {
+        if week.number >= benchmarkWeeks.lowerBound, equipment == .gym {
+            return CycleConditioning.benchmarkWorkout()
+        }
+        return intervals(for: week).map { intervalsWorkout($0, week: week, budget: budget, equipment: equipment) }
+    }
+
+    /// Semaines du WOD de référence : une première mesure, puis la comparaison.
+    static let benchmarkWeeks = 11...12
+
+    /// La séance dure de la semaine reste à faire, et le jour s'y prête : ni fatigue, ni
     /// courbatures, ni nuit courte (moins de 6 h).
-    static func intervalsDue(_ week: CycleWeek, constraints: DayConstraints) -> Bool {
-        intervals(for: week) != nil
-            && !constraints.cycleWorkoutsThisWeek.contains(intervalsTitle)
+    static func intervalsDue(_ week: CycleWeek, equipment: Equipment, constraints: DayConstraints) -> Bool {
+        let available = intervals(for: week) != nil || (benchmarkWeeks.contains(week.number) && equipment == .gym)
+        let done = constraints.cycleWorkoutsThisWeek.contains { $0 == intervalsTitle || $0 == CycleConditioning.benchmarkTitle }
+        return available && !done
             && !constraints.lowEnergy && !constraints.sore
             && (constraints.sleepHours ?? 8) >= 6
     }

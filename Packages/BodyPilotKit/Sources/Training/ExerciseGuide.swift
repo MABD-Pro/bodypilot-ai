@@ -6,14 +6,17 @@ public struct ExerciseGuide: Sendable, Equatable {
     public var cues: [String]
     /// La charge notée est celle d'un seul haltère.
     public var perDumbbell: Bool
+    /// À la barre : la charge se règle par paires de disques, donc de 2,5 en 2,5 kg.
+    var barbell: Bool
     /// Charge d'essai en fraction du poids du corps ; `nil` au poids du corps.
     var startRatioMale: Double?
     var startRatioFemale: Double?
 
-    init(muscles: String, cues: [String], perDumbbell: Bool = false, start: (Double, Double)? = nil) {
+    init(muscles: String, cues: [String], perDumbbell: Bool = false, barbell: Bool = false, start: (Double, Double)? = nil) {
         self.muscles = muscles
         self.cues = cues
         self.perDumbbell = perDumbbell
+        self.barbell = barbell
         startRatioMale = start?.0
         startRatioFemale = start?.1
     }
@@ -27,7 +30,7 @@ public struct ExerciseGuide: Sendable, Equatable {
     public func startingLoad(bodyweightKg: Double, sex: BiologicalSex) -> Double? {
         guard let ratio = sex == .female ? startRatioFemale : startRatioMale else { return nil }
         let raw = bodyweightKg * ratio
-        let step = StrengthProgress.loadStep(for: raw)
+        let step = barbell ? 2.5 : StrengthProgress.loadStep(for: raw)
         return max(step, (raw / step).rounded(.down) * step)
     }
 
@@ -38,12 +41,12 @@ public struct ExerciseGuide: Sendable, Equatable {
         "Squat à la barre": ExerciseGuide(
             muscles: "Quadriceps, fessiers, adducteurs, gainage",
             cues: ["Barre sur le haut du dos, pieds largeur d'épaules, pointes légèrement ouvertes.", "Descends hanches et genoux ensemble, genoux dans l'axe des pieds.", "Cuisses au moins parallèles au sol, dos neutre, talons au sol.", "Remonte en poussant le sol, sans que le buste ne bascule."],
-            start: (0.6, 0.4)
+            barbell: true, start: (0.6, 0.4)
         ),
         "Développé couché": ExerciseGuide(
             muscles: "Pectoraux, triceps, épaules (avant)",
             cues: ["Omoplates serrées et basses, pieds bien ancrés au sol.", "Mains un peu plus larges que les épaules, poignets droits.", "Descends la barre au bas des pectoraux, coudes à environ 45°.", "Pousse en ligne vers le haut, sans décoller les fesses."],
-            start: (0.5, 0.3)
+            barbell: true, start: (0.5, 0.3)
         ),
         "Tirage vertical lourd": ExerciseGuide(
             muscles: "Grand dorsal, biceps, arrière d'épaule",
@@ -53,22 +56,22 @@ public struct ExerciseGuide: Sendable, Equatable {
         "Soulevé de terre roumain": ExerciseGuide(
             muscles: "Ischio-jambiers, fessiers, lombaires",
             cues: ["Genoux légèrement fléchis et fixes pendant tout le mouvement.", "Pousse les hanches en arrière, barre collée aux cuisses.", "Descends tant que le dos reste plat, souvent mi-tibia.", "Remonte en serrant les fessiers, sans cambrer."],
-            start: (0.5, 0.35)
+            barbell: true, start: (0.5, 0.35)
         ),
         "Soulevé de terre": ExerciseGuide(
             muscles: "Fessiers, ischio-jambiers, dos, quadriceps",
             cues: ["Barre au-dessus du milieu du pied, tibias proches de la barre.", "Dos plat, poitrine sortie, bras tendus.", "Pousse le sol avec les jambes, la barre frôle les jambes.", "Verrouille en serrant les fessiers, sans basculer en arrière."],
-            start: (0.75, 0.5)
+            barbell: true, start: (0.75, 0.5)
         ),
         "Développé militaire": ExerciseGuide(
             muscles: "Épaules, triceps, haut des pectoraux",
             cues: ["Debout, fessiers et abdominaux serrés, sans cambrer.", "Barre au haut de la poitrine, avant-bras verticaux.", "Pousse vers le haut en reculant légèrement la tête.", "Bras tendus au-dessus de la tête, barre au-dessus des pieds."],
-            start: (0.3, 0.2)
+            barbell: true, start: (0.3, 0.2)
         ),
         "Rowing barre": ExerciseGuide(
             muscles: "Dos (milieu), grand dorsal, biceps",
             cues: ["Buste penché à environ 45°, dos plat, genoux fléchis.", "Tire la barre vers le nombril, coudes près du corps.", "Serre les omoplates en haut, une seconde.", "Redescends en contrôle, sans redresser le buste."],
-            start: (0.45, 0.3)
+            barbell: true, start: (0.45, 0.3)
         ),
         "Fentes bulgares haltères": ExerciseGuide(
             muscles: "Quadriceps, fessiers",
@@ -78,7 +81,7 @@ public struct ExerciseGuide: Sendable, Equatable {
         "Hip thrust": ExerciseGuide(
             muscles: "Fessiers, ischio-jambiers",
             cues: ["Haut du dos sur un banc, barre au pli de la hanche (avec une mousse).", "Pieds à plat, tibias verticaux en haut du mouvement.", "Monte en serrant les fessiers, sans cambrer.", "Menton rentré, regard vers l'avant."],
-            start: (0.6, 0.5)
+            barbell: true, start: (0.6, 0.5)
         ),
         // Salle : variantes
         "Squat goblet lourd": ExerciseGuide(
@@ -100,6 +103,49 @@ public struct ExerciseGuide: Sendable, Equatable {
             muscles: "Pectoraux, triceps",
             cues: ["Poignées à hauteur du milieu de la poitrine.", "Omoplates serrées contre le dossier.", "Pousse sans verrouiller les coudes.", "Reviens lentement jusqu'à l'étirement."],
             start: (0.45, 0.3)
+        ),
+        // Cycle CrossFit : Force C, technique, conditioning
+        "Squat avant": ExerciseGuide(
+            muscles: "Quadriceps, fessiers, gainage, haut du dos",
+            cues: ["Barre posée sur l'avant des épaules, coudes hauts, doigts sous la barre.", "Buste droit pendant toute la descente.", "Descends entre les talons, genoux vers l'avant dans l'axe des pieds.", "Remonte en gardant les coudes hauts : s'ils tombent, la barre glisse."],
+            barbell: true, start: (0.45, 0.3)
+        ),
+        "Push press": ExerciseGuide(
+            muscles: "Épaules, triceps, jambes (impulsion)",
+            cues: ["Barre sur l'avant des épaules, pieds largeur de hanches.", "Petite flexion des genoux, buste droit, talons au sol.", "Pousse fort avec les jambes et enchaîne avec les bras.", "Verrouille bras tendus au-dessus de la tête, tête passée sous la barre."],
+            barbell: true, start: (0.35, 0.2)
+        ),
+        "Tractions assistées": ExerciseGuide(
+            muscles: "Grand dorsal, biceps, gainage",
+            cues: ["Élastique sous un pied ou un genou, ou machine assistée.", "Abaisse les épaules avant de tirer.", "Menton au-dessus de la barre, sans balancer.", "Diminue l'aide quand les répétitions prévues passent facilement."]
+        ),
+        "Rowing aux anneaux": ExerciseGuide(
+            muscles: "Dos, biceps, arrière d'épaule, gainage",
+            cues: ["Corps gainé en planche, talons au sol.", "Tire la poitrine vers les mains, coudes près du corps.", "Plus les pieds avancent, plus c'est dur.", "Redescends en contrôle, bras tendus."]
+        ),
+        "Thruster léger": ExerciseGuide(
+            muscles: "Quadriceps, fessiers, épaules, triceps",
+            cues: ["Barre ou haltères sur l'avant des épaules.", "Squat avant complet, buste droit.", "En remontant, enchaîne sans pause la poussée au-dessus de la tête.", "Charge légère : c'est un mouvement de rythme."],
+            start: (0.25, 0.15)
+        ),
+        "Wall ball": ExerciseGuide(
+            muscles: "Quadriceps, fessiers, épaules",
+            cues: ["Balle contre la poitrine, face au mur, à un pas.", "Squat complet, buste droit.", "Lance avec les jambes vers la cible (2,7 à 3 m).", "Rattrape la balle en redescendant directement en squat."]
+        ),
+        "Kettlebell swing": ExerciseGuide(
+            muscles: "Fessiers, ischio-jambiers, gainage",
+            cues: ["Pieds un peu plus larges que les hanches, kettlebell devant toi.", "Pousse les hanches en arrière, dos plat, comme pour un soulevé de terre roumain.", "Projette les hanches vers l'avant : ce sont elles qui lancent, pas les bras.", "Kettlebell à hauteur des épaules, fessiers serrés en haut."],
+            start: (0.2, 0.12)
+        ),
+        "Hang power clean": ExerciseGuide(
+            muscles: "Fessiers, ischio-jambiers, trapèzes, gainage",
+            cues: ["Départ debout, barre au-dessus des genoux, dos plat.", "Extension explosive des hanches, épaules qui haussent.", "Passe sous la barre et reçois-la sur l'avant des épaules, coudes hauts.", "Charge légère tant que le geste n'est pas propre : apprends-le avec un coach en box."],
+            barbell: true, start: (0.3, 0.2)
+        ),
+        "Power clean": ExerciseGuide(
+            muscles: "Fessiers, ischio-jambiers, quadriceps, trapèzes",
+            cues: ["Départ au sol comme un soulevé de terre, barre au-dessus du milieu du pied.", "Décolle lentement jusqu'aux genoux, dos plat.", "Accélère, extension explosive des hanches.", "Reçois la barre sur l'avant des épaules, coudes hauts. Un coach en box corrigera mieux que l'app."],
+            barbell: true, start: (0.35, 0.25)
         ),
         "Tractions": ExerciseGuide(
             muscles: "Grand dorsal, biceps, gainage",
@@ -123,7 +169,7 @@ public struct ExerciseGuide: Sendable, Equatable {
         "Soulevé de terre à la trap bar": ExerciseGuide(
             muscles: "Quadriceps, fessiers, dos",
             cues: ["Au centre de la barre hexagonale, pieds largeur de hanches.", "Hanches basses, dos plat, bras tendus.", "Pousse le sol pour te redresser.", "Repose la barre en contrôle, dos toujours plat."],
-            start: (0.8, 0.55)
+            barbell: true, start: (0.8, 0.55)
         ),
         "Développé militaire haltères": ExerciseGuide(
             muscles: "Épaules, triceps",
