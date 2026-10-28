@@ -101,6 +101,49 @@ public struct ExerciseGuide: Sendable, Equatable {
             cues: ["Poignées à hauteur du milieu de la poitrine.", "Omoplates serrées contre le dossier.", "Pousse sans verrouiller les coudes.", "Reviens lentement jusqu'à l'étirement."],
             start: (0.45, 0.3)
         ),
+        // Cycle CrossFit : Force C, technique, conditioning
+        "Squat avant": ExerciseGuide(
+            muscles: "Quadriceps, fessiers, gainage, haut du dos",
+            cues: ["Barre posée sur l'avant des épaules, coudes hauts, doigts sous la barre.", "Buste droit pendant toute la descente.", "Descends entre les talons, genoux vers l'avant dans l'axe des pieds.", "Remonte en gardant les coudes hauts : s'ils tombent, la barre glisse."],
+            start: (0.45, 0.3)
+        ),
+        "Push press": ExerciseGuide(
+            muscles: "Épaules, triceps, jambes (impulsion)",
+            cues: ["Barre sur l'avant des épaules, pieds largeur de hanches.", "Petite flexion des genoux, buste droit, talons au sol.", "Pousse fort avec les jambes et enchaîne avec les bras.", "Verrouille bras tendus au-dessus de la tête, tête passée sous la barre."],
+            start: (0.35, 0.2)
+        ),
+        "Tractions assistées": ExerciseGuide(
+            muscles: "Grand dorsal, biceps, gainage",
+            cues: ["Élastique sous un pied ou un genou, ou machine assistée.", "Abaisse les épaules avant de tirer.", "Menton au-dessus de la barre, sans balancer.", "Diminue l'aide quand les répétitions prévues passent facilement."]
+        ),
+        "Rowing aux anneaux": ExerciseGuide(
+            muscles: "Dos, biceps, arrière d'épaule, gainage",
+            cues: ["Corps gainé en planche, talons au sol.", "Tire la poitrine vers les mains, coudes près du corps.", "Plus les pieds avancent, plus c'est dur.", "Redescends en contrôle, bras tendus."]
+        ),
+        "Thruster léger": ExerciseGuide(
+            muscles: "Quadriceps, fessiers, épaules, triceps",
+            cues: ["Barre ou haltères sur l'avant des épaules.", "Squat avant complet, buste droit.", "En remontant, enchaîne sans pause la poussée au-dessus de la tête.", "Charge légère : c'est un mouvement de rythme."],
+            start: (0.25, 0.15)
+        ),
+        "Wall ball": ExerciseGuide(
+            muscles: "Quadriceps, fessiers, épaules",
+            cues: ["Balle contre la poitrine, face au mur, à un pas.", "Squat complet, buste droit.", "Lance avec les jambes vers la cible (2,7 à 3 m).", "Rattrape la balle en redescendant directement en squat."]
+        ),
+        "Kettlebell swing": ExerciseGuide(
+            muscles: "Fessiers, ischio-jambiers, gainage",
+            cues: ["Pieds un peu plus larges que les hanches, kettlebell devant toi.", "Pousse les hanches en arrière, dos plat, comme pour un soulevé de terre roumain.", "Projette les hanches vers l'avant : ce sont elles qui lancent, pas les bras.", "Kettlebell à hauteur des épaules, fessiers serrés en haut."],
+            start: (0.2, 0.12)
+        ),
+        "Hang power clean": ExerciseGuide(
+            muscles: "Fessiers, ischio-jambiers, trapèzes, gainage",
+            cues: ["Départ debout, barre au-dessus des genoux, dos plat.", "Extension explosive des hanches, épaules qui haussent.", "Passe sous la barre et reçois-la sur l'avant des épaules, coudes hauts.", "Charge légère tant que le geste n'est pas propre : apprends-le avec un coach en box."],
+            start: (0.3, 0.2)
+        ),
+        "Power clean": ExerciseGuide(
+            muscles: "Fessiers, ischio-jambiers, quadriceps, trapèzes",
+            cues: ["Départ au sol comme un soulevé de terre, barre au-dessus du milieu du pied.", "Décolle lentement jusqu'aux genoux, dos plat.", "Accélère, extension explosive des hanches.", "Reçois la barre sur l'avant des épaules, coudes hauts. Un coach en box corrigera mieux que l'app."],
+            start: (0.35, 0.25)
+        ),
         "Tractions": ExerciseGuide(
             muscles: "Grand dorsal, biceps, gainage",
             cues: ["Prise un peu plus large que les épaules, bras tendus.", "Abaisse les épaules puis tire les coudes vers les côtes.", "Menton au-dessus de la barre, sans balancer.", "Redescends jusqu'en bas, en contrôle. Trop dur : élastique ou machine assistée."]

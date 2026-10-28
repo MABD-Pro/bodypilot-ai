@@ -68,6 +68,35 @@ enum WorkoutCatalog {
         intensityCue: bodyweightCue
     )
 
+    // MARK: Cycle CrossFit (salle) : rotation A / B / C
+
+    static func cycleSessions(phase: Int) -> [Workout] {
+        [gymA, gymB, gymC(phase: phase)]
+    }
+
+    static let gymCTitle = "Full body C"
+
+    /// Force C : la haute fréquence du cycle, avec des variantes qui préparent le CrossFit
+    /// (squat avant et push press en phase 2, thruster léger en phase 3).
+    static func gymC(phase: Int) -> Workout {
+        let core = WorkoutExercise(name: "Gainage planche", sets: 3, volume: .seconds(40), restSeconds: 45, priority: 2, alternatives: ["Hollow hold", "Gainage latéral"])
+        let exercises: [WorkoutExercise] = phase <= 1
+            ? [
+                WorkoutExercise(name: "Squat goblet lourd", sets: 4, volume: .reps(8), restSeconds: 120, priority: 1, loadsKnee: true, kneeFriendlyAlternative: "Hip thrust", alternatives: ["Presse à cuisses"]),
+                WorkoutExercise(name: "Développé couché haltères", sets: 4, volume: .reps(8), restSeconds: 120, priority: 1, alternatives: ["Développé à la machine"]),
+                WorkoutExercise(name: "Rowing haltère", sets: 3, volume: .reps(10), restSeconds: 90, priority: 2, alternatives: ["Tirage horizontal à la poulie"]),
+                core,
+            ]
+            : [
+                WorkoutExercise(name: "Squat avant", sets: 4, volume: .reps(6), restSeconds: 150, priority: 1, loadsKnee: true, kneeFriendlyAlternative: "Hip thrust", alternatives: ["Squat goblet lourd"]),
+                WorkoutExercise(name: "Push press", sets: 4, volume: .reps(6), restSeconds: 150, priority: 1, alternatives: ["Développé militaire"]),
+                WorkoutExercise(name: "Tractions assistées", sets: 3, volume: .reps(6), restSeconds: 120, priority: 2, alternatives: ["Tirage vertical lourd", "Rowing aux anneaux"]),
+            ] + (phase >= 3
+                ? [WorkoutExercise(name: "Thruster léger", sets: 3, volume: .reps(8), restSeconds: 90, priority: 2, loadsKnee: true, kneeFriendlyAlternative: "Développé militaire haltères", alternatives: ["Wall ball"])]
+                : [core])
+        return Workout(title: gymCTitle, warmupMinutes: 6, cooldownMinutes: 2, exercises: exercises, intensityCue: heavyCue)
+    }
+
     // MARK: Cardio varié
 
     /// Format de cardio : effort et récupération répétés, ou effort continu (`restSeconds` = 0).

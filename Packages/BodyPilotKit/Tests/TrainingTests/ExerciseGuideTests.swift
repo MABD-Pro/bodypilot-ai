@@ -4,8 +4,10 @@ import Testing
 @testable import Training
 
 @Test func everyStrengthExerciseOfTheCatalogHasAGuide() {
-    let workouts = WorkoutCatalog.sessions(for: .gym) + WorkoutCatalog.sessions(for: .bodyweight)
-    let names = workouts.flatMap(\.exercises)
+    let cycle = (1...3).flatMap { WorkoutCatalog.cycleSessions(phase: $0) }
+    let technique = (1...3).map { CycleConditioning.technique(for: CycleWeek(program: .crossfit, number: 4 * $0 - 3)) }
+    let workouts = WorkoutCatalog.sessions(for: .gym) + WorkoutCatalog.sessions(for: .bodyweight) + cycle
+    let names = (workouts.flatMap(\.exercises) + technique)
         .filter { if case .reps = $0.volume { true } else { false } }
         .flatMap { [$0.name] + $0.alternatives + [$0.kneeFriendlyAlternative].compactMap { $0 } }
     let missing = Set(names).filter { ExerciseGuide.guide(for: $0) == nil }
@@ -26,9 +28,11 @@ import Testing
 }
 
 @Test func everyGuidedExerciseHasADemonstration() {
-    // Toutes les fiches ont une vidéo choisie, sauf le rowing à la porte (aucune vidéo correcte trouvée).
+    // Toutes les fiches ont une vidéo choisie, sauf le rowing à la porte (aucune vidéo correcte
+    // trouvée) et les exercices du cycle CrossFit, dont les vidéos restent à vérifier : recherche YouTube en attendant.
     let withoutVideo = Set(ExerciseGuide.catalog.keys).filter { !ExerciseDemonstration.hasChosenVideo(for: $0) }
-    #expect(withoutVideo == ["Rowing serviette à la porte"])
+    let pending: Set = ["Squat avant", "Push press", "Tractions assistées", "Rowing aux anneaux", "Thruster léger", "Wall ball", "Kettlebell swing", "Hang power clean", "Power clean"]
+    #expect(withoutVideo.subtracting(pending) == ["Rowing serviette à la porte"])
     #expect(Set(ExerciseDemonstration.videos.keys).isSubset(of: ExerciseGuide.catalog.keys))
 }
 

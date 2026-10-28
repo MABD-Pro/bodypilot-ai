@@ -167,6 +167,8 @@ final class DayLogRecord {
     var describedMealsData: Data?
     /// Proposition d'entraînement choisie ; `nil` : celle que le coach recommande.
     var trainingChoiceRaw: String?
+    /// Temps du WOD de référence du cycle fait ce jour-là (secondes).
+    var benchmarkSeconds: Int?
 
     var trainingChoice: TrainingChoice? {
         get { trainingChoiceRaw.flatMap(TrainingChoice.init(rawValue:)) }
