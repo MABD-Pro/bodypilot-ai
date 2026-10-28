@@ -192,6 +192,13 @@ public struct MealConstraints: Sendable, Equatable {
 }
 
 public protocol NutritionPlanning: Sendable {
-    func targets(for profile: UserProfile, currentWeightKg: Double, on date: Date) -> NutritionTargets
+    /// - Parameter exerciseKcalPerDay: dépense moyenne des séances faites, ajoutée à la vie quotidienne.
+    func targets(for profile: UserProfile, currentWeightKg: Double, exerciseKcalPerDay: Double, on date: Date) -> NutritionTargets
     func mealPlan(for targets: NutritionTargets, profile: UserProfile, on date: Date, constraints: MealConstraints) -> DayMealPlan
+}
+
+extension NutritionPlanning {
+    public func targets(for profile: UserProfile, currentWeightKg: Double, on date: Date) -> NutritionTargets {
+        targets(for: profile, currentWeightKg: currentWeightKg, exerciseKcalPerDay: 0, on: date)
+    }
 }

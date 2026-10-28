@@ -12,9 +12,9 @@ private let today = day(2026, 10, 27)
 
 @Test func fatLossAppliesCappedDeficit() {
     let targets = calculator.targets(for: makeProfile(), currentWeightKg: 90, on: today)
-    // BMR 1855 × 1,55 = 2875 ; déficit plafonné à 575 (20 %) → 2300.
-    #expect(targets.maintenanceKcal.rounded() == 2875)
-    #expect(targets.macros.kcal == 2300)
+    // BMR 1855 × 1,4 (vie quotidienne, hors sport) = 2597 ; déficit de 20 % (519) → 2080.
+    #expect(targets.maintenanceKcal.rounded() == 2597)
+    #expect(targets.macros.kcal == 2080)
     #expect(targets.macros.proteinG == 180)
 }
 
@@ -46,15 +46,15 @@ private let today = day(2026, 10, 27)
     var profile = makeProfile()
     profile.calorieAdjustmentKcal = -150
     let targets = calculator.targets(for: profile, currentWeightKg: 90, on: today)
-    #expect(targets.macros.kcal == 2150)
+    #expect(targets.macros.kcal == 1930)
     #expect(targets.rationale.contains("-150 kcal"))
 }
 
 @Test func weeklyAdjustmentNeverBreaksSafetyLimits() {
-    // Perte de gras : jamais au-dessus de la maintenance (2875), jamais sous le plancher (BMR 1855).
+    // Perte de gras : jamais au-dessus de la maintenance (2597), jamais sous le plancher (BMR 1855).
     var profile = makeProfile()
     profile.calorieAdjustmentKcal = 900
-    #expect(calculator.targets(for: profile, currentWeightKg: 90, on: today).macros.kcal == 2880)
+    #expect(calculator.targets(for: profile, currentWeightKg: 90, on: today).macros.kcal == 2600)
     profile.calorieAdjustmentKcal = -900
     #expect(calculator.targets(for: profile, currentWeightKg: 90, on: today).macros.kcal == 1860)
 }
@@ -71,8 +71,8 @@ private let today = day(2026, 10, 27)
     var profile = makeProfile(targetWeightKg: 85)
     profile.goal = .recomposition
     let targets = calculator.targets(for: profile, currentWeightKg: 90, on: today)
-    // 5 kg d'écart → 10 % de déficit sur 2875 → ≈ 2590.
-    #expect(abs(targets.macros.kcal - 2590) <= 10)
+    // 5 kg d'écart → 10 % de déficit sur 2597 → ≈ 2340.
+    #expect(abs(targets.macros.kcal - 2340) <= 10)
     #expect(targets.macros.proteinG == 180)
 
     profile.targetWeightKg = 90
@@ -82,4 +82,16 @@ private let today = day(2026, 10, 27)
     profile.calorieAdjustmentKcal = 450
     let adjusted = calculator.targets(for: profile, currentWeightKg: 90, on: today)
     #expect(adjusted.macros.kcal <= adjusted.maintenanceKcal + 10)
+}
+
+@Test func sessionsDoneAddToDailyExpenditure() {
+    var profile = makeProfile(targetWeightKg: 85)
+    profile.goal = .recomposition
+    let rest = calculator.targets(for: profile, currentWeightKg: 90, on: today)
+    let training = calculator.targets(for: profile, currentWeightKg: 90, exerciseKcalPerDay: 300, on: today)
+    // La dépense des séances s'ajoute à la vie quotidienne, le déficit reste proportionnel.
+    #expect(abs(training.maintenanceKcal - rest.maintenanceKcal - 300) < 0.01)
+    #expect(training.macros.kcal > rest.macros.kcal + 250)
+    #expect(training.rationale.contains("dont 300 kcal pour tes séances"))
+    #expect(training.macros.proteinG == rest.macros.proteinG)
 }

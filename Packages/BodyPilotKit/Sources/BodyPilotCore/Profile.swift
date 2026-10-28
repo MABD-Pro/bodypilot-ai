@@ -12,13 +12,14 @@ public enum ActivityLevel: String, CaseIterable, Sendable, Codable {
     case moderate
     case active
 
-    /// Multiplicateur appliqué au métabolisme de base pour estimer la dépense journalière.
+    /// Multiplicateur du métabolisme de base pour la vie quotidienne, hors sport : les séances
+    /// s'ajoutent à part, d'après celles vraiment faites (`ExerciseEnergy`).
     public var factor: Double {
         switch self {
         case .sedentary: 1.2
-        case .light: 1.375
-        case .moderate: 1.55
-        case .active: 1.725
+        case .light: 1.3
+        case .moderate: 1.4
+        case .active: 1.55
         }
     }
 }

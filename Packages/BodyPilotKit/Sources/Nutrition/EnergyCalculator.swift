@@ -15,10 +15,15 @@ public struct EnergyCalculator: Sendable {
         return sex == .male ? base + 5 : base - 161
     }
 
-    public func targets(for profile: UserProfile, currentWeightKg: Double, on date: Date) -> NutritionTargets {
+    /// - Parameter exerciseKcalPerDay: dépense moyenne par jour des séances faites ces derniers jours.
+    public func targets(for profile: UserProfile, currentWeightKg: Double, exerciseKcalPerDay: Double = 0, on date: Date) -> NutritionTargets {
         let age = profile.age(on: date, calendar: calendar)
         let bmr = basalMetabolicRate(sex: profile.sex, weightKg: currentWeightKg, heightCm: profile.heightCm, age: age)
-        let maintenance = bmr * profile.activity.factor
+        let exercise = max(exerciseKcalPerDay, 0)
+        let maintenance = bmr * profile.activity.factor + exercise
+        let spent = exercise >= 1
+            ? "Dépense estimée \(maintenance.frenchInteger) kcal, dont \(exercise.frenchInteger) kcal pour tes séances (moyenne de 14 jours)"
+            : "Dépense estimée \(maintenance.frenchInteger) kcal"
 
         var kcal: Double
         var explanation: String
@@ -28,29 +33,29 @@ public struct EnergyCalculator: Sendable {
             let floor = max(bmr, SafetyLimits.minimumKcal(for: profile.sex))
             kcal = max(maintenance - deficit, floor)
             if kcal > maintenance - deficit {
-                explanation = "Dépense estimée \(maintenance.frenchInteger) kcal. Déficit limité pour ne pas descendre sous \(floor.frenchInteger) kcal, le minimum sûr pour toi."
+                explanation = "\(spent). Déficit limité pour ne pas descendre sous \(floor.frenchInteger) kcal, le minimum sûr pour toi."
             } else {
-                explanation = "Dépense estimée \(maintenance.frenchInteger) kcal, moins \(deficit.frenchInteger) kcal pour perdre du gras sans sacrifier le muscle."
+                explanation = "\(spent), moins \(deficit.frenchInteger) kcal pour perdre du gras sans sacrifier le muscle."
             }
         case .maintain:
             kcal = maintenance
-            explanation = "Dépense estimée \(maintenance.frenchInteger) kcal : on vise l'équilibre."
+            explanation = "\(spent) : on vise l'équilibre."
         case .recomposition:
             let ratio = Self.recompositionDeficitRatio(currentKg: currentWeightKg, targetKg: profile.targetWeightKg)
             let deficit = min(maintenance * ratio, SafetyLimits.maxDeficitKcal)
             let floor = max(bmr, SafetyLimits.minimumKcal(for: profile.sex))
             kcal = max(maintenance - deficit, min(floor, maintenance))
             if deficit < 1 {
-                explanation = "Dépense estimée \(maintenance.frenchInteger) kcal. Tu es à ton poids visé : on reste à l'équilibre, les protéines et la force font le reste."
+                explanation = "\(spent). Tu es à ton poids visé : on reste à l'équilibre, les protéines et la force font le reste."
             } else if kcal > maintenance - deficit {
-                explanation = "Dépense estimée \(maintenance.frenchInteger) kcal. Déficit limité pour ne pas descendre sous \(floor.frenchInteger) kcal, le minimum sûr pour toi."
+                explanation = "\(spent). Déficit limité pour ne pas descendre sous \(floor.frenchInteger) kcal, le minimum sûr pour toi."
             } else {
-                explanation = "Dépense estimée \(maintenance.frenchInteger) kcal, moins \(deficit.frenchInteger) kcal : assez pour perdre du gras, pas trop pour garder de quoi construire du muscle. Le déficit se réduit à l'approche de ton poids visé."
+                explanation = "\(spent), moins \(deficit.frenchInteger) kcal : assez pour perdre du gras, pas trop pour garder de quoi construire du muscle. Le déficit se réduit à l'approche de ton poids visé."
             }
         case .buildMuscle:
             let surplus = min(maintenance * SafetyLimits.surplusRatio, SafetyLimits.maxSurplusKcal)
             kcal = maintenance + surplus
-            explanation = "Dépense estimée \(maintenance.frenchInteger) kcal, plus \(surplus.frenchInteger) kcal pour construire du muscle en limitant le gras."
+            explanation = "\(spent), plus \(surplus.frenchInteger) kcal pour construire du muscle en limitant le gras."
         }
         if profile.calorieAdjustmentKcal != 0 {
             let adjusted = clampAdjusted(kcal + profile.calorieAdjustmentKcal, planned: kcal, bmr: bmr, maintenance: maintenance, profile: profile)

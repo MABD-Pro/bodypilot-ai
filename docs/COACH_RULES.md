@@ -4,7 +4,8 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 ## Besoins nutritionnels (`Nutrition/EnergyCalculator`)
 
-- Métabolisme de base : Mifflin-St Jeor. Dépense = métabolisme × facteur d'activité (1,2 à 1,725).
+- Métabolisme de base : Mifflin-St Jeor. Dépense = métabolisme × facteur de la vie quotidienne hors sport (1,2 / 1,3 / 1,4 / 1,55, choix BodyPilot) + dépense des séances faites (`ProgressInsights/ExerciseEnergy`).
+- Séances : moyenne par jour des 14 jours précédents, plafonnée à 600 kcal. Un jour avec des entraînements dans Santé compte leurs calories actives. Un jour avec seulement une séance cochée est estimé par MET (Compendium, Ainsworth 2011) : (MET − 1) × poids × durée, avec force 5, cardio 6, marche 3,5. Jamais compté deux fois. Le déficit s'applique sur ce total. Siri et Raccourcis ne lisent pas Santé : ils ne comptent que les séances cochées.
 - Objectif unique : la **recomposition** (perdre du gras en gardant ou en gagnant du muscle). L'utilisateur ne choisit pas entre perdre du poids et prendre du muscle.
 - Déficit selon l'écart au poids visé : 20 % à 10 kg ou plus, proportionnel en dessous (5 % au minimum), aucun à moins de 0,5 kg du poids visé. Sans poids visé : 10 %. Plafonné à 600 kcal. **Plancher** : jamais sous le métabolisme de base, ni sous 1 500 kcal (homme) / 1 200 kcal (femme). Jamais de surplus.
 - Protéines : 2,0 g/kg. Au-delà d'un IMC de 30, calculées sur le poids à IMC 27.
