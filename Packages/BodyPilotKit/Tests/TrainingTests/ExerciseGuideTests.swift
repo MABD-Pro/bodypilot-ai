@@ -39,3 +39,8 @@ import Testing
     #expect(search.path() == "/results")
     #expect(URLComponents(url: search, resolvingAgainstBaseURL: false)?.queryItems?.first?.value == "Rowing serviette à la porte technique")
 }
+
+@Test func chosenVideoPlaysEmbeddedWithoutTrackingCookies() {
+    #expect(ExerciseDemonstration.embedURL(for: "Squat à la barre")?.absoluteString == "https://www.youtube-nocookie.com/embed/K5HuVGYcp50?playsinline=1&rel=0")
+    #expect(ExerciseDemonstration.embedURL(for: "Rowing serviette à la porte") == nil)
+}

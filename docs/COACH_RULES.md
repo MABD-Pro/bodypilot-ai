@@ -64,7 +64,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Objectif suivant : si la dernière série a dépassé les répétitions prévues, charge + ~5 % (pas de 2,5 kg, 1 kg sous 30 kg) ; sinon même charge pour les répétitions prévues. Au poids du corps : une répétition de plus que la dernière fois, une fois les répétitions prévues atteintes.
 - Chaque variante (remplacement, genou) a ses propres records : le nom affiché sert de clé.
 - Fiche exercice (`Training/ExerciseGuide`) : muscles travaillés et 4 consignes de technique pour chaque exercice de force du catalogue et ses variantes, dans la feuille de saisie. Pour les haltères, la charge notée est celle d'un haltère.
-- Démonstration (`Training/ExerciseDemonstration`) : « Voir une démonstration » ouvre une vidéo YouTube choisie et vérifiée à la main pour chaque fiche, en français quand une bonne existe. Sans vidéo choisie, « Chercher une démonstration » ouvre une recherche YouTube « <exercice> technique ». Aucune vidéo n'est stockée dans l'app.
+- Démonstration (`Training/ExerciseDemonstration`) : « Voir une démonstration » lit dans la fiche une vidéo YouTube choisie et vérifiée à la main, en français quand une bonne existe. Lecteur intégré youtube-nocookie (pas de cookies publicitaires tant que la vidéo n'est pas lancée), « Ouvrir dans YouTube » en secours. Sans vidéo choisie, « Chercher une démonstration » ouvre une recherche YouTube « <exercice> technique ». Aucune vidéo n'est stockée dans l'app.
 - Charge d'essai (salle, avant toute série notée) : fraction prudente du poids du corps selon l'exercice et le sexe, arrondie vers le bas au pas de charge. Affichée « Essai : … » ; la première série notée la remplace.
 
 ## Calibrage des charges (`Training/StrengthCalibration`)
@@ -74,6 +74,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Protocole par mouvement : 10 × 50 %, 5 × 70 %, 3 × 85 % du premier essai, puis séries de 5 en ajoutant ~10 % (jambes, 5 kg minimum) ou ~5 % (haut du corps, 2,5 kg minimum) tant que les 5 répétitions restent propres, 2 min 30 de repos. Le premier essai part de la charge d'essai prudente. L'utilisateur note sa série de 5 la plus lourde.
 - Pas de test en cas de fatigue, de douleur au genou, en déplacement ou au poids du corps : la séance habituelle suit. Avec peu de temps, le test garde les mouvements qui tiennent dans la durée (au moins un). Le test ne se remplace pas et ne se resserre pas.
 - Après le test : charge de travail = 1RM estimé (Epley) ramené aux répétitions prévues plus 2 en réserve, arrondi vers le bas. Les variantes (haltères, machines, hip thrust, roumain…) se déduisent du mouvement de référence par un ratio prudent, jusqu'à leur première série notée.
+- L'inscription l'explique (écran « Ton point de départ »). Dans « Mon profil », « Refaire le test de force » (salle) remet le calibrage à zéro : seules les charges notées depuis comptent, le test revient au prochain jour de force et son premier essai part des dernières charges. Les records restent.
 
 ## Progression (`ProgressInsights/WeightTrendAnalyzer`)
 

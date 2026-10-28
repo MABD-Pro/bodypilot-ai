@@ -1,7 +1,7 @@
 import Foundation
 
 /// Démonstration vidéo d'un exercice : une vidéo YouTube choisie et vérifiée à la main,
-/// en français quand une bonne existe, sinon une recherche YouTube sur la technique.
+/// en français quand une bonne existe, lue dans l'app ; sinon une recherche YouTube sur la technique.
 public enum ExerciseDemonstration {
     public static func url(for exercise: String) -> URL {
         if let id = videos[exercise], let url = URL(string: "https://www.youtube.com/watch?v=\(id)") {
@@ -15,6 +15,14 @@ public enum ExerciseDemonstration {
     /// Vrai quand la vidéo a été choisie, faux quand le lien ouvre une recherche.
     public static func hasChosenVideo(for exercise: String) -> Bool {
         videos[exercise] != nil
+    }
+
+    /// Lecteur intégré sans cookies publicitaires (youtube-nocookie), lu dans la fiche sans quitter l'app.
+    public static func embedURL(for exercise: String) -> URL? {
+        guard let id = videos[exercise] else { return nil }
+        var embed = URLComponents(string: "https://www.youtube-nocookie.com/embed/\(id)")!
+        embed.queryItems = [URLQueryItem(name: "playsinline", value: "1"), URLQueryItem(name: "rel", value: "0")]
+        return embed.url
     }
 
     // Identifiants vérifiés le 27 octobre 2026 (vidéo en ligne et intégrable).

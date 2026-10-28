@@ -163,17 +163,20 @@ struct TrainingCard: View {
         let earlier = lifts.filter { !calendar.isDateInToday($0.date) }
         let guide = ExerciseGuide.guide(for: exercise.name)
         let startingKg = usesLoads ? bodyweightKg.flatMap { guide?.startingLoad(bodyweightKg: $0, sex: sex) } : nil
+        let target = StrengthProgress.target(for: exercise.name, plannedReps: planned, history: earlier)
+        // Test refait : le premier essai part des dernières charges plutôt que de la charge d'essai.
+        let firstAttemptKg = target?.kg ?? startingKg
         return LiftToLog(
             exercise: exercise.name,
             plannedReps: planned,
             today: today,
-            target: StrengthProgress.target(for: exercise.name, plannedReps: planned, history: earlier),
+            target: target,
             isRecord: today.map { StrengthProgress.isRecord($0, previous: earlier) } ?? false,
             usesLoads: usesLoads,
             guide: guide,
             startingKg: startingKg,
             isTest: isTest,
-            ramp: isTest ? startingKg.map { StrengthCalibration.ramp(for: exercise.name, firstAttemptKg: $0) } ?? [] : []
+            ramp: isTest ? firstAttemptKg.map { StrengthCalibration.ramp(for: exercise.name, firstAttemptKg: $0) } ?? [] : []
         )
     }
 
@@ -661,6 +664,7 @@ private struct LiftEntrySheet: View {
     @State private var kg: Double
     @State private var reps: Int
     @State private var showsTechnique = false
+    @State private var showsVideo = LaunchOptions.demoVideo
 
     init(item: LiftToLog, save: @escaping (LiftEntry) -> Void) {
         self.item = item
@@ -705,12 +709,17 @@ private struct LiftEntrySheet: View {
                     .buttonStyle(.plain)
                     .padding(.top, Theme.Spacing.xs)
                 }
-                Link(destination: ExerciseDemonstration.url(for: item.exercise)) {
-                    if ExerciseDemonstration.hasChosenVideo(for: item.exercise) {
-                        Label("Voir une démonstration", systemImage: "play.rectangle.fill")
+                if ExerciseDemonstration.embedURL(for: item.exercise) != nil {
+                    Button {
+                        withAnimation(.snappy) { showsVideo.toggle() }
+                    } label: {
+                        Label(showsVideo ? "Masquer la démonstration" : "Voir une démonstration", systemImage: "play.rectangle.fill")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.training)
-                    } else {
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Link(destination: ExerciseDemonstration.url(for: item.exercise)) {
                         Label("Chercher une démonstration", systemImage: "magnifyingglass")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.training)
@@ -726,6 +735,11 @@ private struct LiftEntrySheet: View {
 
             if !item.ramp.isEmpty {
                 ramp
+            }
+
+            if showsVideo, let embed = ExerciseDemonstration.embedURL(for: item.exercise) {
+                demonstration(embed)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             if showsTechnique, let guide = item.guide {
@@ -792,7 +806,21 @@ private struct LiftEntrySheet: View {
         .background(Theme.training.opacity(0.08), in: .rect(cornerRadius: Theme.Radius.inner))
     }
 
-    /// Repères de technique ; la démonstration vidéo s'ouvre dans YouTube.
+    /// Vidéo choisie, lue dans la fiche ; YouTube reste à une touche si le lecteur ne charge pas.
+    private func demonstration(_ embed: URL) -> some View {
+        VStack(alignment: .trailing, spacing: Theme.Spacing.s) {
+            DemonstrationPlayer(embedURL: embed)
+                .aspectRatio(16 / 9, contentMode: .fit)
+                .clipShape(.rect(cornerRadius: Theme.Radius.inner))
+            Link(destination: ExerciseDemonstration.url(for: item.exercise)) {
+                Label("Ouvrir dans YouTube", systemImage: "arrow.up.right.square")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// Repères de technique, à lire à côté de la démonstration.
     private func technique(_ guide: ExerciseGuide) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             Label("Technique", systemImage: "figure.strengthtraining.traditional")

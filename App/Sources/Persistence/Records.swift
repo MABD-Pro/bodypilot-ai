@@ -26,6 +26,8 @@ final class ProfileRecord {
     var calorieAdjustmentKcal: Double = 0
     /// Dernier bilan proposé (accepté ou non) : un seul par semaine.
     var lastCheckInAt: Date?
+    /// « Refaire le test de force » : les charges notées avant cette date ne comptent plus comme calibrées.
+    var strengthTestResetAt: Date?
 
     init(_ profile: UserProfile) {
         entityID = profile.id.rawValue
