@@ -138,8 +138,8 @@ public enum MealTextParser {
 
     static func food(_ entry: LexiconEntry, before: String, after: String) -> DescribedFood {
         let words = before.split(separator: " ").map(String.init)
-        if let grams = explicitGrams(in: before + " " + after) {
-            return described(entry, grams: grams, label: "\(Int(grams.rounded())) g")
+        if let explicit = explicitQuantity(in: before + " " + after) {
+            return described(entry, grams: explicit.grams, label: explicit.label)
         }
         let count = quantity(in: words)
         let size = words.compactMap { sizeFactors[$0] }.last
@@ -215,8 +215,8 @@ public enum MealTextParser {
         DescribedFood(name: entry.food.name, grams: grams, quantityLabel: label, macros: entry.food.per100g.scaled(by: grams / 100), needsPortion: needsPortion)
     }
 
-    /// « 200 g », « 33 cl », « 1,5 l » : en grammes (1 ml ≈ 1 g).
-    static func explicitGrams(in text: String) -> Double? {
+    /// « 200 g », « 33 cl », « 1,5 l » : en grammes (1 ml ≈ 1 g), et telle que l'utilisateur l'a dite.
+    static func explicitQuantity(in text: String) -> (grams: Double, label: String)? {
         let words = text.split(separator: " ").map(String.init)
         for (index, word) in words.enumerated() {
             // « 200g » collé ou « 200 g » séparé.
@@ -224,20 +224,25 @@ public enum MealTextParser {
             let suffix = String(word.dropFirst(digits.count))
             guard let value = Double(digits), value > 0 else { continue }
             let unit = suffix.isEmpty ? (index + 1 < words.count ? words[index + 1] : "") : suffix
+            let written = format(value)
             switch unit {
-            case "g", "gr", "gramme": return value
-            case "kg", "kilo": return value * 1000
-            case "ml": return value
-            case "cl": return value * 10
-            case "l", "litre": return value * 1000
+            case "g", "gr", "gramme": return (value, "\(Int(value.rounded())) g")
+            case "kg", "kilo": return (value * 1000, "\(written) kg")
+            case "ml": return (value, "\(written) ml")
+            case "cl": return (value * 10, "\(written) cl")
+            case "l", "litre": return (value * 1000, "\(written) l")
             default: continue
             }
         }
         return nil
     }
 
+    /// « 2 », « ½ », « ¾ », « 1,5 ».
     private static func format(_ count: Double) -> String {
-        count == count.rounded() ? "\(Int(count))" : count.frenchOneDecimal
+        if count == count.rounded() { return "\(Int(count))" }
+        let fractions: [(Double, String)] = [(0.25, "¼"), (1.0 / 3, "⅓"), (0.5, "½"), (2.0 / 3, "⅔"), (0.75, "¾")]
+        if let fraction = fractions.first(where: { abs($0.0 - count) < 0.01 }) { return fraction.1 }
+        return count.frenchOneDecimal
     }
 }
 
