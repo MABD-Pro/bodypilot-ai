@@ -63,4 +63,17 @@ public struct TrainingCycle: Sendable, Equatable, Codable {
         let number = days / 7 + 1
         return number <= Self.weeks ? CycleWeek(program: program, number: number) : nil
     }
+
+    /// Premier jour de la semaine du cycle qui contient `date`.
+    public func weekStart(on date: Date, calendar: Calendar = .current) -> Date? {
+        guard let week = week(on: date, calendar: calendar) else { return nil }
+        return calendar.date(byAdding: .day, value: 7 * (week.number - 1), to: calendar.startOfDay(for: startDate))
+    }
+
+    /// Séances faites depuis le début de la semaine du cycle, avant ce jour.
+    public func workoutsThisWeek(_ completed: [(day: Date, title: String?)], on date: Date, calendar: Calendar = .current) -> [String] {
+        guard let start = weekStart(on: date, calendar: calendar) else { return [] }
+        let today = calendar.startOfDay(for: date)
+        return completed.filter { $0.day >= start && $0.day < today }.compactMap(\.title)
+    }
 }

@@ -62,3 +62,44 @@ private func workout(_ day: TrainingDay) -> Workout? {
     let deload = try #require(StrengthProgress.target(for: "Squat à la barre", plannedReps: 5, percentOfMax: 0.70, history: history, on: day(2026, 10, 23), calendar: utc))
     #expect(deload.kg == 80)
 }
+
+private let afterStrength = DayConstraints(lastStrengthDay: monday)
+
+private func cycleDay(week: Int, done: [String] = [], sore: Bool = false, minutes: Int = 60) -> TrainingDay {
+    var constraints = afterStrength
+    constraints.cycleWeek = CycleWeek(program: .crossfit, number: week)
+    constraints.cycleWorkoutsThisWeek = done
+    constraints.sore = sore
+    return planner.trainingDay(for: makeProfile(sessionMinutes: minutes, equipment: .gym), on: tuesday, constraints: constraints)
+}
+
+private let tuesday = day(2026, 10, 27)
+
+@Test func cycleCardioDayIsTheWeeklyIntervalsFirst() throws {
+    let options = planner.options(for: makeProfile(sessionMinutes: 60, equipment: .gym), on: tuesday, constraints: {
+        var c = afterStrength
+        c.cycleWeek = CycleWeek(program: .crossfit, number: 7)
+        return c
+    }())
+    #expect(options.recommended == .conditioning)
+    #expect(options.reason.contains("fractionné de la semaine 7"))
+
+    let intervals = try #require(workout(cycleDay(week: 7)))
+    #expect(intervals.title == CycleCardio.intervalsTitle)
+    #expect(intervals.exercises.first?.sets == 4 && intervals.exercises.first?.volume == .seconds(240))
+    #expect(intervals.estimatedMinutes <= 60)
+}
+
+@Test func cycleCardioIsAerobicOnceIntervalsAreDone() throws {
+    let aerobic = try #require(workout(cycleDay(week: 7, done: [CycleCardio.intervalsTitle])))
+    #expect(aerobic.title == CycleCardio.aerobicTitle)
+    #expect(aerobic.estimatedMinutes == 45)
+    // Courbatures : pas de fractionné, même s'il reste à faire.
+    #expect(try #require(workout(cycleDay(week: 7, sore: true))).title == CycleCardio.aerobicTitle)
+    // Le temps du jour plafonne l'aérobie.
+    #expect(try #require(workout(cycleDay(week: 10, done: [CycleCardio.intervalsTitle], minutes: 30))).estimatedMinutes <= 30)
+}
+
+@Test func lastCycleWeekHasNoIntervals() throws {
+    #expect(try #require(workout(cycleDay(week: 12))).title == CycleCardio.aerobicTitle)
+}

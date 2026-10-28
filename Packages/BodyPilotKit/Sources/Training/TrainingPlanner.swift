@@ -60,11 +60,16 @@ public struct TrainingPlanner: TrainingPlanning {
         let strengthOK = isStrengthDay(date, lastStrengthDay: constraints.lastStrengthDay)
         let test = strengthOK ? strengthTest(for: profile, budget: budget, constraints: constraints) : nil
         let choices: [TrainingChoice] = (strengthOK ? [.strength] : []) + [.conditioning, .light, .rest]
-        let recommendation = recommend(on: date, constraints: constraints, strengthOK: strengthOK, isTest: test != nil, cardioTest: cardioTest(budget: budget, constraints: constraints) != nil)
+        let hasCardioTest = cardioTest(budget: budget, constraints: constraints) != nil
+        let recommendation = recommend(on: date, constraints: constraints, strengthOK: strengthOK, isTest: test != nil, cardioTest: hasCardioTest)
+        var reason = recommendation.reason
+        if recommendation.choice == .conditioning, !hasCardioTest, let week = constraints.cycleWeek, CycleCardio.intervalsDue(week, constraints: constraints) {
+            reason = "Force faite hier : c'est le jour du fractionné de la semaine \(week.number), sans impact. Les jambes récupèrent pendant que le cœur travaille."
+        }
         return TrainingOptions(
             options: choices.map { TrainingOption(choice: $0, day: day(for: $0, profile: profile, budget: budget, test: test, on: date, constraints: constraints)) },
             recommended: recommendation.choice,
-            reason: recommendation.reason
+            reason: reason
         )
     }
 
@@ -187,6 +192,18 @@ public struct TrainingPlanner: TrainingPlanning {
                 return TrainingDay(kind: .workout(test), estimatedMinutes: test.estimatedMinutes, notes: [
                     "Test de cardio : ton temps et ton pouls à l'arrivée donnent ta forme cardio (VO2max) et ta zone de cardio modéré. La Watch les affiche ; à refaire toutes les 8 semaines.",
                 ])
+            }
+            if let week = constraints.cycleWeek {
+                let dayIndex = calendar.ordinality(of: .day, in: .era, for: date) ?? 0
+                let workout = CycleCardio.intervalsDue(week, constraints: constraints)
+                    ? CycleCardio.intervals(for: week).map { CycleCardio.intervalsWorkout($0, week: week, budget: budget, equipment: profile.equipment) }
+                    : nil
+                var day = adapt(
+                    workout ?? CycleCardio.aerobicWorkout(week: week, budget: budget, equipment: profile.equipment, dayIndex: dayIndex, zone: constraints.cardio.moderateHeartRate),
+                    budget: budget, constraints: constraints
+                )
+                day.notes.insert(week.label, at: 0)
+                return day
             }
             var workout = conditioningWorkout(budget: budget, equipment: profile.equipment, on: date)
             if let zone = constraints.cardio.moderateHeartRate {

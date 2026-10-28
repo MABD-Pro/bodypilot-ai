@@ -59,7 +59,9 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Mouvements principaux (priorité 1) : semaine 1 : 3 × 6 à ~75 % du max, 3 répétitions en réserve ; semaine 2 : 4 × 6 à ~78 %, 2 en réserve ; semaine 3 : 4 × 5 à ~82 %, 1 en réserve ; semaine allégée : 2 × 5 à ~70 %, 4 en réserve. Exercices secondaires : 3 séries ; en semaine allégée, 2 séries à ~70 % du max. La semaine allégée raccourcit aussi la séance de force à 70 % du temps (au moins 30 min si le temps le permet) : le temps gagné ne part pas en cardio. Choix BodyPilot dans la fourchette de l'ACSM (2009) ; semaine allégée selon le consensus de Bell et al. (2023).
 - Charge = pourcentage du max pondéré (`StrengthProgress.referenceOneRepMax`), arrondie aux disques en dessous ; elle remplace la surcharge progressive pendant le cycle. Le max se recalcule à chaque série notée : la phase suivante monte toute seule si la semaine 3 a progressé.
 - Le coach du jour garde la main : fatigue, nuit courte, genou, temps limité et test de force passent avant le cycle. La note de la séance indique la semaine et la phase.
-- Pas encore dans ce lot : Force C et nouveaux exercices, cardio progressif, EMOM/AMRAP, WOD de référence.
+- Cardio du cycle (`Training/CycleCardio`) : les jours sans force, le premier cardio de la semaine du cycle est le fractionné (sans impact : rameur ou vélo, à la maison boxe dans le vide), si ni fatigue, ni courbatures, ni nuit de moins de 6 h ; les autres jours, aérobie continue à allure où l'on parle (zone de cardio modéré si connue), dans la limite du temps du jour. Le test de cardio passe avant.
+- Progression par semaine (aérobie / fractionné) : 1 : 30 min / 6 × 30 s-30 s ; 2 : 35 / 8 × 30-30 ; 3 : 40 / 10 × 30-30 ; 4 : 25 / 5 × 30-30 ; 5 : 40 / 3 × 3 min, récup 3 min ; 6 : 45 / 4 × 3 min ; 7 : 45 / 4 × 4 min ; 8 : 30 / 2 × 3 min ; 9 : 45 / 4 × 4 min ; 10 : 50 / 5 × 4 min ; 11 : 50 / 8 × 2 min-1 min ; 12 : 30 / pas de fractionné. Le fractionné perd des tours si le temps manque (au moins 2).
+- Pas encore : Force C et nouveaux exercices, conditioning EMOM/AMRAP en fin de force, WOD de référence.
 
 ## Séance sur l'Apple Watch (`Training/GuidedWorkout`)
 
