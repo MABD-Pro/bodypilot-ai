@@ -205,7 +205,7 @@ struct TodayView: View {
                             sleepHours: sleepHours,
                             steps: steps(average: averageSteps, now: now),
                             phase: plan.phase,
-                            maintenanceOffer: profileRecord.isMaintenanceWeekDue(phase: plan.phase, on: now, calendar: calendar) || LaunchOptions.demoMaintenanceOffer,
+                            maintenanceOffer: profileRecord.isMaintenanceWeekDue(phase: plan.phase, on: now, calendar: calendar) || (LaunchOptions.demoMaintenanceOffer && profileRecord.maintenanceWeekUntil == nil),
                             acceptMaintenance: { withAnimation(Theme.springy) { profileRecord.startMaintenanceWeek(on: now, calendar: calendar) } },
                             dismissMaintenance: { withAnimation(Theme.springy) { profileRecord.maintenanceOfferDismissedAt = .now } },
                             addWeight: { isAddingWeight = true },
@@ -597,6 +597,7 @@ struct TodayView: View {
                 existing.kg = entry.kg
                 existing.reps = entry.reps
                 existing.isTest = entry.isTest
+                existing.effortRaw = entry.effort?.rawValue
             } else {
                 context.insert(LiftRecord(entry))
             }

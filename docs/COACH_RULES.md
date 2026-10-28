@@ -162,7 +162,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Corrections cumulées limitées à ±450 kcal ; jamais sous le plancher de sécurité, jamais de surplus. Sans effet réel, pas de proposition.
 - Cycle menstruel (femmes, suivi de cycle noté dans Santé) : pas de baisse proposée pendant les 5 premiers jours des règles ni les 5 jours qui les précèdent (prévus d'après la durée moyenne des 3 derniers cycles de 21 à 35 jours). La rétention d'eau y masque la perte de gras (White et al., 2011). Une hausse pour perte trop rapide reste proposée.
 - L'objectif proposé tient compte de la dépense des séances, comme celui du jour.
-- Semaine à l'équilibre (`BodyPilotCore/MaintenanceWeek`) : après 12 semaines en perte de gras sans pause (depuis la création du profil ou la dernière semaine à l'équilibre), Progresser propose une semaine à la dépense. Oui → 7 jours en phase d'équilibre, bilans sans baisse, puis le déficit reprend ; Pas maintenant → reproposée 4 semaines plus tard. Présentée honnêtement : elle aide à tenir (faim, fatigue), elle ne fait pas perdre plus de gras.
+- Semaine à l'équilibre (`BodyPilotCore/MaintenanceWeek`) : après 12 semaines en perte de gras sans pause (depuis la création du profil ou la dernière semaine à l'équilibre), Progresser propose une semaine à la dépense. Oui → 7 jours en phase d'équilibre, sans bilan, puis le déficit reprend ; Pas maintenant → reproposée 4 semaines plus tard. Présentée honnêtement : elle aide à tenir (faim, fatigue), elle ne fait pas perdre plus de gras.
 
 ## Pesées importées de Santé (`ProgressInsights/WeightImportPlanner`)
 
