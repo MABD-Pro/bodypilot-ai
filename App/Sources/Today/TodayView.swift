@@ -278,12 +278,15 @@ struct TodayView: View {
     private var tracksCycle: Bool { profileRecord.profile.sex == .female }
 
     /// Une balance qui n'écrit que le taux de gras : la masse maigre se déduit de la pesée du même jour.
+    /// Une masse maigre incohérente avec le poids et le taux de gras (plus de 5 kg d'écart) est écartée.
     private var bodyCompositions: [BodyCompositionEntry] {
         compositions.map { entry in
             var entry = entry
-            if entry.leanKg == nil, let fat = entry.fatPercent,
+            if let fat = entry.fatPercent,
                let weight = weights.last(where: { calendar.isDate($0.date, inSameDayAs: entry.date) }) {
-                entry.leanKg = weight.kg * (1 - fat / 100)
+                let derived = weight.kg * (1 - fat / 100)
+                if let lean = entry.leanKg, abs(lean - derived) > 5 { entry.leanKg = nil }
+                if entry.leanKg == nil { entry.leanKg = derived }
             }
             return entry
         }

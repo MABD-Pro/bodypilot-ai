@@ -105,7 +105,7 @@ enum DemoData {
             guard let date = calendar.date(byAdding: .day, value: -daysAgo, to: now) else { return nil }
             let progress = Double(27 - daysAgo) / 27
             let noise = Double((daysAgo * 7) % 5 - 2) * 0.15
-            return BodyCompositionEntry(date: date, fatPercent: 31.8 - 1.1 * progress + noise, leanKg: 79.6 + 0.5 * progress + noise / 2)
+            return BodyCompositionEntry(date: date, fatPercent: 31.8 - 1.1 * progress + noise, leanKg: 59.3 + 0.4 * progress + noise / 2)
         }
     }
 

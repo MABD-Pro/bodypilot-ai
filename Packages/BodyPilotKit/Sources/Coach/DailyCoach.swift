@@ -158,18 +158,18 @@ public struct DailyCoach: Sendable {
 
     func progressMessage(for trend: WeightTrend, goal: Goal, waistChange: Double? = nil, fatChange: Double? = nil) -> String {
         let weightFlat = trend.status == .stalled || trend.status == .onTrack || trend.status == .notEnoughData
-        if goal == .recomposition, let fatChange, fatChange <= Self.meaningfulFatDropPoints, weightFlat,
-           waistChange.map({ $0 > Self.meaningfulWaistDropCm }) ?? true {
-            let points = abs(fatChange).frenchOneDecimal
-            return trend.status == .onTrack
-                ? "Oui, sur les deux plans : le poids baisse au bon rythme et ton taux de gras a perdu \(points) point\(abs(fatChange) >= 2 ? "s" : "") en 4 semaines."
-                : "Oui : ton taux de gras a perdu \(points) point\(abs(fatChange) >= 2 ? "s" : "") en 4 semaines alors que ton poids bouge peu. Tu perds du gras et gagnes du muscle, c'est la recomposition."
+        var signs: [String] = []
+        if let waistChange, waistChange <= Self.meaningfulWaistDropCm {
+            signs.append("ta taille a perdu \(abs(waistChange).frenchOneDecimal) cm")
         }
-        if goal == .recomposition, let waistChange, waistChange <= Self.meaningfulWaistDropCm, weightFlat {
-            let cm = abs(waistChange).frenchOneDecimal
+        if let fatChange, fatChange <= Self.meaningfulFatDropPoints {
+            signs.append("ton taux de gras a perdu \(abs(fatChange).frenchOneDecimal) point\(abs(fatChange) >= 2 ? "s" : "")")
+        }
+        if goal == .recomposition, weightFlat, !signs.isEmpty {
+            let progress = signs.joined(separator: " et ")
             return trend.status == .onTrack
-                ? "Oui, sur les deux plans : le poids baisse au bon rythme et ta taille a perdu \(cm) cm en 4 semaines."
-                : "Oui : ta taille a perdu \(cm) cm en 4 semaines alors que ton poids bouge peu. Tu perds du gras et gagnes du muscle, c'est la recomposition."
+                ? "Oui, sur les deux plans : le poids baisse au bon rythme et \(progress) en 4 semaines."
+                : "Oui : \(progress) en 4 semaines alors que ton poids bouge peu. Tu perds du gras et gagnes du muscle, c'est la recomposition."
         }
         guard let weekly = trend.weeklyChangeKg else {
             return trend.points.isEmpty
