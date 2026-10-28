@@ -67,6 +67,7 @@ enum DayLogEditor {
                 sessionMinutes: profile.sessionMinutes, weightKg: weights.last?.kg ?? profile.startWeightKg, on: now, calendar: calendar
             ),
             cycle: profile.cycle,
+            cycleWorkoutsThisWeek: profile.cycle?.workoutsThisWeek(done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, on: now, calendar: calendar) ?? [],
             on: now
         )
     }

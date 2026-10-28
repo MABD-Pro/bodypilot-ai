@@ -75,6 +75,7 @@ struct TodayView: View {
             cardio: cardio,
             exerciseKcalPerDay: exerciseKcal,
             cycle: profileRecord.cycle,
+            cycleWorkoutsThisWeek: profileRecord.cycle?.workoutsThisWeek(completed, on: now, calendar: calendar) ?? [],
             on: now
         )
 
