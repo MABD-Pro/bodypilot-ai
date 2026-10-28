@@ -61,6 +61,7 @@ public struct DailyCoach: Sendable {
         trainingChoice: TrainingChoice? = nil,
         cardio: CardioStatus = CardioStatus(),
         exerciseKcalPerDay: Double = 0,
+        cycle: TrainingCycle? = nil,
         on date: Date
     ) -> TodayPlan {
         let trend = progress.trend(of: weights, for: profile, on: date)
@@ -85,7 +86,8 @@ public struct DailyCoach: Sendable {
             activeDays: activeDays,
             recentActivities: recentActivities,
             choice: trainingChoice,
-            cardio: cardio
+            cardio: cardio,
+            cycleWeek: cycle?.week(on: date, calendar: calendar)
         )
         let options = training.options(for: profile, on: date, constraints: constraints)
         let chosen = trainingChoice.flatMap { options.option($0) } ?? options.option(options.recommended)
