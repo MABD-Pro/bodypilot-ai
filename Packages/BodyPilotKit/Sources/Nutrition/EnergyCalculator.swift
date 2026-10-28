@@ -22,9 +22,19 @@ public struct EnergyCalculator: Sendable {
         let bmr = basalMetabolicRate(sex: profile.sex, weightKg: currentWeightKg, heightCm: profile.heightCm, age: age)
         let exercise = max(exerciseKcalPerDay, 0)
         let maintenance = bmr * profile.dailyActivity.factor + exercise
-        let spent = exercise >= 1
-            ? "Dépense estimée \(maintenance.frenchInteger) kcal, dont \(exercise.frenchInteger) kcal pour tes séances (moyenne de 14 jours)"
-            : "Dépense estimée \(maintenance.frenchInteger) kcal"
+        // Les pas, quand Santé les donne, expliquent la vie quotidienne juste après la dépense.
+        let daily = profile.averageDailySteps.map { "vie quotidienne d'après tes pas, environ \(StepActivity.displayed($0).frenchInteger) par jour sur 14 jours" }
+        let spent: String
+        switch (daily, exercise >= 1) {
+        case let (daily?, true):
+            spent = "Dépense estimée \(maintenance.frenchInteger) kcal : \(daily), plus \(exercise.frenchInteger) kcal pour tes séances (moyenne de 14 jours)"
+        case let (daily?, false):
+            spent = "Dépense estimée \(maintenance.frenchInteger) kcal (\(daily))"
+        case (nil, true):
+            spent = "Dépense estimée \(maintenance.frenchInteger) kcal, dont \(exercise.frenchInteger) kcal pour tes séances (moyenne de 14 jours)"
+        case (nil, false):
+            spent = "Dépense estimée \(maintenance.frenchInteger) kcal"
+        }
 
         var kcal: Double
         var explanation: String
@@ -61,9 +71,6 @@ public struct EnergyCalculator: Sendable {
             let surplus = min(maintenance * SafetyLimits.surplusRatio, SafetyLimits.maxSurplusKcal)
             kcal = maintenance + surplus
             explanation = "\(spent), plus \(surplus.frenchInteger) kcal pour construire du muscle en limitant le gras."
-        }
-        if let steps = profile.averageDailySteps {
-            explanation += " Vie quotidienne d'après tes pas : \(steps.frenchInteger) par jour en moyenne sur 14 jours."
         }
         if profile.calorieAdjustmentKcal != 0 {
             let adjusted = clampAdjusted(kcal + profile.calorieAdjustmentKcal, planned: kcal, bmr: bmr, maintenance: maintenance, profile: profile, on: date)

@@ -24,12 +24,37 @@ public enum StepActivity {
 
     /// Moyenne des jours mesurés avant ce jour. Un jour sans aucun pas (iPhone resté à la maison,
     /// montre au chargeur) est écarté. `nil` sous 7 jours mesurés.
-    public static func average(_ days: [DailySteps], before date: Date, calendar: Calendar) -> Double? {
+    /// - Parameter workouts: entraînements de Santé, déjà comptés en calories par `ExerciseEnergy` :
+    ///   leurs pas sont retirés pour ne pas compter deux fois la même marche ou la même course.
+    public static func average(_ days: [DailySteps], excluding workouts: [ActivitySample] = [], before date: Date, calendar: Calendar) -> Double? {
         let end = calendar.startOfDay(for: date)
         guard let start = calendar.date(byAdding: .day, value: -windowDays, to: end) else { return nil }
         let counted = days.filter { $0.steps > 0 && $0.day >= start && $0.day < end }
         guard counted.count >= minimumDays else { return nil }
-        return Double(counted.map(\.steps).reduce(0, +)) / Double(counted.count)
+        var workoutSteps: [Date: Double] = [:]
+        for workout in workouts {
+            workoutSteps[calendar.startOfDay(for: workout.start), default: 0] += steps(during: workout)
+        }
+        let total = counted.reduce(0.0) { sum, day in
+            sum + max(Double(day.steps) - workoutSteps[calendar.startOfDay(for: day.day), default: 0], 0)
+        }
+        return total / Double(counted.count)
+    }
+
+    /// Pas estimés d'un entraînement à pied : environ 110 pas/min en marche (100 pas/min marquent
+    /// l'intensité modérée, Tudor-Locke et al., 2019) et 160 en course (choix BodyPilot, cadence
+    /// courante). Les autres activités ne font presque pas de pas.
+    static func steps(during workout: ActivitySample) -> Double {
+        switch workout.kind {
+        case .walking: workout.minutes * 110
+        case .running: workout.minutes * 160
+        default: 0
+        }
+    }
+
+    /// Moyenne affichée, arrondie à la centaine : 6 529 pas se lisent « environ 6 500 ».
+    public static func displayed(_ average: Double) -> Double {
+        (average / 100).rounded() * 100
     }
 
     /// Zone visée selon l'âge.

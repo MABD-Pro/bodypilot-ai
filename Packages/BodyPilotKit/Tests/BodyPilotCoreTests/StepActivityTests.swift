@@ -27,6 +27,19 @@ private func days(_ counts: [Int]) -> [DailySteps] {
     #expect(StepActivity.average(steps, before: today, calendar: utc) == 8_000)
 }
 
+@Test func workoutStepsAreNotCountedTwice() {
+    let steps = days(Array(repeating: 12_000, count: 7))
+    let run = ActivitySample(id: "run", kind: .running, start: steps[0].day.addingTimeInterval(8 * 3_600), minutes: 30, kcal: 350)
+    let strength = ActivitySample(id: "gym", kind: .strength, start: steps[1].day.addingTimeInterval(8 * 3_600), minutes: 60, kcal: 300)
+    // 30 min de course ≈ 4 800 pas, déjà comptés en calories ; la musculation ne retire rien.
+    #expect(StepActivity.average(steps, excluding: [run, strength], before: today, calendar: utc) == (12_000.0 * 7 - 4_800) / 7)
+}
+
+@Test func displayedAverageIsRoundedToHundreds() {
+    #expect(StepActivity.displayed(6_529) == 6_500)
+    #expect(StepActivity.displayed(6_551) == 6_600)
+}
+
 @Test func goalRisesByAThousandUpToTheAgeZone() {
     #expect(StepActivity.goal(averageSteps: 6_100, age: 35) == 7_500)
     #expect(StepActivity.goal(averageSteps: 6_000, age: 35) == 7_000)

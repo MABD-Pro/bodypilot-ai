@@ -59,7 +59,7 @@ struct TodayView: View {
         let lifts = liftRecords.map(\.entry)
         let cardioMeasures = cardioTests.map(\.measure) + [watchCardio].compactMap { $0 }
         let cardio = DayLogEditor.cardioStatus(for: profileRecord.profile, measures: cardioMeasures, restingHeartRate: restingHeartRate, on: now, calendar: calendar)
-        let averageSteps = StepActivity.average(dailySteps, before: now, calendar: calendar)
+        let averageSteps = StepActivity.average(dailySteps, excluding: healthActivities, before: now, calendar: calendar)
         let exerciseKcal = ExerciseEnergy.dailyAverage(
             samples: healthActivities, completed: completed,
             sessionMinutes: profileRecord.profile.sessionMinutes,

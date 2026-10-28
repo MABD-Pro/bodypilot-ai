@@ -384,7 +384,7 @@ struct ProgressCard: View {
     static func stepsLine(_ steps: StepsToday) -> String {
         let done = Double(steps.today).frenchInteger
         let goal = Double(steps.goal).frenchInteger
-        let average = steps.average.map { " (moyenne \($0.frenchInteger))" } ?? ""
+        let average = steps.average.map { " (moyenne \(StepActivity.displayed($0).frenchInteger))" } ?? ""
         return steps.today >= steps.goal
             ? "\(done) pas aujourd'hui, objectif de \(goal) atteint\(average)"
             : "\(done) pas sur \(goal) aujourd'hui\(average)"
