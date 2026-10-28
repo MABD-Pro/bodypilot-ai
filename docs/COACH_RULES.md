@@ -106,6 +106,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 - Lecture seule du poids (HealthKit, `bodyMass`), 90 jours en arrière à la connexion, puis à chaque retour dans l'app. Aucune donnée ne quitte l'iPhone.
 - Santé fournit aussi, en lecture : les entraînements (Watch, cours collectifs, autres apps), le sommeil de la nuit passée, la VO2max et le pouls au repos. Progresser affiche ce qui est relié et la nuit dernière.
+- Profil : la taille, la date de naissance et le sexe de Santé remplacent ceux du profil à chaque retour dans l'app, donc les besoins se recalculent. « Mon profil » affiche le poids de la dernière pesée. Un poids modifié là devient la pesée du jour, et le poids de départ ne change pas.
 - Une pesée par jour : la première de la journée (le plus souvent le matin à jeun).
 - Un jour déjà renseigné n'est jamais écrasé : la saisie manuelle garde la main.
 - Valeurs hors 25–350 kg écartées ; une mesure déjà importée (même identifiant Santé) ne revient pas.

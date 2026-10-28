@@ -164,6 +164,7 @@ struct TodayView: View {
                 await importHealthActivities()
                 await importSleep()
                 await importCardio()
+                await importProfile()
                 await exportMeals(plan.meals, on: now)
             }
             .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
@@ -182,7 +183,7 @@ struct TodayView: View {
                 WaistEntrySheet(initialCm: waists.last?.cm ?? 90)
             }
             .sheet(isPresented: $isEditingProfile) {
-                OnboardingView(editing: profileRecord)
+                OnboardingView(editing: profileRecord, currentWeightKg: weights.last?.kg)
             }
         }
     }
@@ -209,6 +210,7 @@ struct TodayView: View {
         }
         healthSync = true
         await importHealthWeights()
+        await importProfile()
     }
 
     /// Repas mangés du jour → Santé ; un repas annulé ou sauté en est retiré.
@@ -224,6 +226,23 @@ struct TodayView: View {
     private func importSleep() async {
         guard !LaunchOptions.demoData, let hours = try? await HealthSleep.lastNightHours(calendar: calendar) else { return }
         withAnimation(Theme.springy) { sleepHours = hours }
+    }
+
+    /// Taille, date de naissance et sexe de Santé : le profil suit, les besoins se recalculent.
+    private func importProfile() async {
+        guard !LaunchOptions.demoData else { return }
+        let values = await HealthProfile.read(calendar: calendar)
+        withAnimation(Theme.springy) {
+            if let height = values.heightCm, abs(height - profileRecord.heightCm) >= 1 {
+                profileRecord.heightCm = height
+            }
+            if let birthDate = values.birthDate, !calendar.isDate(birthDate, inSameDayAs: profileRecord.birthDate) {
+                profileRecord.birthDate = birthDate
+            }
+            if let sex = values.sex, sex.rawValue != profileRecord.sexRaw {
+                profileRecord.sexRaw = sex.rawValue
+            }
+        }
     }
 
     private func importCardio() async {

@@ -16,7 +16,7 @@ enum HealthWeight {
     /// Affiche la feuille d'autorisation de Santé : lecture du poids et des entraînements, écriture des repas.
     /// Une seule fois par type ; ensuite, sans effet.
     static func requestAccess() async throws {
-        try await HKHealthStore().requestAuthorization(toShare: HealthMeals.writtenTypes, read: [bodyMass, HealthWorkouts.workoutType, HealthSleep.sleepType, HealthCardio.vo2MaxType, HealthCardio.restingHeartRateType])
+        try await HKHealthStore().requestAuthorization(toShare: HealthMeals.writtenTypes, read: Set<HKObjectType>([bodyMass, HealthWorkouts.workoutType, HealthSleep.sleepType, HealthCardio.vo2MaxType, HealthCardio.restingHeartRateType]).union(HealthProfile.readTypes))
     }
 
     /// Pesées enregistrées depuis une date. Santé ne dit pas si la lecture est refusée :
