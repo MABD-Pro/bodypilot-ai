@@ -166,6 +166,11 @@ public struct TrainingPlanner: TrainingPlanning {
             if let postponed = postponedTest(for: profile, constraints: constraints) {
                 day.notes.insert(postponed, at: 0)
             }
+            if profile.equipment == .gym, let last = constraints.lastStrengthDay,
+               let pause = calendar.dateComponents([.day], from: calendar.startOfDay(for: last), to: calendar.startOfDay(for: date)).day,
+               let comeback = StrengthProgress.comebackNote(pauseDays: pause) {
+                day.notes.insert(comeback, at: 0)
+            }
             return day
         case .conditioning:
             if let test = cardioTest(budget: budget, constraints: constraints) {
