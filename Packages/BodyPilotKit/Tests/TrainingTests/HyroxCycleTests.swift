@@ -81,3 +81,18 @@ private func options(week: Int, done: [String] = [], sessions: Int = 5, lastStre
     let options = options(week: 6, done: ["Full body A"], sessions: 3, lastStrength: day(2026, 10, 24))
     #expect(options.recommended == .conditioning)
 }
+
+@Test func firstWeekTestIsNotARace() {
+    let first = HyroxCycle.benchmark(for: hyrox(1))
+    #expect(first.exercises.first?.name == "1 km à allure soutenue")
+    #expect(HyroxCycle.benchmark(for: hyrox(11)).exercises.first?.name == "1 km à allure Hyrox")
+}
+
+@Test func shortQualitySessionDropsRoundsNotWarmup() {
+    let session = HyroxCycle.quality(for: hyrox(6))
+    let fitted = planner.fit(session, toMinutes: 45)
+    #expect(fitted.warmupMinutes == 10 && fitted.cooldownMinutes == 5)
+    #expect(fitted.exercises.first?.restSeconds == 120)
+    #expect(fitted.exercises.first.map { $0.sets < 5 && $0.sets >= 2 } == true)
+    #expect(fitted.estimatedMinutes <= 45)
+}
