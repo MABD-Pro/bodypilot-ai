@@ -28,7 +28,9 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            if let profile = profiles.first {
+            if let failure = AppContainer.openFailure {
+                StoreErrorView(details: failure)
+            } else if let profile = profiles.first {
                 TodayView(profileRecord: profile)
                     .transition(.opacity.combined(with: .scale(scale: 1.02)))
             } else {
@@ -48,6 +50,26 @@ struct RootView: View {
             try? await Task.sleep(for: .milliseconds(1100))
             withAnimation(.easeInOut(duration: 0.45)) { showsSplash = false }
         }
+    }
+}
+
+/// La base locale ne s'ouvre pas : on le dit, sans créer un nouveau profil par-dessus.
+struct StoreErrorView: View {
+    let details: String
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("Tes données ne s'ouvrent pas", systemImage: "externaldrive.badge.exclamationmark")
+        } description: {
+            Text("Rien n'a été effacé. Mets l'app à jour ou redémarre l'iPhone, puis rouvre BodyPilot. Si le problème continue, garde ce message : il aide à trouver la cause.")
+        } actions: {
+            Text(details)
+                .font(.caption2.monospaced())
+                .foregroundStyle(.secondary)
+                .lineLimit(4)
+                .textSelection(.enabled)
+        }
+        .padding()
     }
 }
 

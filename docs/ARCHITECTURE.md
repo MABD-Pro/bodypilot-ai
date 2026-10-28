@@ -19,6 +19,8 @@ App (SwiftUI, cible iOS)                ← UI, HealthKit, SwiftData, StoreKit, 
 
 - **Modules découplés.** Nutrition, Training et ProgressInsights ne se connaissent pas. Le Coach les consomme via des protocoles déclarés dans BodyPilotCore ; l'App injecte les implémentations.
 - **Domaine sans UI.** Les modules du package n'importent ni SwiftUI ni SwiftData. Ils restent testables sur Linux (CI) et réutilisables pour l'Apple Watch. La persistance (SwiftData) et les frameworks système vivent dans l'App, derrière des protocoles.
+- **Schéma versionné.** La base SwiftData suit `SchemaV1` et `BodyPilotMigrationPlan` (App/Sources/Persistence/SchemaVersions.swift). Toute modification d'un modèle ajoute une version et une étape de migration ; une base qui ne s'ouvre pas affiche un écran d'erreur, jamais un plantage ni un effacement.
+- **Jours enregistrés à midi.** Un jour (journal, série, test, début de cycle) s'enregistre à midi local (`Calendar.storedDay`), pour rester le même jour en voyage.
 - **Local-first.** Les identifiants (`EntityID`) sont générés sur l'appareil. Le stockage local est la source de vérité ; la synchronisation viendra plus tard avec une gestion explicite des conflits.
 - **Coût IA maîtrisé.** Toute demande passe par `AIRouter`, qui choisit le niveau le moins coûteux capable de la traiter (déterministe > embarqué > cloud éco > cloud avancé) et refuse le cloud quand le budget est atteint. Chaque appel produit un `AIUsageRecord` (tokens, coût, latence, succès).
 - **Fournisseurs remplaçables.** Aucun SDK de fournisseur IA dans les modules de domaine. Les appels cloud passeront par le backend (proxy), jamais avec une clé dans l'app.

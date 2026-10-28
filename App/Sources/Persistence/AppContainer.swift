@@ -65,7 +65,12 @@ enum LaunchOptions {
 }
 
 enum AppContainer {
-    static let schema = Schema([ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self])
+    static let schema = Schema(versionedSchema: SchemaV1.self)
+
+    /// Raison pour laquelle la base locale n'a pas pu s'ouvrir : l'app l'affiche au lieu de
+    /// planter à chaque lancement (Siri compris), sans jamais effacer les données.
+    @MainActor
+    static var openFailure: String?
 
     /// Conteneur unique de l'app, partagé avec Siri et Raccourcis pour qu'ils voient les mêmes données.
     @MainActor
@@ -79,16 +84,19 @@ enum AppContainer {
             return container
         }
         do {
-            return try ModelContainer(for: schema)
+            let container = try ModelContainer(for: schema, migrationPlan: BodyPilotMigrationPlan.self)
+            StoredDayMigration.run(in: container.mainContext)
+            return container
         } catch {
-            fatalError("Impossible d'ouvrir la base locale : \(error)")
+            openFailure = String(describing: error)
+            return inMemory()
         }
     }
 
     @MainActor
     static func inMemory() -> ModelContainer {
         do {
-            return try ModelContainer(for: schema, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+            return try ModelContainer(for: schema, migrationPlan: BodyPilotMigrationPlan.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         } catch {
             fatalError("Impossible de créer la base en mémoire : \(error)")
         }
@@ -139,7 +147,7 @@ enum DemoData {
         let tests: [Double] = [70, 52.5, 50, 100, 40, 45]
         for (exercise, kg) in zip(StrengthCalibration.referenceLifts, tests) {
             guard let date = calendar.date(byAdding: .day, value: -14, to: now) else { continue }
-            context.insert(LiftRecord(LiftEntry(exercise: exercise, date: calendar.startOfDay(for: date), kg: kg, reps: StrengthCalibration.testReps, isTest: true)))
+            context.insert(LiftRecord(LiftEntry(exercise: exercise, date: calendar.storedDay(for: date), kg: kg, reps: StrengthCalibration.testReps, isTest: true)))
         }
         guard case .workout(let workout) = CoachFactory.coach.plan(for: profile, weights: [], on: now).training.kind else { return }
         let loads: [Double] = [80, 60, 50, 70]
@@ -149,10 +157,10 @@ enum DemoData {
             let kg = loads[index % loads.count]
             for (daysAgo, reps) in [(9, planned), (4, planned + 1)] {
                 guard let date = calendar.date(byAdding: .day, value: -daysAgo, to: now) else { continue }
-                context.insert(LiftRecord(LiftEntry(exercise: exercise.name, date: calendar.startOfDay(for: date), kg: kg, reps: reps)))
+                context.insert(LiftRecord(LiftEntry(exercise: exercise.name, date: calendar.storedDay(for: date), kg: kg, reps: reps)))
             }
             if index == 0 {
-                let today = LiftEntry(exercise: exercise.name, date: calendar.startOfDay(for: now), kg: kg + StrengthProgress.increment(from: kg), reps: planned)
+                let today = LiftEntry(exercise: exercise.name, date: calendar.storedDay(for: now), kg: kg + StrengthProgress.increment(from: kg), reps: planned)
                 context.insert(LiftRecord(today))
             }
         }
@@ -211,7 +219,7 @@ enum DemoData {
         // Un jour de repos il y a quatre jours : pas six jours d'activité d'affilée.
         for offset in 1...21 where offset != 4 {
             guard let date = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
-            let log = DayLogRecord(day: calendar.startOfDay(for: date))
+            let log = DayLogRecord(day: calendar.storedDay(for: date))
             log.workoutDone = true
             if offset % 2 == (recovery ? 1 : 0) {
                 log.doneWorkoutTitle = strengthCount % 2 == 0 ? "Full body B" : "Full body A"
@@ -244,7 +252,7 @@ enum DemoData {
             swaps = [first.key]
         }
         if !adjustments.isEmpty || !swaps.isEmpty || !LaunchOptions.demoMeals.isEmpty || LaunchOptions.demoDescribed != nil {
-            let log = DayLogRecord(day: calendar.startOfDay(for: now))
+            let log = DayLogRecord(day: calendar.storedDay(for: now))
             log.adjustments = adjustments
             log.availableMinutes = minutes
             log.eatingOutSlot = eatingOutSlot

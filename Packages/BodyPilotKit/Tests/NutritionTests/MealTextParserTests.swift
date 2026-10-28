@@ -141,6 +141,8 @@ private struct FakeMealModel: MealLanguageModel {
     let half = try #require(MealTextParser.parse("1/2 baguette").foods.first)
     #expect(half.name == "Baguette" && half.grams == 125)
     #expect(half.quantityLabel == "½ baguette")
+    let demi = try #require(MealTextParser.parse("une demi baguette").foods.first)
+    #expect(demi.grams == 125 && demi.quantityLabel == "½ baguette")
     let pizza = try #require(MealTextParser.parse("trois quarts de pizza").foods.first)
     #expect(abs(pizza.grams - 262.5) < 0.1)
     #expect(pizza.quantityLabel == "¾ pizza")

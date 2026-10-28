@@ -18,7 +18,7 @@ enum DayLogEditor {
 
     static func todayLog(in context: ModelContext, calendar: Calendar = .current) -> DayLogRecord {
         if let existing = log(on: .now, in: context, calendar: calendar) { return existing }
-        let created = DayLogRecord(day: calendar.startOfDay(for: .now))
+        let created = DayLogRecord(day: calendar.storedDay(for: .now))
         context.insert(created)
         return created
     }

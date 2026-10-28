@@ -58,7 +58,7 @@ struct CycleSheet: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Button {
-                profile.cycle = TrainingCycle(program: program, startDate: calendar.startOfDay(for: .now))
+                profile.cycle = TrainingCycle(program: program, startDate: calendar.storedDay(for: .now))
                 try? context.save()
                 dismiss()
             } label: {

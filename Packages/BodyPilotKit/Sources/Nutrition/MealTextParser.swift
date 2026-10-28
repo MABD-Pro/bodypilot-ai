@@ -143,8 +143,13 @@ public enum MealTextParser {
         if let explicit = explicitQuantity(in: before + " " + after) {
             return described(entry, grams: explicit.grams, label: explicit.label)
         }
-        let count = quantity(in: words)
-        let size = words.compactMap { sizeFactors[$0] }.last
+        var count = quantity(in: words)
+        var size = words.compactMap { sizeFactors[$0] }.last
+        // « une demi-baguette » : la moitié d'une baguette, pas « 1 demi-baguette ».
+        if size == 0.5, count == nil || count == 1 {
+            count = 0.5
+            size = nil
+        }
         let unit = words.last { FoodLexicon.units[$0] != nil || entry.unitOverrides[$0] != nil }
 
         var grams: Double
