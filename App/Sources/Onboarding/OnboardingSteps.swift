@@ -17,7 +17,7 @@ struct BodyStep: View {
             SliderRow(title: "Taille", value: $draft.heightCm, range: 140...210, step: 1, unit: "cm", decimals: false)
             SliderRow(title: "Poids", value: $draft.weightKg, range: 40...180, step: 0.5, unit: "kg", decimals: true)
             SliderRow(title: "Poids visé", value: $draft.targetWeightKg, range: 40...180, step: 0.5, unit: "kg", decimals: true)
-            Text("Le déficit suit l'écart à ce poids et s'arrête une fois arrivé.")
+            Text("Le coach choisit la phase : déficit au-dessus de ce poids, équilibre une fois arrivé, légère prise en dessous.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)

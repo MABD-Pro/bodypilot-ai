@@ -40,6 +40,8 @@ struct ProgressCard: View {
     /// Sommeil de la nuit passée, lu dans Santé.
     var sleepHours: Double?
     var steps: StepsToday?
+    /// Phase choisie par le coach : perte de gras, équilibre ou légère prise.
+    var phase: BodyPhase = .fatLoss
     let addWeight: () -> Void
     let addWaist: () -> Void
     let acceptCheckIn: () -> Void
@@ -123,10 +125,10 @@ struct ProgressCard: View {
             HStack {
                 if let target = profile.targetWeightKg {
                     Label {
-                        if let date = trend.estimatedTargetDate {
-                            Text("\(target.frenchOneDecimal) kg vers \(date.formatted(.dateTime.month(.wide).year().locale(Theme.locale)))")
+                        if phase != .maintenance, let date = trend.estimatedTargetDate {
+                            Text("\(phase.title) · \(target.frenchOneDecimal) kg vers \(date.formatted(.dateTime.month(.wide).year().locale(Theme.locale)))")
                         } else {
-                            Text("Objectif \(target.frenchOneDecimal) kg")
+                            Text("\(phase.title) · objectif \(target.frenchOneDecimal) kg")
                         }
                     } icon: {
                         Image(systemName: "flag.checkered")

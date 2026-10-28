@@ -38,6 +38,9 @@ extension DailyCoach {
         var profile = profile
         if let averageDailySteps { profile.averageDailySteps = averageDailySteps }
         if let measuredExpenditure { profile.measuredExpenditure = measuredExpenditure }
+        if profile.goal == .recomposition {
+            profile.goal = currentPhase(for: profile, weights: weights, waists: waists, compositions: compositions, on: date).goal
+        }
         let trend = progress.trend(of: weights, for: profile, on: date)
         guard let weekly = trend.weeklyChangeKg else { return nil }
         let weekAgo = calendar.date(byAdding: .day, value: -7, to: date) ?? date

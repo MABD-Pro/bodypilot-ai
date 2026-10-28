@@ -120,14 +120,10 @@ public struct EnergyCalculator: Sendable {
         return min(max(kcal, floor), ceiling)
     }
 
-    private func proteinPerKg(for goal: Goal) -> Double {
-        switch goal {
-        case .loseFat: 2.0
-        case .maintain: 1.6
-        case .buildMuscle: 1.8
-        case .recomposition: 2.0
-        }
-    }
+    /// 2,0 g/kg quelle que soit la phase : au-dessus du plateau de 1,6 g/kg (Morton et al., 2018),
+    /// dans la fourchette conseillée en déficit (Helms et al., 2014). Le coach change de phase
+    /// sans faire varier les protéines.
+    private func proteinPerKg(for goal: Goal) -> Double { 2.0 }
 
     /// Recomposition : 20 % de déficit à 10 kg ou plus du poids visé, de moins en moins en
     /// s'en approchant (5 % au minimum), plus rien une fois arrivé. Sans poids visé : 10 %.

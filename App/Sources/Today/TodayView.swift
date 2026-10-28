@@ -200,6 +200,7 @@ struct TodayView: View {
                             cardioZone: cardio.moderateHeartRate,
                             sleepHours: sleepHours,
                             steps: steps(average: averageSteps, now: now),
+                            phase: plan.phase,
                             addWeight: { isAddingWeight = true },
                             addWaist: { isAddingWaist = true },
                             acceptCheckIn: { acceptCheckIn(checkIn) },

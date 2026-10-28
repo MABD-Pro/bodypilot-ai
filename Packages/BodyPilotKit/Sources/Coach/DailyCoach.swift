@@ -18,6 +18,8 @@ public struct TodayPlan: Sendable, Equatable {
     public var adjustments: Set<QuickAdjustment>
     /// Taux de gras et masse maigre (balance dans Santé), si mesurés.
     public var composition: BodyCompositionChange? = nil
+    /// Déficit, équilibre ou légère prise, choisi par le coach.
+    public var phase: BodyPhase = .fatLoss
 }
 
 /// Orchestre nutrition, entraînement et progression via les protocoles de BodyPilotCore.
@@ -72,11 +74,14 @@ public struct DailyCoach: Sendable {
         var profile = profile
         if let averageDailySteps { profile.averageDailySteps = averageDailySteps }
         if let measuredExpenditure { profile.measuredExpenditure = measuredExpenditure }
+        let phase = currentPhase(for: profile, weights: weights, waists: waists, compositions: compositions, on: date)
+        if profile.goal == .recomposition { profile.goal = phase.goal }
         let trend = progress.trend(of: weights, for: profile, on: date)
         let waistChange = progress.waistChange(of: waists, on: date)
         let composition = progress.compositionChange(of: compositions, on: date)
         let weight = trend.currentTrendKg ?? profile.startWeightKg
-        let targets = nutrition.targets(for: profile, currentWeightKg: weight, exerciseKcalPerDay: exerciseKcalPerDay, on: date)
+        var targets = nutrition.targets(for: profile, currentWeightKg: weight, exerciseKcalPerDay: exerciseKcalPerDay, on: date)
+        if phase.goal == profile.goal { targets.rationale += " " + phase.reason(for: profile, currentWeightKg: weight) }
         let meals = nutrition.mealPlan(
             for: targets,
             profile: profile,
@@ -113,7 +118,20 @@ public struct DailyCoach: Sendable {
             progressMessage: progressMessage(for: trend, goal: profile.goal, waistChange: waistChange, fatChange: composition?.fatChangePoints),
             waistChangeCm: waistChange,
             adjustments: adjustments,
-            composition: composition
+            composition: composition,
+            phase: phase
+        )
+    }
+
+    /// Phase du moment, d'après le poids lissé, le dernier tour de taille et le dernier taux de gras.
+    /// Elle ne s'applique qu'à l'objectif de l'app, la recomposition.
+    func currentPhase(for profile: UserProfile, weights: [WeightEntry], waists: [WaistEntry], compositions: [BodyCompositionEntry], on date: Date) -> BodyPhase {
+        let weight = progress.trend(of: weights, for: profile, on: date).currentTrendKg ?? profile.startWeightKg
+        return BodyPhase.resolve(
+            for: profile, currentWeightKg: weight,
+            waistCm: waists.filter { $0.date <= date }.max { $0.date < $1.date }?.cm,
+            fatPercent: compositions.filter { $0.date <= date && $0.fatPercent != nil }.max { $0.date < $1.date }?.fatPercent,
+            on: date, calendar: calendar
         )
     }
 

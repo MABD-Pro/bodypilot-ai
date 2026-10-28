@@ -69,6 +69,8 @@ enum LaunchOptions {
     static var demoIntake: Bool { defaults.bool(forKey: "demoIntake") }
     /// `-demoSteps YES` : deux semaines de pas lus dans Santé (environ 6 500 par jour).
     static var demoSteps: Bool { defaults.bool(forKey: "demoSteps") }
+    /// `-demoTarget 92` : poids visé de la démo (au-dessus du poids actuel : phase de légère prise).
+    static var demoTargetKg: Double? { defaults.object(forKey: "demoTarget") == nil ? nil : defaults.double(forKey: "demoTarget") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
 }
@@ -199,7 +201,7 @@ enum DemoData {
             birthDate: birthDate,
             heightCm: 178,
             startWeightKg: 88,
-            targetWeightKg: 80,
+            targetWeightKg: LaunchOptions.demoTargetKg ?? 80,
             activity: .moderate,
             goal: .recomposition,
             trainingDaysPerWeek: 3,
