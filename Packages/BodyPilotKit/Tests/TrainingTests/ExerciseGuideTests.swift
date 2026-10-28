@@ -47,3 +47,11 @@ import Testing
     #expect(ExerciseDemonstration.embedURL(for: "Squat à la barre")?.absoluteString == "https://www.youtube-nocookie.com/embed/K5HuVGYcp50?playsinline=1&rel=0")
     #expect(ExerciseDemonstration.embedURL(for: "Rowing serviette à la porte") == nil)
 }
+
+@Test func everyHyroxStationHasAGuideWhateverTheDistance() {
+    let stations = HyroxCycle.technique(sets: 3).map(\.name) + ["Marche du fermier (100 m)", "Rameur (250 m)"]
+    let missing = stations.filter { ExerciseGuide.guide(for: $0) == nil }
+    #expect(missing.isEmpty, "Sans fiche : \(missing)")
+    #expect(ExerciseGuide.baseName("SkiErg (250 m)") == "SkiErg")
+    #expect(ExerciseGuide.baseName("Wall ball") == "Wall ball")
+}

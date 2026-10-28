@@ -4,7 +4,7 @@ import Foundation
 /// en français quand une bonne existe, lue dans l'app ; sinon une recherche YouTube sur la technique.
 public enum ExerciseDemonstration {
     public static func url(for exercise: String) -> URL {
-        if let id = videos[exercise], let url = URL(string: "https://www.youtube.com/watch?v=\(id)") {
+        if let id = videoID(for: exercise), let url = URL(string: "https://www.youtube.com/watch?v=\(id)") {
             return url
         }
         var search = URLComponents(string: "https://www.youtube.com/results")!
@@ -14,12 +14,17 @@ public enum ExerciseDemonstration {
 
     /// Vrai quand la vidéo a été choisie, faux quand le lien ouvre une recherche.
     public static func hasChosenVideo(for exercise: String) -> Bool {
-        videos[exercise] != nil
+        videoID(for: exercise) != nil
+    }
+
+    /// « Marche du fermier (100 m) » partage la vidéo de « Marche du fermier ».
+    static func videoID(for exercise: String) -> String? {
+        videos[exercise] ?? videos[ExerciseGuide.baseName(exercise)]
     }
 
     /// Lecteur intégré sans cookies publicitaires (youtube-nocookie), lu dans la fiche sans quitter l'app.
     public static func embedURL(for exercise: String) -> URL? {
-        guard let id = videos[exercise] else { return nil }
+        guard let id = videoID(for: exercise) else { return nil }
         var embed = URLComponents(string: "https://www.youtube-nocookie.com/embed/\(id)")!
         embed.queryItems = [URLQueryItem(name: "playsinline", value: "1"), URLQueryItem(name: "rel", value: "0")]
         return embed.url
@@ -74,5 +79,14 @@ public enum ExerciseDemonstration {
         "Kettlebell swing": "gA5klxc7YrY",
         "Hang power clean": "wYnBdzF9Ixk",
         "Power clean": "Io4QsuRnhZg",
+        // Ateliers Hyrox, vérifiés le 28 octobre 2026, tous en français (série « HYROX 360° »
+        // de The Fit Protocol, sinon la plus courte des vidéos correctes).
+        "SkiErg": "7UBh9GO0EHA",
+        "Poussée de traîneau": "SnZ2lpELvHc",
+        "Tirage de traîneau": "2l0gdo5H3Jw",
+        "Burpees sautés en longueur": "EmdSHPjsn28",
+        "Marche du fermier": "f1esxvhzcWc",
+        "Fentes avec sac lesté": "PVA9xYD0ZyE",
+        "Rameur": "GG_z7CnOWMI",
     ]
 }

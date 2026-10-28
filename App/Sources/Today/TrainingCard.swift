@@ -51,6 +51,8 @@ struct TrainingCard: View {
     @State private var isLoggingCardioTest = false
     @State private var isLoggingBenchmark = false
     @State private var logging: LiftToLog?
+    /// Fiche d'un atelier ou d'un exercice sans série à noter (traîneau, SkiErg…).
+    @State private var station: StationItem?
     @State private var celebration: String?
     private let calendar = Calendar.current
 
@@ -124,7 +126,8 @@ struct TrainingCard: View {
                         isSwapped: exercise.isSwapped,
                         caption: toLog.map(caption) ?? exercise.recoveryCaption.map { ExerciseRow.Caption(text: $0, symbol: "figure.walk", tint: .secondary) },
                         swap: exercise.alternatives.isEmpty ? nil : { swap(exercise.key) },
-                        log: toLog.map { item -> () -> Void in { logging = item } }
+                        log: toLog.map { item -> () -> Void in { logging = item } } ?? stationAction(exercise.name),
+                        logHint: toLog == nil ? "Voir la technique" : "Noter ta meilleure série"
                     )
                 }
                 if workout.cooldownMinutes >= 5 {
@@ -133,6 +136,9 @@ struct TrainingCard: View {
             }
             .sheet(item: $logging) { item in
                 LiftEntrySheet(item: item) { entry in save(entry) }
+            }
+            .sheet(item: $station) { item in
+                StationSheet(exercise: item.id)
             }
             .sensoryFeedback(.success, trigger: celebration) { _, new in new != nil }
 
@@ -350,6 +356,12 @@ struct TrainingCard: View {
         ForEach(training.notes, id: \.self) { note in
             CoachNote(text: note, tint: Theme.training)
         }
+    }
+
+    /// Ouvre la fiche quand l'exercice en a une (ateliers Hyrox, traîneau…).
+    private func stationAction(_ name: String) -> (() -> Void)? {
+        guard ExerciseGuide.guide(for: name) != nil else { return nil }
+        return { station = StationItem(id: name) }
     }
 
     /// Exercice de force aux répétitions : la meilleure série se note, pour suivre records et charges.
@@ -776,8 +788,9 @@ private struct ExerciseRow: View {
     var isSwapped = false
     var caption: Caption?
     var swap: (() -> Void)?
-    /// Ouvre la saisie de la meilleure série.
+    /// Ouvre la saisie de la meilleure série, ou la fiche d'un atelier.
     var log: (() -> Void)?
+    var logHint = "Noter ta meilleure série"
     /// Icône des lignes d'échauffement et de retour au calme.
     var warmupSymbol = "flame.fill"
 
@@ -807,7 +820,7 @@ private struct ExerciseRow: View {
             if let log {
                 Button(action: log) { label }
                     .buttonStyle(.plain)
-                    .accessibilityHint("Noter ta meilleure série")
+                    .accessibilityHint(logHint)
             } else {
                 label
             }
@@ -853,6 +866,54 @@ private struct ExerciseRow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(.rect)
+    }
+}
+
+struct StationItem: Identifiable {
+    let id: String
+}
+
+/// Fiche d'un atelier : technique et démonstration, sans série à noter.
+private struct StationSheet: View {
+    let exercise: String
+
+    @State private var showsVideo = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: Theme.Spacing.xl) {
+                Text(exercise)
+                    .font(.display(24))
+                    .multilineTextAlignment(.center)
+                if let guide = ExerciseGuide.guide(for: exercise) {
+                    ExerciseSheetParts.technique(guide)
+                }
+                if let embed = ExerciseDemonstration.embedURL(for: exercise) {
+                    if showsVideo {
+                        ExerciseSheetParts.demonstration(embed, exercise: exercise)
+                            .transition(.opacity)
+                    } else {
+                        Button {
+                            withAnimation(.snappy) { showsVideo = true }
+                        } label: {
+                            Label("Voir une démonstration", systemImage: "play.rectangle.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Theme.training)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else {
+                    Link(destination: ExerciseDemonstration.url(for: exercise)) {
+                        Label("Chercher une démonstration", systemImage: "magnifyingglass")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.training)
+                    }
+                }
+            }
+            .padding(Theme.Spacing.xxl)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .presentationDetents([.medium, .large])
     }
 }
 
@@ -977,7 +1038,7 @@ private struct LiftEntrySheet: View {
             }
 
             if showsTechnique, let guide = item.guide {
-                technique(guide)
+                ExerciseSheetParts.technique(guide)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
@@ -1009,7 +1070,7 @@ private struct LiftEntrySheet: View {
 
             // Sous la saisie : la vidéo ne repousse pas la série à noter.
             if showsVideo, let embed = ExerciseDemonstration.embedURL(for: item.exercise) {
-                demonstration(embed)
+                ExerciseSheetParts.demonstration(embed, exercise: item.exercise)
                     .id("video")
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
@@ -1079,53 +1140,6 @@ private struct LiftEntrySheet: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(Theme.Spacing.l)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.training.opacity(0.08), in: .rect(cornerRadius: Theme.Radius.inner))
-    }
-
-    /// Vidéo choisie, lue dans la fiche ; YouTube reste à une touche si le lecteur ne charge pas.
-    private func demonstration(_ embed: URL) -> some View {
-        VStack(alignment: .trailing, spacing: Theme.Spacing.s) {
-            DemonstrationPlayer(embedURL: embed)
-                .aspectRatio(16 / 9, contentMode: .fit)
-                .background {
-                    ZStack {
-                        Color.black
-                        ProgressView()
-                            .tint(.white)
-                    }
-                }
-                .clipShape(.rect(cornerRadius: Theme.Radius.inner))
-            Link(destination: ExerciseDemonstration.url(for: item.exercise)) {
-                Label("Ouvrir dans YouTube", systemImage: "arrow.up.right.square")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Theme.training)
-            }
-        }
-    }
-
-    /// Repères de technique, à lire à côté de la démonstration.
-    private func technique(_ guide: ExerciseGuide) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            Label("Technique", systemImage: "figure.strengthtraining.traditional")
-                .font(.headline)
-                .foregroundStyle(Theme.training)
-            Text(guide.muscles)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
-            ForEach(Array(guide.cues.enumerated()), id: \.offset) { index, cue in
-                HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
-                    Text("\(index + 1)")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Theme.training)
-                        .frame(width: 18)
-                    Text(cue)
-                        .font(.subheadline)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
         }
         .padding(Theme.Spacing.l)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1340,5 +1354,56 @@ private struct BenchmarkTimeSheet: View {
         }
         .padding(Theme.Spacing.xxl)
         .presentationDetents([.height(400)])
+    }
+}
+
+/// Technique et démonstration, partagées par la saisie d'une série et la fiche d'un atelier.
+@MainActor
+private enum ExerciseSheetParts {
+    /// Vidéo choisie, lue dans la fiche ; YouTube reste à une touche si le lecteur ne charge pas.
+    static func demonstration(_ embed: URL, exercise: String) -> some View {
+        VStack(alignment: .trailing, spacing: Theme.Spacing.s) {
+            DemonstrationPlayer(embedURL: embed)
+                .aspectRatio(16 / 9, contentMode: .fit)
+                .background {
+                    ZStack {
+                        Color.black
+                        ProgressView()
+                            .tint(.white)
+                    }
+                }
+                .clipShape(.rect(cornerRadius: Theme.Radius.inner))
+            Link(destination: ExerciseDemonstration.url(for: exercise)) {
+                Label("Ouvrir dans YouTube", systemImage: "arrow.up.right.square")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.training)
+            }
+        }
+    }
+
+    /// Repères de technique, à lire à côté de la démonstration.
+    static func technique(_ guide: ExerciseGuide) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            Label("Technique", systemImage: "figure.strengthtraining.traditional")
+                .font(.headline)
+                .foregroundStyle(Theme.training)
+            Text(guide.muscles)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+            ForEach(Array(guide.cues.enumerated()), id: \.offset) { index, cue in
+                HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
+                    Text("\(index + 1)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Theme.training)
+                        .frame(width: 18)
+                    Text(cue)
+                        .font(.subheadline)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(Theme.Spacing.l)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.training.opacity(0.08), in: .rect(cornerRadius: Theme.Radius.inner))
     }
 }
