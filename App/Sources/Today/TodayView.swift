@@ -46,6 +46,10 @@ struct TodayView: View {
         let doneLogs = dayLogs.filter(\.workoutDone)
         let completed = doneLogs.map { (day: $0.day, title: $0.doneWorkoutTitle) }
         let lastStrength = DayLogEditor.lastStrength(before: now, completed: completed, samples: healthActivities, calendar: calendar)
+        let activeDays = DayLogEditor.activeDays(before: now, completed: completed, samples: healthActivities, calendar: calendar)
+        let cycleSessions = profileRecord.cycleSessions(
+            on: now, recentAverage: CycleSessionPlan.recentAverage(doneDays: Array(activeDays), before: now, calendar: calendar), calendar: calendar
+        )
         let lifts = liftRecords.map(\.entry)
         let cardioMeasures = cardioTests.map(\.measure) + [watchCardio].compactMap { $0 }
         let cardio = DayLogEditor.cardioStatus(for: profileRecord.profile, measures: cardioMeasures, restingHeartRate: restingHeartRate, on: now, calendar: calendar)
@@ -69,13 +73,14 @@ struct TodayView: View {
             lastStrengthDay: lastStrength.day,
             calibratedLifts: DayLogEditor.calibratedLifts(lifts, before: now, since: profileRecord.strengthTestResetAt, lastStrengthDay: lastStrength.day, calendar: calendar),
             sleepHours: sleepHours,
-            activeDays: DayLogEditor.activeDays(before: now, completed: completed, samples: healthActivities, calendar: calendar),
+            activeDays: activeDays,
             recentActivities: healthActivities,
             trainingChoice: todayLog?.trainingChoice,
             cardio: cardio,
             exerciseKcalPerDay: exerciseKcal,
             cycle: profileRecord.cycle,
             cycleWorkoutsThisWeek: profileRecord.cycle?.workoutsThisWeek(completed, on: now, calendar: calendar) ?? [],
+            cycleSessionsPerWeek: cycleSessions?.sessions,
             on: now
         )
 
@@ -133,6 +138,11 @@ struct TodayView: View {
                             cycleWeek: profileRecord.cycle?.week(on: now, calendar: calendar),
                             canStartCycle: profileRecord.profile.equipment == .gym,
                             manageCycle: { isManagingCycle = true },
+                            cycleSessions: cycleSessions,
+                            setCycleSessions: { sessions in
+                                withAnimation(Theme.springy) { profileRecord.confirmCycleSessions(sessions, on: .now, calendar: calendar) }
+                                try? context.save()
+                            },
                             benchmarkToday: todayLog?.benchmarkSeconds,
                             previousBenchmark: dayLogs.filter { !calendar.isDateInToday($0.day) && $0.benchmarkSeconds != nil }.max { $0.day < $1.day }?.benchmarkSeconds,
                             logBenchmark: logBenchmark

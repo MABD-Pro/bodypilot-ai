@@ -40,10 +40,15 @@ public enum CycleConditioning {
 
     public static let finisherCue = "Conditioning : allure soutenue mais régulière, sans sauter. Arrête-toi si la technique se dégrade."
 
-    static func compose(_ strength: Workout, week: CycleWeek) -> Workout {
+    /// `intervals` : à 2 séances dans la semaine, le fractionné de la semaine remplace le
+    /// conditioning (et suit la technique après la B), pour garder les deux stimuli.
+    static func compose(_ strength: Workout, week: CycleWeek, intervals: WorkoutExercise? = nil) -> Workout {
         var result = strength
         if strength.title == WorkoutCatalog.gymB.title {
             result.exercises.append(technique(for: week))
+            if let intervals { result.exercises.append(intervals) }
+        } else if let intervals {
+            result.exercises.append(intervals)
         } else {
             result.exercises.append(finisher(for: week))
             result.intensityCue += " " + finisherCue

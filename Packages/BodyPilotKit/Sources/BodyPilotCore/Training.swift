@@ -173,6 +173,8 @@ public struct DayConstraints: Sendable, Equatable {
     public var cycleWeek: CycleWeek?
     /// Séances faites depuis le début de la semaine du cycle (titres), pour placer le fractionné.
     public var cycleWorkoutsThisWeek: [String]
+    /// Séances prévues cette semaine du cycle ; `nil` : le coach décide au jour le jour.
+    public var cyclePlan: CycleSessionPlan?
 
     public init(
         availableMinutes: Int? = nil,
@@ -191,7 +193,8 @@ public struct DayConstraints: Sendable, Equatable {
         choice: TrainingChoice? = nil,
         cardio: CardioStatus = CardioStatus(),
         cycleWeek: CycleWeek? = nil,
-        cycleWorkoutsThisWeek: [String] = []
+        cycleWorkoutsThisWeek: [String] = [],
+        cyclePlan: CycleSessionPlan? = nil
     ) {
         self.availableMinutes = availableMinutes
         self.lowEnergy = lowEnergy
@@ -210,6 +213,7 @@ public struct DayConstraints: Sendable, Equatable {
         self.cardio = cardio
         self.cycleWeek = cycleWeek
         self.cycleWorkoutsThisWeek = cycleWorkoutsThisWeek
+        self.cyclePlan = cyclePlan
     }
 }
 

@@ -77,3 +77,38 @@ public struct TrainingCycle: Sendable, Equatable, Codable {
         return completed.filter { $0.day >= start && $0.day < today }.compactMap(\.title)
     }
 }
+
+/// Séances prévues dans la semaine du cycle et leur répartition (docs/COACH_RULES.md) : la force
+/// d'abord, puis le fractionné, puis l'aérobie. À 2 séances, le fractionné se fait en fin de force.
+public struct CycleSessionPlan: Sendable, Equatable {
+    public static let range = 2...6
+    /// Sans réponse ni historique.
+    public static let defaultSessions = 4
+
+    public var sessions: Int
+
+    public init(sessions: Int) {
+        self.sessions = min(max(sessions, Self.range.lowerBound), Self.range.upperBound)
+    }
+
+    /// 2 séances de force jusqu'à 3 séances, 3 au-delà (une par 48 h, rotation A / B / C).
+    public var strength: Int { sessions <= 3 ? 2 : 3 }
+    /// Le fractionné (ou le WOD de référence) de la semaine, en séance à part dès 3 séances.
+    public var hard: Int { sessions >= 3 ? 1 : 0 }
+    public var aerobic: Int { sessions - strength - hard }
+    public var intervalsAfterStrength: Bool { hard == 0 }
+
+    /// Moyenne des séances faites par semaine sur les semaines pleines avant ce jour, arrondie,
+    /// dans les bornes ; `nil` sans au moins une semaine d'historique.
+    public static func recentAverage(doneDays: [Date], before date: Date, weeks: Int = 3, calendar: Calendar = .current) -> Int? {
+        let today = calendar.startOfDay(for: date)
+        let days = doneDays.map { calendar.startOfDay(for: $0) }
+        guard let first = days.min(),
+              let span = calendar.dateComponents([.day], from: first, to: today).day, span >= 7 else { return nil }
+        let counted = min(weeks, span / 7)
+        guard let start = calendar.date(byAdding: .day, value: -7 * counted, to: today) else { return nil }
+        let done = Set(days.filter { $0 >= start && $0 < today }).count
+        let average = (Double(done) / Double(counted)).rounded()
+        return min(max(Int(average), range.lowerBound), range.upperBound)
+    }
+}

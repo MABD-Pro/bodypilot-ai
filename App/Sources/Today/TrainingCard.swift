@@ -39,6 +39,9 @@ struct TrainingCard: View {
     var cycleWeek: CycleWeek?
     var canStartCycle = false
     var manageCycle: () -> Void = {}
+    /// Séances prévues cette semaine du cycle, et si elles ont été confirmées.
+    var cycleSessions: (sessions: Int, confirmed: Bool)?
+    var setCycleSessions: (Int) -> Void = { _ in }
     /// WOD de référence : temps noté aujourd'hui, et celui de la fois précédente.
     var benchmarkToday: Int?
     var previousBenchmark: Int?
@@ -55,6 +58,9 @@ struct TrainingCard: View {
         CoachCard(eyebrow: "Bouger", symbol: "figure.strengthtraining.functional", tint: Theme.training) {
             if cycleWeek != nil || canStartCycle {
                 cycleRow
+            }
+            if cycleWeek != nil, let cycleSessions {
+                sessionsRow(cycleSessions)
             }
             if let options {
                 FeelingPicker(adjustments: adjustments, set: setFeeling)
@@ -289,6 +295,50 @@ struct TrainingCard: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+    }
+
+    /// « Combien de séances cette semaine ? » : préremplie avec la moyenne récente, une touche
+    /// pour confirmer ou changer. Le coach répartit force, fractionné et cardio en conséquence.
+    private func sessionsRow(_ plan: (sessions: Int, confirmed: Bool)) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            HStack(spacing: Theme.Spacing.s) {
+                Image(systemName: "calendar")
+                    .foregroundStyle(Theme.training)
+                Text(plan.confirmed ? "Séances cette semaine" : "Combien de séances cette semaine ?")
+                    .font(.subheadline.weight(.semibold))
+                Spacer(minLength: Theme.Spacing.s)
+                Menu {
+                    ForEach(CycleSessionPlan.range, id: \.self) { count in
+                        Button("\(count) séances") { setCycleSessions(count) }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("\(plan.sessions)")
+                            .monospacedDigit()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption2.weight(.semibold))
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, Theme.Spacing.m)
+                    .padding(.vertical, 6)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                }
+                .accessibilityLabel("\(plan.sessions) séances cette semaine, modifier")
+            }
+            if !plan.confirmed {
+                HStack(spacing: Theme.Spacing.s) {
+                    Text("Proposé d'après tes dernières semaines.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: Theme.Spacing.s)
+                    Button("C'est bon") { setCycleSessions(plan.sessions) }
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.glassProminent)
+                        .tint(Theme.training)
+                }
+                .transition(.opacity)
+            }
+        }
     }
 
     /// Pourquoi la séance est ainsi (récupération, genou, fatigue…), juste sous son titre.
