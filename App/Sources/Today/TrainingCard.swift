@@ -878,6 +878,7 @@ private struct StationSheet: View {
     let exercise: String
 
     @State private var showsVideo = false
+    @State private var detent: PresentationDetent = .medium
 
     var body: some View {
         ScrollView {
@@ -894,7 +895,8 @@ private struct StationSheet: View {
                             .transition(.opacity)
                     } else {
                         Button {
-                            withAnimation(.snappy) { showsVideo = true }
+                            // La vidéo passe sous la technique : la fiche s'agrandit pour la montrer.
+                            withAnimation(.snappy) { showsVideo = true; detent = .large }
                         } label: {
                             Label("Voir une démonstration", systemImage: "play.rectangle.fill")
                                 .font(.subheadline.weight(.semibold))
@@ -913,7 +915,7 @@ private struct StationSheet: View {
             .padding(Theme.Spacing.xxl)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.medium, .large], selection: $detent)
     }
 }
 
@@ -955,7 +957,9 @@ private struct LiftEntrySheet: View {
     init(item: LiftToLog, save: @escaping (LiftEntry) -> Void) {
         self.item = item
         self.save = save
-        let start = item.today.map { LiftTarget(kg: $0.kg, reps: $0.reps, isIncrease: false) } ?? item.target
+        // 5/3/1 : la série à noter est la dernière de la vague (au max), pas l'objectif de progression.
+        let waveTop = item.wave.last.map { LiftTarget(kg: $0.kg, reps: $0.reps, isIncrease: false) }
+        let start = item.today.map { LiftTarget(kg: $0.kg, reps: $0.reps, isIncrease: false) } ?? waveTop ?? item.target
         let kg = start?.kg ?? (start == nil && item.usesLoads ? item.wave.last?.kg ?? item.startingKg ?? 20 : nil)
         _withLoad = State(initialValue: kg != nil)
         _kg = State(initialValue: kg ?? 10)
