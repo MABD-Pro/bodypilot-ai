@@ -18,8 +18,9 @@ import Testing
     let squat = try #require(ExerciseGuide.guide(for: "Squat à la barre"))
     // 80 kg × 0,6 = 48 → arrondi vers le bas au disque : 47,5 kg.
     #expect(squat.startingLoad(bodyweightKg: 80, sex: .male) == 47.5)
-    // Sous 30 kg, pas d'1 kg : 60 × 0,4 = 24 kg.
-    #expect(squat.startingLoad(bodyweightKg: 60, sex: .female) == 24)
+    // À la barre, toujours de 2,5 en 2,5 kg : 60 × 0,4 = 24 → 22,5 kg ; 84 × 0,35 = 29,4 → 27,5 kg.
+    #expect(squat.startingLoad(bodyweightKg: 60, sex: .female) == 22.5)
+    #expect(ExerciseGuide.guide(for: "Push press")?.startingLoad(bodyweightKg: 84, sex: .male) == 27.5)
     let lunge = try #require(ExerciseGuide.guide(for: "Fentes bulgares haltères"))
     #expect(lunge.perDumbbell)
     #expect(lunge.startingLoad(bodyweightKg: 80, sex: .male) == 8)
@@ -28,11 +29,9 @@ import Testing
 }
 
 @Test func everyGuidedExerciseHasADemonstration() {
-    // Toutes les fiches ont une vidéo choisie, sauf le rowing à la porte (aucune vidéo correcte
-    // trouvée) et les exercices du cycle CrossFit, dont les vidéos restent à vérifier : recherche YouTube en attendant.
+    // Toutes les fiches ont une vidéo choisie, sauf le rowing à la porte (aucune vidéo correcte trouvée).
     let withoutVideo = Set(ExerciseGuide.catalog.keys).filter { !ExerciseDemonstration.hasChosenVideo(for: $0) }
-    let pending: Set = ["Squat avant", "Push press", "Tractions assistées", "Rowing aux anneaux", "Thruster léger", "Wall ball", "Kettlebell swing", "Hang power clean", "Power clean"]
-    #expect(withoutVideo.subtracting(pending) == ["Rowing serviette à la porte"])
+    #expect(withoutVideo == ["Rowing serviette à la porte"])
     #expect(Set(ExerciseDemonstration.videos.keys).isSubset(of: ExerciseGuide.catalog.keys))
 }
 
