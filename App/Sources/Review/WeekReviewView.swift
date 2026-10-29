@@ -23,6 +23,8 @@ struct WeekReviewView: View {
     @Query private var dayLogs: [DayLogRecord]
     /// Journée ouverte en détail.
     @State private var openedDay: Date?
+    /// Bilan calculé une fois à l'ouverture (6 journées rejouées), puis seulement si les données changent.
+    @State private var computed: Computed?
 
     private let calendar = Calendar.current
 
@@ -32,7 +34,21 @@ struct WeekReviewView: View {
         var meals: [Date: DayMealPlan]
     }
 
-    private var computed: Computed {
+    /// Ce qui oblige à refaire le bilan : un repas, une séance, une pesée, une donnée de Santé.
+    private struct Inputs: Equatable {
+        var plan: TodayPlan
+        var workoutDone: Bool
+        var logs: Int
+        var weights: Int
+        var activities: Int
+        var steps: Int
+    }
+
+    private var inputs: Inputs {
+        Inputs(plan: todayPlan, workoutDone: workoutDone, logs: dayLogs.count, weights: weights.count, activities: healthActivities.count, steps: dailySteps.count)
+    }
+
+    private func compute() -> Computed {
         let now = Date.now
         let profile = profileRecord.profile
         let completed = dayLogs.filter(\.workoutDone).map { (day: $0.day, title: $0.doneWorkoutTitle) }
@@ -78,9 +94,30 @@ struct WeekReviewView: View {
     }
 
     var body: some View {
-        let computed = self.computed
+        Group {
+            if let computed {
+                content(computed)
+            } else {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .background { AppBackground() }
+        .navigationTitle("Mes 7 derniers jours")
+        .navigationBarTitleDisplayMode(.inline)
+        .task(id: inputs) {
+            computed = compute()
+        }
+        .navigationDestination(item: $openedDay) { day in
+            if let computed, let reviewed = computed.review.days.first(where: { $0.day == day }) {
+                DayReviewView(day: reviewed, meals: computed.meals[day])
+            }
+        }
+    }
+
+    private func content(_ computed: Computed) -> some View {
         let review = computed.review
-        ScrollViewReader { proxy in
+        return ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                     coachCard(review)
@@ -107,14 +144,6 @@ struct WeekReviewView: View {
                 guard let target = LaunchOptions.demoScrollTarget else { return }
                 try? await Task.sleep(for: .seconds(1))
                 withAnimation { proxy.scrollTo(target, anchor: .top) }
-            }
-        }
-        .background { AppBackground() }
-        .navigationTitle("Mes 7 derniers jours")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(item: $openedDay) { day in
-            if let reviewed = review.days.first(where: { $0.day == day }) {
-                DayReviewView(day: reviewed, meals: computed.meals[day])
             }
         }
         .task {
