@@ -40,6 +40,9 @@ enum LaunchOptions {
     }
     /// `-demoHistory Force` : ouvre l'historique sur cette partie (Mesures, Force, Séances, Repas).
     static var demoHistory: String? { defaults.string(forKey: "demoHistory") }
+    /// `-demoReview YES` : ouvre « Mes 7 derniers jours », avec une semaine de repas notés ;
+    /// `-demoReview jour` : ouvre en plus le détail de la veille.
+    static var demoReview: String? { defaults.string(forKey: "demoReview") }
     /// `-demoComposition YES` : 4 semaines de taux de gras et de masse maigre lus dans Santé.
     static var demoComposition: Bool { defaults.bool(forKey: "demoComposition") }
     /// `-demoActivities YES` : quelques activités Santé dans la semaine (course, vélo, marche).
@@ -208,6 +211,15 @@ enum DemoData {
         3: [.dinner: "une pizza et une bière"],
     ]
 
+    /// Repas pris d'une touche les jours passés, pour le bilan des 7 jours (il y a 4 jours : aucun journal).
+    static let demoReviewIntakes: [Int: [MealSlot: MealIntake]] = [
+        1: [.snack: .asPlanned, .dinner: .light],
+        2: [.breakfast: .asPlanned, .snack: .asPlanned, .dinner: .hearty],
+        3: [.breakfast: .asPlanned, .lunch: .asPlanned, .snack: .skipped],
+        5: [.breakfast: .asPlanned, .lunch: .asPlanned, .snack: .asPlanned, .dinner: .asPlanned],
+        6: [.breakfast: .asPlanned, .lunch: .hearty],
+    ]
+
     @MainActor
     static func seed(_ context: ModelContext, now: Date = .now, calendar: Calendar = .current) {
         let birthDate = calendar.date(byAdding: .year, value: -(LaunchOptions.demoAge ?? 34), to: now) ?? now
@@ -271,6 +283,10 @@ enum DemoData {
             let described = Self.demoRecentMeals[offset] ?? [:]
             if !described.isEmpty {
                 log.describedMeals = described.mapValues { MealTextParser.parse($0).meal }
+            }
+            // Bilan des 7 jours : des repas notés d'une touche, plus ou moins copieux, et une journée incomplète.
+            if LaunchOptions.demoReview != nil, offset < 7, let intakes = Self.demoReviewIntakes[offset] {
+                log.mealIntakes = intakes.filter { described[$0.key] == nil }
             }
             context.insert(log)
         }

@@ -29,6 +29,7 @@ struct TodayView: View {
     @State private var isManagingCycle = false
     @State private var isAnsweringScreening = false
     @State private var isShowingHistory = LaunchOptions.demoHistory != nil
+    @State private var isShowingReview = LaunchOptions.demoReview != nil
     /// Ce que l'historique montre en s'ouvrant : la partie ou l'élément touché.
     @State private var historyFocus = HistoryView.Focus.section(.measures)
     /// Entraînements lus dans Santé (Watch, autres apps), pour la semaine et la régularité.
@@ -215,7 +216,8 @@ struct TodayView: View {
                             dismissCheckIn: { withAnimation(Theme.springy) { profileRecord.lastCheckInAt = .now } },
                             connectHealth: { Task { await connectHealth() } },
                             disconnectHealth: { healthSync = false },
-                            showHistory: showHistory
+                            showHistory: showHistory,
+                            showReview: { isShowingReview = true }
                         )
                         .id("progress")
                     }
@@ -279,6 +281,17 @@ struct TodayView: View {
             }
             .navigationDestination(isPresented: $isShowingHistory) {
                 HistoryView(healthActivities: healthActivities, compositions: bodyCompositions, focus: historyFocus)
+            }
+            .navigationDestination(isPresented: $isShowingReview) {
+                WeekReviewView(
+                    profileRecord: profileRecord,
+                    todayPlan: plan,
+                    workoutDone: todayLog?.workoutDone ?? false,
+                    healthActivities: healthActivities,
+                    compositions: bodyCompositions,
+                    dailySteps: dailySteps,
+                    stepsGoal: steps(average: averageSteps, now: now)?.goal
+                )
             }
             .sheet(isPresented: $isAddingWeight) {
                 WeightEntrySheet(initialKg: weights.last?.kg ?? profileRecord.startWeightKg)

@@ -54,6 +54,8 @@ struct ProgressCard: View {
     let disconnectHealth: () -> Void
     /// Historique, ouvert sur ce qui a été touché : le poids, le tour de taille, un record…
     let showHistory: (HistoryView.Focus) -> Void
+    /// Bilan des 7 derniers jours : calories, nutriments, activité et conseils.
+    var showReview: (() -> Void)?
 
     var body: some View {
         CoachCard(eyebrow: "Progresser", symbol: "chart.line.downtrend.xyaxis", tint: Theme.progress) {
@@ -124,6 +126,30 @@ struct ProgressCard: View {
             }
 
             healthRow
+
+            if let showReview {
+                Button(action: showReview) {
+                    HStack(spacing: Theme.Spacing.m) {
+                        IconBadge(symbol: "calendar.badge.checkmark", tint: Theme.progress, size: 36)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Mes 7 derniers jours")
+                                .font(.subheadline.weight(.semibold))
+                            Text("Calories, nutriments, séances et conseils du coach")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: Theme.Spacing.s)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(Theme.Spacing.m)
+                    .background(Theme.progress.opacity(0.10), in: .rect(cornerRadius: Theme.Radius.inner))
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .id("review")
+            }
 
             Button { showHistory(.section(.measures)) } label: {
                 Label("Historique : mesures, force, séances, repas", systemImage: "clock.arrow.circlepath")

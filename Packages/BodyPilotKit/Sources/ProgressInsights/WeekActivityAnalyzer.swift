@@ -69,6 +69,32 @@ public struct WeekActivityAnalyzer: Sendable {
             return WeekActivity(days: [], minutesPerDay: [], entries: [], totalMinutes: 0, totalKcal: 0, summary: "")
         }
         let days = (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: interval.start) }
+        let entries = self.entries(in: interval, until: date, samples: samples, completed: completed, sessionMinutes: sessionMinutes)
+
+        let minutesPerDay = days.map { day in
+            entries.filter { calendar.isDate($0.start, inSameDayAs: day) }.reduce(0) { $0 + $1.minutes }
+        }
+        let totalMinutes = entries.reduce(0) { $0 + $1.minutes }
+        let totalKcal = entries.compactMap(\.kcal).reduce(0, +)
+        return WeekActivity(
+            days: days,
+            minutesPerDay: minutesPerDay,
+            entries: entries,
+            totalMinutes: totalMinutes,
+            totalKcal: totalKcal,
+            summary: summary(count: entries.count, minutes: totalMinutes, kcal: totalKcal)
+        )
+    }
+
+    /// Activités d'une période jusqu'à une date, les plus récentes d'abord : celles de Santé, plus
+    /// les séances cochées sans activité du même type enregistrée le même jour.
+    public func entries(
+        in interval: DateInterval,
+        until date: Date,
+        samples: [ActivitySample],
+        completed: [(day: Date, title: String?)],
+        sessionMinutes: Int
+    ) -> [WeekActivityEntry] {
         let inWeek = samples.filter { interval.contains($0.start) && $0.start <= date }
         var entries = inWeek.map {
             WeekActivityEntry(id: $0.id, kind: $0.kind, title: $0.kind.title, start: $0.start, minutes: $0.minutes, kcal: $0.kcal, fromHealth: true)
@@ -89,21 +115,7 @@ public struct WeekActivityAnalyzer: Sendable {
                 fromHealth: false
             ))
         }
-        entries.sort { $0.start > $1.start }
-
-        let minutesPerDay = days.map { day in
-            entries.filter { calendar.isDate($0.start, inSameDayAs: day) }.reduce(0) { $0 + $1.minutes }
-        }
-        let totalMinutes = entries.reduce(0) { $0 + $1.minutes }
-        let totalKcal = entries.compactMap(\.kcal).reduce(0, +)
-        return WeekActivity(
-            days: days,
-            minutesPerDay: minutesPerDay,
-            entries: entries,
-            totalMinutes: totalMinutes,
-            totalKcal: totalKcal,
-            summary: summary(count: entries.count, minutes: totalMinutes, kcal: totalKcal)
-        )
+        return entries.sorted { $0.start > $1.start }
     }
 
     func summary(count: Int, minutes: Double, kcal: Double) -> String {

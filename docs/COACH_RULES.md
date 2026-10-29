@@ -207,6 +207,17 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Repas : jour par jour, la saisie d'une touche de chaque repas ou le repas décrit avec ses calories. Les calories d'un repas « comme prévu » ne sont pas gardées : le plan d'un jour passé n'est pas recalculé.
 - Démo : `-demoHistory Force` ouvre l'historique sur une partie.
 
+## Mes 7 derniers jours (`ProgressInsights/WeekReview`, `App/Review/WeekReviewView`)
+
+- Depuis Progresser, « Mes 7 derniers jours » : les 7 jours glissants (aujourd'hui compris), calories mangées par jour face à l'objectif, moyennes des nutriments, séances et minutes par jour, pas, puis le détail d'une journée d'une touche.
+- Jours passés : le plan du jour est rejoué avec les repas notés ce jour-là et l'objectif recalculé avec le profil actuel (rien de nouveau n'est stocké). Aujourd'hui : le plan affiché.
+- Journée complète : les 4 repas notés (pris, sautés ou décrits). Seules les journées complètes comptent dans les moyennes.
+- Calories dans la cible de -15 % à +10 % de l'objectif ; protéines atteintes à 90 % (choix BodyPilot : les repas notés d'une touche sont des estimations).
+- Repères de l'OMS (2020) : 150 min d'endurance par semaine (force et mobilité exclues) et 2 séances de renforcement ; les séances de force se comptent sur la semaine du calendrier, 48 h entre deux.
+- Encouragements : ce qui a été tenu (force, endurance, protéines, cible de calories, repas notés, pas). Conseils du reste de la journée : repas restants (kcal, protéines, prochain repas), séance du jour, pas restants. Conseils de la semaine : 3 au plus, force d'abord, puis nutrition (repas à noter, protéines, calories avec le jour le plus au-dessus), endurance, pas.
+- Tout est déterministe et local : aucun appel IA.
+- Démo : `-demoReview YES` (ou `jour` pour ouvrir le détail de la veille), avec `-demoScrollTo calories|activity|days`.
+
 ## Conseils et sources (`App/Today/CoachGuidesSheet`)
 
 - Menu Mon profil > « Conseils et sources » : texte fixe, rien à saisir.
