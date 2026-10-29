@@ -92,6 +92,14 @@ public struct MealDescriber: Sendable {
         return parse
     }
 
+    /// Portions que le modèle embarqué peut choisir, en grammes : une liste fermée plutôt qu'un poids libre.
+    public static let modelPortions: [String: Double] = [
+        "pot": 125, "bol": 300, "assiette": 300, "part": 150, "pièce": 100, "verre": 200,
+        "tranche": 35, "poignée": 30, "cuillère": 15,
+    ]
+    public static let modelPortionNames = ["pot", "bol", "assiette", "part", "pièce", "verre", "tranche", "poignée", "cuillère"]
+    public static let defaultModelPortion: Double = 150
+
     /// Bornes réalistes : portion entre 1 g et 1,5 kg, densité sous 900 kcal/100 g,
     /// calories recalculées depuis les macros si le modèle se contredit.
     static func checked(_ draft: FoodEstimateDraft, writtenLabel: String? = nil) -> DescribedFood? {

@@ -114,6 +114,9 @@ struct CoachGuidesSheet: View {
             "Ainsworth et al., 2011, Compendium des activités, Med Sci Sports Exerc",
             "Tudor-Locke et al., 2019, cadence de marche et intensité, Int J Behav Nutr Phys Act",
         ]),
+        ("Valeurs des aliments", [
+            "ANSES, Table de composition nutritionnelle des aliments Ciqual 2025, Licence Ouverte Etalab 2.0",
+        ]),
         ("Protéines et phase", [
             "Morton et al., 2018, protéines et muscle, Br J Sports Med",
             "Helms et al., 2014, protéines en déficit, Int J Sport Nutr Exerc Metab",

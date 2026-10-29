@@ -51,7 +51,11 @@ public enum MealTextParser {
         var foods: [DescribedFood] = []
         var unrecognized: [String] = []
         for segment in segments(of: text) {
-            let found = parseSegment(segment.normalized)
+            var found = parseSegment(segment.normalized)
+            // Absent du catalogue de plats : la table Ciqual, avant de signaler l'aliment inconnu.
+            if found.isEmpty, let ciqual = CiqualMatcher.food(for: segment.normalized) {
+                found = [food(ciqual, in: segment.normalized)]
+            }
             if found.isEmpty {
                 let meaningful = segment.normalized.split(separator: " ").filter { !fillers.contains(String($0)) && Double($0) == nil }
                 if !meaningful.isEmpty { unrecognized.append(segment.original.trimmingCharacters(in: .whitespaces)) }
@@ -174,6 +178,31 @@ public enum MealTextParser {
         // Ni quantité, ni contenant, ni taille : la portion habituelle est une supposition.
         let isVague = unit == nil && size == nil && count == nil
         return described(entry, grams: grams, label: label, needsPortion: isVague)
+    }
+
+    /// Aliment Ciqual : grammes écrits, sinon contenant (« un bol »), sinon 100 g par pièce, à confirmer.
+    /// Ciqual ne donne pas de portion : sans quantité ni contenant, le coach demande « Quelle quantité ? ».
+    static func food(_ ciqual: CiqualFood, in segment: String) -> DescribedFood {
+        let words = segment.split(separator: " ").map(String.init)
+        var grams: Double
+        var label: String
+        var needsPortion = false
+        if let explicit = explicitQuantity(in: segment) {
+            grams = explicit.grams
+            label = explicit.label
+        } else {
+            let count = quantity(in: words) ?? 1
+            if let unit = words.last(where: { (FoodLexicon.units[$0] ?? 0) > 0 }), let unitGrams = FoodLexicon.units[unit] {
+                grams = unitGrams * count
+                let name = unitNames[unit] ?? (singular: unit, plural: unit + "s", masculine: false)
+                label = "\(format(count)) \(count > 1 ? name.plural : name.singular)"
+            } else {
+                grams = 100 * count
+                label = "≈ \(Int(grams.rounded())) g"
+                needsPortion = true
+            }
+        }
+        return DescribedFood(name: ciqual.shortName, grams: grams, quantityLabel: label, macros: ciqual.per100g.scaled(by: grams / 100), needsPortion: needsPortion)
     }
 
     /// Dernier nombre avant l'aliment ; une fraction multiplie le nombre qui la précède

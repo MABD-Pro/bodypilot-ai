@@ -72,7 +72,7 @@ private struct FakeMealModel: MealLanguageModel {
 }
 
 @Test func partialEstimateKeepsUnknownFoodsToClarify() async {
-    let text = "un tajine d'agneau et une pastilla"
+    let text = "un tajine d'agneau et une harira"
     #expect(MealTextParser.parse(text).unrecognized.count == 2)
     let describer = MealDescriber(
         router: AIRouter(availableTiers: [.deterministic, .onDevice]),
@@ -185,8 +185,8 @@ private struct FakeMealModel: MealLanguageModel {
 }
 
 @Test func puisAndPlusSeparateFoods() {
-    #expect(MealTextParser.parse("un tajine puis un yaourt").unrecognized == ["un tajine"])
-    #expect(MealTextParser.parse("un tajine plus un yaourt").unrecognized == ["un tajine"])
+    #expect(MealTextParser.parse("un tajine d'agneau puis un yaourt").unrecognized == ["un tajine d'agneau"])
+    #expect(MealTextParser.parse("un tajine d'agneau plus un yaourt").unrecognized == ["un tajine d'agneau"])
 }
 
 @Test func petitsSuissesAreKnown() throws {
@@ -206,8 +206,29 @@ private struct FakeMealModel: MealLanguageModel {
             FoodEstimateDraft(name: "tajine", grams: 300, kcal: 900, proteinG: 60, carbsG: 30, fatG: 60),
         ])
     )
-    let tajine = try #require(await describer.describe("120 g de tajine").foods.first)
+    let tajine = try #require(await describer.describe("120 g de tajine d'agneau").foods.first)
     #expect(tajine.grams == 120)
     #expect(tajine.quantityLabel == "120 g")
     #expect(abs(tajine.macros.kcal - 360) < 1)
+}
+
+@Test func ciqualCoversGenericFoods() throws {
+    let faisselle = try #require(MealTextParser.parse("120 g de faisselle").foods.first)
+    #expect(faisselle.name == "Faisselle")
+    #expect(faisselle.grams == 120)
+    #expect(abs(faisselle.macros.kcal - 100.3) < 1)
+    #expect(MealTextParser.parse("une mangue").foods.first?.name == "Mangue")
+    #expect(MealTextParser.parse("houmous").foods.first?.name == "Houmous")
+    let soup = try #require(MealTextParser.parse("un bol de chorba").foods.first)
+    #expect(soup.name == "Soupe chorba frik")
+    #expect(soup.grams == 300)
+    #expect(!soup.needsPortion)
+    let mango = try #require(MealTextParser.parse("une mangue").foods.first)
+    #expect(mango.grams == 100)
+    #expect(mango.needsPortion)
+}
+
+@Test func ciqualLeavesUnknownDishesToTheModel() {
+    #expect(MealTextParser.parse("un tajine d'agneau").unrecognized == ["un tajine d'agneau"])
+    #expect(CiqualMatcher.foods.count > 3000)
 }
