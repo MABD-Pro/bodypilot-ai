@@ -75,12 +75,20 @@ enum FoodLexicon {
         LexiconEntry(Food("Pommes de terre", kcal: 80, protein: 2, carbs: 17, fat: 0.1), ["pomme de terre", "patate"], portion: 250),
         LexiconEntry(Foods.sweetPotato, ["patate douce"], portion: 200),
         LexiconEntry(Foods.lentils, ["lentille"], portion: 200),
+        // Tajine : Ciqual « Tajine de mouton » ; harira : pas de valeur Ciqual, celles de la chorba, soupe proche.
+        LexiconEntry(Food("Tajine", kcal: 131, protein: 12.8, carbs: 4.5, fat: 6.8), ["tajine", "tagine"], portion: 350, "1 assiette"),
+        // Ciqual « Pastilla au poulet » ; les noms composés évitent un « Poisson » ou « Poulet » fantôme.
+        LexiconEntry(Food("Pastilla", kcal: 218, protein: 12.3, carbs: 14.1, fat: 12.2), ["pastilla", "pastilla au poisson", "pastilla au poulet", "pastilla aux fruits de mer", "bastilla"], portion: 200, "1 part"),
+        LexiconEntry(Food("Harira", kcal: 63, protein: 3.8, carbs: 5.4, fat: 2.5), ["harira"], portion: 300, "1 bol"),
         LexiconEntry(Foods.chickpeas, ["pois chiche"], portion: 150),
         LexiconEntry(Foods.quinoa, ["quinoa"], portion: 150),
         // Produits laitiers
         LexiconEntry(Food("Yaourt", kcal: 60, protein: 4, carbs: 5, fat: 3, unit: FoodUnit(grams: 125, singular: "yaourt", plural: "yaourts")), ["yaourt", "yogourt", "yoghourt"], portion: 125, "1 yaourt"),
-        LexiconEntry(Foods.greekYogurt, ["yaourt grec"], portion: 150, "1 pot", units: ["pot": 150]),
+        // « Yaourt grec » seul : le yaourt à la grecque du commerce (Ciqual) ; le 0 % du plan seulement s'il est écrit.
+        LexiconEntry(Foods.greekYogurt, ["yaourt grec 0", "yaourt grec 0 mg", "yaourt grec allege"], portion: 150, "1 pot", units: ["pot": 150]),
+        LexiconEntry(Food("Yaourt à la grecque", kcal: 103, protein: 3, carbs: 3.7, fat: 8.2), ["yaourt grec", "yaourt a la grecque"], portion: 150, "1 pot", units: ["pot": 150]),
         LexiconEntry(Foods.skyr, ["skyr"], portion: 150, "1 pot", units: ["pot": 150]),
+        LexiconEntry(Food("Petit-suisse", kcal: 134, protein: 9.8, carbs: 3.4, fat: 8.9, unit: FoodUnit(grams: 60, singular: "petit-suisse", plural: "petits-suisses")), ["petit suisse"], portion: 60, "1 petit-suisse", units: ["pot": 60]),
         LexiconEntry(Foods.cottageCheese, ["fromage blanc"], portion: 150, "1 pot"),
         LexiconEntry(Food("Fromage", kcal: 380, protein: 24, carbs: 0, fat: 31), ["fromage", "comte", "emmental", "camembert", "chevre", "raclette", "mozzarella"], portion: 30, "1 morceau"),
         LexiconEntry(Food("Lait", kcal: 46, protein: 3.3, carbs: 4.8, fat: 1.6), ["lait"], portion: 250, "1 verre"),
@@ -89,7 +97,7 @@ enum FoodLexicon {
         LexiconEntry(Foods.banana, ["banane"], portion: 120, "1 banane"),
         LexiconEntry(Foods.apple, ["pomme"], portion: 150, "1 pomme"),
         LexiconEntry(Food("Orange", kcal: 47, protein: 0.9, carbs: 11.8, fat: 0.1, unit: FoodUnit(grams: 150, singular: "orange", plural: "oranges")), ["orange", "clementine", "mandarine"], portion: 150, "1 orange"),
-        LexiconEntry(Food("Fruit", kcal: 55, protein: 0.7, carbs: 13, fat: 0.3, unit: FoodUnit(grams: 150, singular: "fruit", plural: "fruits")), ["fruit", "poire", "peche", "kiwi", "raisin", "compote", "salade de fruit"], portion: 150, "1 fruit"),
+        LexiconEntry(Food("Fruit", kcal: 55, protein: 0.7, carbs: 13, fat: 0.3, unit: FoodUnit(grams: 150, singular: "fruit", plural: "fruits")), ["fruit", "raisin", "compote", "salade de fruit"], portion: 150, "1 fruit"),
         LexiconEntry(Foods.berries, ["fruit rouge", "fraise", "framboise", "myrtille"], portion: 100),
         LexiconEntry(Food("Dattes", kcal: 282, protein: 2.5, carbs: 75, fat: 0.4, unit: FoodUnit(grams: 8, singular: "datte", plural: "dattes")), ["datte", "date", "fruit sec", "figue seche", "abricot sec", "pruneau"], portion: 24, "3 dattes"),
         LexiconEntry(Foods.avocado, ["avocat"], portion: 100, "½ avocat"),

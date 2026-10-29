@@ -57,6 +57,8 @@ struct RootView: View {
         }
         .animation(Theme.springy, value: profiles.isEmpty)
         .task {
+            // Table Ciqual lue pendant l'écran de chargement : la première description de repas reste instantanée.
+            Task.detached(priority: .utility) { MealTextParser.preload() }
             guard !LaunchOptions.demoHoldSplash else { return }
             try? await Task.sleep(for: .milliseconds(1100))
             withAnimation(.easeInOut(duration: 0.45)) { showsSplash = false }

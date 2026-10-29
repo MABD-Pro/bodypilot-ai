@@ -15,21 +15,26 @@ struct OnDeviceMealModel: MealLanguageModel {
 
     private static let instructions = """
         Tu estimes les calories et les macronutriments d'aliments décrits en français.
-        Sans quantité précisée, prends une portion française habituelle pour un adulte.
-        Donne des valeurs réalistes, proches des tables nutritionnelles, sans arrondir à l'excès.
+        Pour chaque aliment, choisis le type de portion habituel pour un adulte en France.
+        Donne les valeurs pour 100 g, comme la table Ciqual, sans arrondir à l'excès.
         """
 
     func estimate(_ text: String) async throws -> [FoodEstimateDraft] {
         let session = LanguageModelSession(instructions: Self.instructions)
         let estimated = try await session.respond(to: text, generating: EstimatedMeal.self).content
+        // Valeurs pour 100 g, ramenées à la portion par `MealDescriber.draft` (densité plafonnée selon
+        // la portion) : le modèle connaît mieux les densités des tables que le total d'une portion.
+        // Le poids vient d'une liste fermée de portions :
+        // en grammes libres, le modèle mettait 100 g (ou le nombre de l'exemple) à tout.
+        // Une quantité écrite par l'utilisateur remplace ensuite ce poids (`MealDescriber`).
         return estimated.foods.map {
-            FoodEstimateDraft(
+            MealDescriber.draft(
                 name: $0.name,
-                grams: Double($0.grams),
-                kcal: Double($0.kcal),
-                proteinG: Double($0.proteinG),
-                carbsG: Double($0.carbsG),
-                fatG: Double($0.fatG)
+                portion: $0.portion,
+                kcalPer100g: Double($0.kcalPer100g),
+                proteinPer100g: $0.proteinPer100g,
+                carbsPer100g: $0.carbsPer100g,
+                fatPer100g: $0.fatPer100g
             )
         }
     }
@@ -45,14 +50,14 @@ struct EstimatedMeal {
 struct EstimatedFood {
     @Guide(description: "Nom court de l'aliment, en français")
     var name: String
-    @Guide(description: "Poids de la portion en grammes")
-    var grams: Int
-    @Guide(description: "Calories de la portion")
-    var kcal: Int
-    @Guide(description: "Protéines de la portion, en grammes")
-    var proteinG: Int
-    @Guide(description: "Glucides de la portion, en grammes")
-    var carbsG: Int
-    @Guide(description: "Lipides de la portion, en grammes")
-    var fatG: Int
+    @Guide(description: "Type de portion habituel", .anyOf(MealDescriber.modelPortionNames))
+    var portion: String
+    @Guide(description: "Calories pour 100 g")
+    var kcalPer100g: Int
+    @Guide(description: "Protéines pour 100 g, en grammes")
+    var proteinPer100g: Double
+    @Guide(description: "Glucides pour 100 g, en grammes")
+    var carbsPer100g: Double
+    @Guide(description: "Lipides pour 100 g, en grammes")
+    var fatPer100g: Double
 }
