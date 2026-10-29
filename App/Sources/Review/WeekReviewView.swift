@@ -415,30 +415,33 @@ struct DayReviewView: View {
             if let meals {
                 VStack(spacing: Theme.Spacing.s) {
                     ForEach(meals.meals, id: \.slot) { meal in
-                        HStack(spacing: Theme.Spacing.m) {
-                            IconBadge(symbol: meal.slot.symbol, tint: meal.isEaten ? meal.slot.tint : .secondary, size: 34)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(meal.slot.title)
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                Text(meal.isEaten ? (meal.described?.title ?? meal.title) : "Non noté")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(meal.isEaten ? .primary : .secondary)
-                                if meal.described == nil, let intake = meal.intake {
-                                    Text(intake.label)
-                                        .font(.caption)
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                            HStack(spacing: Theme.Spacing.m) {
+                                IconBadge(symbol: meal.slot.symbol, tint: meal.isEaten ? meal.slot.tint : .secondary, size: 34)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(meal.slot.title)
+                                        .font(.caption.weight(.semibold))
                                         .foregroundStyle(.secondary)
+                                    Text(meal.isEaten ? (meal.described?.title ?? meal.title) : "Non noté")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(meal.isEaten ? .primary : .secondary)
+                                    if meal.described == nil, let intake = meal.intake {
+                                        Text(intake.label)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
+                                Spacer(minLength: Theme.Spacing.s)
                                 if meal.isEaten {
-                                    NutrientBreakdown(macros: meal.macros, approximate: true)
-                                        .padding(.top, 2)
+                                    Text("\(meal.macros.kcal.frenchInteger) kcal")
+                                        .font(.subheadline.weight(.semibold))
+                                        .monospacedDigit()
                                 }
                             }
-                            Spacer(minLength: Theme.Spacing.s)
+                            // Sous le nom, sur toute la largeur : à côté des kcal, les quatre colonnes étaient tronquées.
                             if meal.isEaten {
-                                Text("\(meal.macros.kcal.frenchInteger) kcal")
-                                    .font(.subheadline.weight(.semibold))
-                                    .monospacedDigit()
+                                NutrientBreakdown(macros: meal.macros, approximate: true)
+                                    .padding(.leading, 34 + Theme.Spacing.m)
                             }
                         }
                     }
