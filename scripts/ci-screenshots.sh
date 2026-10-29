@@ -82,14 +82,10 @@ shoot 4h-bilan-7-jours -demoData YES -demoReview YES -demoActivities YES -demoSt
 shoot 4i-bilan-7-jours-calories -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoMeals breakfast=asPlanned -demoScrollTo calories
 shoot 4j-bilan-7-jours-jours -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoScrollTo days
 shoot 4k-bilan-jour -demoData YES -demoReview jour -demoActivities YES -demoSteps YES
-shoot 9-diag-loading -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoReviewPart loading
-shoot 9-diag-text -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoReviewPart text
-shoot 9-diag-coach -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoReviewPart coach
-shoot 9-diag-advice -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoReviewPart advice
-shoot 9-diag-calories -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoReviewPart calories
-shoot 9-diag-activity -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoReviewPart activity
-shoot 9-diag-days -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoReviewPart days
-shoot 9-diag-sans-sante -demoData YES -demoReview YES
+shoot 9-diag-seed -demoData YES -demoReview YES -demoReviewDiag seed
+shoot 9-diag-plain -demoData YES -demoReview YES -demoReviewDiag plain
+shoot 9-diag-noupdate -demoData YES -demoReview YES -demoReviewDiag noupdate
+shoot 9-diag-notask -demoData YES -demoReview YES -demoReviewDiag notask
 shoot 4e-pas -demoData YES -demoHealth YES -demoSteps YES -demoScrollTo progress
 shoot 4d-records-progression -demoData YES -demoLifts YES -demoScrollTo progress
 shoot 5-ajustement-20min-fatigue -demoData YES -demoAdjustments shortOnTime,tired -demoScrollTo training

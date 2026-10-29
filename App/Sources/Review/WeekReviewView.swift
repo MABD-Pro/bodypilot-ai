@@ -133,7 +133,7 @@ struct WeekReviewView: View {
         .navigationTitle("Mes 7 derniers jours")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: inputs) {
-            guard let todayPlan else { return }
+            guard let todayPlan, UserDefaults.standard.string(forKey: "demoReviewDiag") != "notask" else { return }
             computed = compute(today: todayPlan)
         }
     }
