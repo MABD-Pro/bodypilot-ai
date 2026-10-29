@@ -103,7 +103,23 @@ struct WeekReviewView: View {
 
     var body: some View {
         Group {
-            if let computed, LaunchOptions.demoReview == "jour", let yesterday = computed.review.days.dropLast().last {
+            if let part = UserDefaults.standard.string(forKey: "demoReviewPart"), part == "loading" || part == "text" {
+                // Diagnostic temporaire de la boucle de mise en page.
+                if part == "text" { Text(computed?.review.headline ?? "calcul…") } else { ProgressView() }
+            } else if let computed, let part = UserDefaults.standard.string(forKey: "demoReviewPart") {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                        switch part {
+                        case "coach": coachCard(computed.review)
+                        case "advice": adviceCard(title: "Pour le reste de la journée", symbol: "sun.max.fill", tint: Theme.nutrition, advice: computed.review.restOfDay)
+                        case "calories": caloriesCard(computed.review)
+                        case "activity": activityCard(computed.review)
+                        default: daysCard(computed)
+                        }
+                    }
+                    .padding(.horizontal, Theme.Spacing.l)
+                }
+            } else if let computed, LaunchOptions.demoReview == "jour", let yesterday = computed.review.days.dropLast().last {
                 // Capture de démonstration : le détail de la veille.
                 DayReviewView(day: yesterday, meals: computed.meals[yesterday.day])
             } else if let computed {
