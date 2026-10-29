@@ -25,7 +25,8 @@ def legacy(terms):
 
 def searchalicious(terms):
     query = urllib.parse.urlencode({
-        "q": f'{terms} countries_tags:"en:france"', "langs": "fr",
+        # Sans AND, la nouvelle recherche prend n'importe lequel des mots.
+        "q": " AND ".join([f'"{word}"' for word in terms.split()] + ['countries_tags:"en:france"']), "langs": "fr",
         "page_size": 100, "sort_by": "-unique_scans_n", "fields": fields,
     })
     return "https://search.openfoodfacts.org/search?" + query, "hits"

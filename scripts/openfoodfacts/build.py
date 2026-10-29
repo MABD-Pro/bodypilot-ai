@@ -3,7 +3,7 @@
 d'Open Food Facts (scripts/openfoodfacts/fetch.sh).
 
 Usage : scripts/openfoodfacts/build.py <dossier des réponses> [fichier Swift de sortie]
-Les règles de choix sont celles de GroceryBrandRanker (Swift) : les deux doivent rester identiques.
+Les règles de choix sont celles de GroceryBrands (Swift) : les deux doivent rester identiques.
 Données Open Food Facts, licence ODbL : la source est citée dans l'app.
 """
 import json, math, pathlib, sys, unicodedata
@@ -29,6 +29,12 @@ def contains(name_words, phrase):
     return False
 
 
+def starts(name_words, phrase):
+    """Le nom commence par la phrase (« Feta AOP » pour feta, pas « Lentilles boulgour féta »)."""
+    words = phrase.split()
+    return len(name_words) >= len(words) and all(name_words[i].startswith(w) for i, w in enumerate(words))
+
+
 def score(product, item):
     """Plus petit = meilleur. Nutri-Score d'abord, puis NOVA, protéines pour les sources, popularité."""
     grade = GRADES.get((product.get("nutriscore_grade") or "").lower(), 5)
@@ -45,7 +51,13 @@ def eligible(product, item):
     brand = (product.get("brands") or "").split(",")[0].strip()
     if not name or not brand or not product.get("code"):
         return False
+    tags = product.get("countries_tags")
+    if tags and "en:france" not in tags:
+        return False
     words = normalize(name).split()
+    lead = item.get("lead", [])
+    if lead and not any(starts(words, normalize(w)) for w in lead):
+        return False
     if not all(contains(words, normalize(w)) for w in item["must"]):
         return False
     if any(contains(words, normalize(w)) for w in item.get("exclude", [])):
@@ -59,12 +71,13 @@ def eligible(product, item):
 
 def picks(products, item):
     ranked = sorted((p for p in products if eligible(p, item)), key=lambda p: score(p, item))
-    chosen, brands = [], set()
+    chosen, brands = [], []
     for product in ranked:
-        brand = product["brands"].split(",")[0].strip()
-        if brand.lower() in brands:
+        # « Barilla » et « BARILLA NORGE AS » sont la même marque.
+        brand = normalize(product["brands"].split(",")[0])
+        if any(brand.startswith(seen) or seen.startswith(brand) for seen in brands):
             continue
-        brands.add(brand.lower())
+        brands.append(brand)
         chosen.append(product)
         if len(chosen) == PICKS:
             break
@@ -92,6 +105,7 @@ def main(folder, output):
         print(f"{name} : {', '.join(p['brands'].split(',')[0] + ' – ' + (p.get('product_name_fr') or p.get('product_name')) for p in chosen) or 'aucun produit retenu'}")
         query = (
             f"GroceryBrandQuery(terms: {swift(item['terms'])}, must: {swift(item['must'])}, exclude: {swift(item.get('exclude', []))}"
+            + (f", lead: {swift(item['lead'])}" if item.get("lead") else "")
             + (f", maxFat: {item['maxFat']}" if "maxFat" in item else "")
             + (", isProteinSource: true" if item.get("protein") else "")
             + ")"
