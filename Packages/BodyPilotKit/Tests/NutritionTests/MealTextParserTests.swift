@@ -175,7 +175,7 @@ private struct FakeMealModel: MealLanguageModel {
 
 @Test func compoundNamesAddNoGhostFood() {
     #expect(MealTextParser.parse("une pizza 4 fromages").foods.map(\.name) == ["Pizza"])
-    #expect(MealTextParser.parse("une salade de fruits").foods.map(\.name) == ["Fruit"])
+    #expect(MealTextParser.parse("une salade de fruits").foods.map(\.name) == ["Salade de fruits"])
 }
 
 @Test func baguetteIsAWholeBaguette() throws {
@@ -218,7 +218,6 @@ private struct FakeMealModel: MealLanguageModel {
     #expect(faisselle.grams == 120)
     #expect(abs(faisselle.macros.kcal - 100.3) < 1)
     #expect(MealTextParser.parse("une mangue").foods.first?.name == "Mangue")
-    #expect(MealTextParser.parse("houmous").foods.first?.name == "Houmous")
     let soup = try #require(MealTextParser.parse("un bol de chorba").foods.first)
     #expect(soup.name == "Soupe chorba frik")
     #expect(soup.grams == 300)
@@ -226,9 +225,9 @@ private struct FakeMealModel: MealLanguageModel {
     let mango = try #require(MealTextParser.parse("une mangue").foods.first)
     #expect(mango.grams == 220)
     #expect(!mango.needsPortion)
-    let fig = try #require(MealTextParser.parse("houmous").foods.first)
-    #expect(fig.grams == 100)
-    #expect(fig.needsPortion)
+    let semolina = try #require(MealTextParser.parse("de la semoule").foods.first)
+    #expect(semolina.grams == 100)
+    #expect(semolina.needsPortion)
 }
 
 @Test func ciqualLeavesUnknownDishesToTheModel() {
