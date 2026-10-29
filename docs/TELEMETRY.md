@@ -10,7 +10,7 @@
 
 1. **Consentement d'abord.** La collecte est coupée dans l'Info.plist (`FIREBASE_ANALYTICS_COLLECTION_ENABLED`, `FirebaseCrashlyticsCollectionEnabled` à `false`). Elle ne s'allume qu'après « Accepter » sur l'écran du premier lancement (`ConsentView`). Refuser est aussi simple qu'accepter (deux boutons identiques). Le choix se change dans Mon profil > Confidentialité ; couper efface les rapports pas encore envoyés et réinitialise l'identifiant Analytics.
 2. **Aucune donnée de santé** (App Store 5.1.3) : ni valeur de Santé, ni poids, mensuration, repas, séance, charge, sommeil, cycle, ni ajustement qui décrit l'état physique (fatigue, douleur, courbatures), ni texte saisi. Un événement dit seulement qu'une fonction a servi. Les événements n'ont pas de paramètre et pas de propriété utilisateur.
-3. **Pas de publicité ni de suivi** : consentement publicitaire toujours refusé, pas d'IDFA (produit `FirebaseAnalytics` sans `IdentitySupport`), pas d'IDFV, pas de SKAdNetwork, pas de rapport d'écrans automatique. Donc pas de demande App Tracking Transparency.
+3. **Pas de publicité ni de suivi** : consentement publicitaire toujours refusé, pas d'IDFA ni de mesure de conversion publicitaire (produit `FirebaseAnalyticsCore`, qui n'embarque ni `GoogleAdsOnDeviceConversion` ni `IdentitySupport`), pas d'IDFV, pas de SKAdNetwork, pas de rapport d'écrans automatique. Donc pas de demande App Tracking Transparency.
 4. **Démo et CI n'envoient rien** : une option `-demo…` au lancement laisse Firebase éteint (`-demoConsent YES` affiche l'écran de consentement pour les captures).
 
 Ajouter un événement = ajouter un cas à `UsageEvent` et vérifier qu'il respecte la règle 2.
