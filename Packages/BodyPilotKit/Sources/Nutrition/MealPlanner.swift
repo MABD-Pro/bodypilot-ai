@@ -184,7 +184,8 @@ public struct MealPlanner: NutritionPlanning {
     /// grandeur pour les jauges et Santé, plutôt que 0 g.
     static func restaurantMacros(kcal: Double, proteinG: Double) -> Macros {
         let rest = max(kcal - proteinG * 4, 0)
-        return Macros(kcal: kcal, proteinG: proteinG, carbsG: rest / 2 / 4, fatG: rest / 2 / 9)
+        // Fibres : environ 1 g pour 100 kcal avec des légumes ou une salade, comme le conseillent les repères.
+        return Macros(kcal: kcal, proteinG: proteinG, carbsG: rest / 2 / 4, fatG: rest / 2 / 9, fiberG: kcal / 100)
     }
 
     /// Portions du modèle ajustées aux calories visées. Avec un objectif de protéines, les sources

@@ -55,15 +55,7 @@ struct NutritionCard: View {
                 .foregroundStyle(.secondary)
                 .contentTransition(.numericText(value: eaten.kcal))
 
-            // Aux tailles de texte d'accessibilité, les trois jauges s'empilent au lieu de déborder.
-            let gauges = dynamicTypeSize.isAccessibilitySize
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Spacing.m))
-                : AnyLayout(HStackLayout(spacing: Theme.Spacing.l))
-            gauges {
-                MacroGauge(label: "Protéines", eaten: eaten.proteinG, target: targets.macros.proteinG, tint: Theme.protein)
-                MacroGauge(label: "Glucides", eaten: eaten.carbsG, target: targets.macros.carbsG, tint: Theme.carbs)
-                MacroGauge(label: "Lipides", eaten: eaten.fatG, target: targets.macros.fatG, tint: Theme.fat)
-            }
+            NutrientGauges(eaten: eaten, target: targets.macros)
 
             ForEach(meals.notes, id: \.self) { note in
                 CoachNote(text: note, tint: Theme.nutrition)
@@ -217,9 +209,13 @@ private struct MealRow: View {
                         }
                         .font(.subheadline)
                     }
-                    Text("\(meal.isEatingOut ? "Vise ≈ " : meal.described != nil ? "≈ " : "")\(Int(meal.macros.proteinG.rounded())) g de protéines")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.protein)
+                    if meal.isEatingOut {
+                        Text("Repères à viser")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 2)
+                    }
+                    NutrientBreakdown(macros: meal.macros, approximate: meal.isEatingOut || meal.described != nil)
                         .padding(.top, 2)
                     if let described = meal.described {
                         improvements(for: described)

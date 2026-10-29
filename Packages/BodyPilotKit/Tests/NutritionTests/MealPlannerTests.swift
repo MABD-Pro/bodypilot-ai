@@ -159,3 +159,14 @@ private let planner = MealPlanner(calculator: EnergyCalculator(calendar: utc))
     #expect(light.totals.kcal < normal.totals.kcal)
     #expect(light.totals.proteinG >= normal.totals.proteinG * 0.9)
 }
+
+@Test func plannedDaysCountFibersTowardTheTarget() {
+    let targets = planner.targets(for: makeProfile(), currentWeightKg: 90, on: day(2026, 10, 27))
+    #expect(targets.macros.fiberG == 30)
+    for offset in 0..<3 {
+        let date = utc.date(byAdding: .day, value: offset, to: day(2026, 10, 27))!
+        let fiber = planner.mealPlan(for: targets, profile: makeProfile(), on: date, constraints: MealConstraints()).totals.fiberG
+        // Les modèles de repas apportent des légumes, des céréales et des fruits : au moins 20 g par jour.
+        #expect(fiber >= 20, "jour \(offset) : \(fiber) g")
+    }
+}

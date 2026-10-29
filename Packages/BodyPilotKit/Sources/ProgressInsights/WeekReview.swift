@@ -109,6 +109,8 @@ public struct WeekReviewer: Sendable {
     static let kcalHigh = 1.10
     /// Protéines atteintes à 90 % de l'objectif (même raison).
     static let proteinReached = 0.90
+    /// Fibres : sous 80 % de l'objectif en moyenne, le coach le signale (choix BodyPilot).
+    static let fiberReached = 0.8
     /// Minimum recommandé par l'OMS (2020) pour les adultes : 150 min d'activité modérée et
     /// 2 jours de renforcement musculaire par semaine.
     public static let activeMinutesGoal = 150.0
@@ -399,6 +401,9 @@ public struct WeekReviewer: Sendable {
                 advice.append("Calories : \((eaten.kcal - target.kcal).frenchInteger) kcal par jour au-dessus de l'objectif en moyenne\(detail). Repère le repas en cause dans le détail du jour.")
             } else if target.kcal > 0, eaten.kcal < target.kcal * Self.kcalLow {
                 advice.append("Tu manges en moyenne \((target.kcal - eaten.kcal).frenchInteger) kcal de moins que prévu. Un déficit trop fort fatigue et coûte du muscle : garde la collation.")
+            }
+            if target.fiberG > 0, eaten.fiberG < target.fiberG * Self.fiberReached {
+                advice.append("Fibres : \(eaten.fiberG.frenchInteger) g par jour en moyenne pour \(target.fiberG.frenchInteger) g visés (ANSES). Un légume de plus à chaque repas, un fruit entier et des légumineuses deux fois par semaine.")
             }
         }
 

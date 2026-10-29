@@ -31,7 +31,7 @@ enum CiqualMatcher {
         return CiqualFood(
             code: cells[0],
             name: name,
-            per100g: Macros(kcal: kcal, proteinG: Double(cells[3]) ?? 0, carbsG: Double(cells[4]) ?? 0, fatG: Double(cells[5]) ?? 0),
+            per100g: Macros(kcal: kcal, proteinG: Double(cells[3]) ?? 0, carbsG: Double(cells[4]) ?? 0, fatG: Double(cells[5]) ?? 0, fiberG: Double(cells[6]) ?? 0),
             fibrePer100g: Double(cells[6]),
             words: CiqualMatcher.words(of: name),
             headWords: CiqualMatcher.words(of: head)

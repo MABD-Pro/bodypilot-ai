@@ -28,6 +28,7 @@ enum Theme {
     static let protein = Color(red: 0.93, green: 0.33, blue: 0.45)
     static let carbs = Color(red: 1.00, green: 0.69, blue: 0.25)
     static let fat = Color(red: 0.55, green: 0.42, blue: 0.95)
+    static let fiber = Color(red: 0.35, green: 0.68, blue: 0.30)
 
     /// L'app est en français pour l'instant, quelle que soit la langue de l'appareil.
     static let locale = Locale(identifier: "fr_FR")
