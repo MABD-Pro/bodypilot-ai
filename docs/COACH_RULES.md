@@ -218,6 +218,14 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Tout est déterministe et local : aucun appel IA.
 - Démo : `-demoReview YES` (ou `jour` pour ouvrir le détail de la veille), avec `-demoScrollTo calories|activity|days`.
 
+## Liste de courses (`Nutrition/GroceryList`, `App/Groceries/GroceryListView`)
+
+- Depuis Manger, « Préparer mes courses de la semaine » : les repas que le coach propose sur 3, 5 ou 7 jours à partir de demain, avec les objectifs du jour (pas de restaurant ni de repas noté prévus d'avance), pour les moments de la journée choisis.
+- Agrégée par aliment, rangée par rayon dans l'ordre d'un parcours (fruits et légumes, viandes et poissons, frais et œufs, boulangerie, épicerie), avec le nombre de repas qui l'utilisent.
+- Quantités d'achat : féculents cuits ramenés au poids sec (rapport des kcal cuit/cru : riz ×0,37, pâtes ×0,35, quinoa et lentilles ×0,33), poulet pesé cru (×1,33), patate douce épluchures comprises (×1,1), thon et pois chiches en boîtes, œufs, bananes, pommes et avocats à l'unité, huile en ml. Arrondi au-dessus : par 50 g, par 100 g au-delà d'un kilo, à l'unité avec 10 % de marge.
+- Période fixée à la création (elle ne glisse pas d'un jour à l'autre), recréée à partir de demain une fois passée ou à la demande. Cochés, « J'en ai déjà » et articles ajoutés restent sur l'iPhone (réglages de l'app, hors base et hors sauvegarde). Partage en texte de ce qui reste à acheter.
+- Démo : `-demoGroceries YES`.
+
 ## Conseils et sources (`App/Today/CoachGuidesSheet`)
 
 - Menu Mon profil > « Conseils et sources » : texte fixe, rien à saisir.
