@@ -13,6 +13,8 @@ struct GroceryListView: View {
     @AppStorage("groceryList") private var stored = Data()
     @State private var newItem = ""
     @FocusState private var isAdding: Bool
+    /// Article dont on montre les marques conseillées.
+    @State private var brandsItem: GroceryItem?
 
     private let calendar = Calendar.current
 
@@ -44,7 +46,7 @@ struct GroceryListView: View {
                 if !items.isEmpty {
                     Section {
                         ForEach(items) { item in
-                            row(item, isChecked: state.checked.contains(item.id))
+                            row(item, isChecked: state.checked.contains(item.id), brand: state.brand(for: item))
                                 .swipeActions(edge: .trailing) {
                                     Button("J'en ai déjà", systemImage: "house.fill") {
                                         update { $0.atHome.insert(item.id); $0.checked.remove(item.id) }
@@ -139,11 +141,19 @@ struct GroceryListView: View {
                 }
             }
         }
+        .sheet(item: $brandsItem) { item in
+            GroceryBrandSheet(item: item, chosen: state.chosenBrands?[item.id]) { choice in
+                update { $0.chosenBrands = ($0.chosenBrands ?? [:]).merging([item.id: choice]) { $1 } }
+            }
+        }
         .sensoryFeedback(.selection, trigger: state.checked)
         .onAppear {
             // Première ouverture, ou période passée : la liste repart de demain.
             if state.start == nil || state.isOver(calendar: calendar) {
                 update { $0 = GroceryState(days: $0.dayCount, slots: $0.slots) }
+            }
+            if let name = LaunchOptions.demoBrands {
+                brandsItem = list.items.first { $0.name == name }
             }
         }
     }
@@ -220,34 +230,56 @@ struct GroceryListView: View {
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
-    private func row(_ item: GroceryItem, isChecked: Bool) -> some View {
-        Button {
-            update { $0.toggle(item.id) }
-        } label: {
-            HStack(spacing: Theme.Spacing.m) {
-                checkmark(isChecked)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.name)
-                        .font(.body.weight(.medium))
-                        .strikethrough(isChecked)
-                        .foregroundStyle(isChecked ? .secondary : .primary)
-                    Text(([item.mealCount > 1 ? "\(item.mealCount) repas" : "1 repas"] + [item.detail].compactMap { $0 }).joined(separator: " · "))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+    private func row(_ item: GroceryItem, isChecked: Bool, brand: String?) -> some View {
+        HStack(spacing: Theme.Spacing.m) {
+            Button {
+                update { $0.toggle(item.id) }
+            } label: {
+                HStack(spacing: Theme.Spacing.m) {
+                    checkmark(isChecked)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.name)
+                            .font(.body.weight(.medium))
+                            .strikethrough(isChecked)
+                            .foregroundStyle(isChecked ? .secondary : .primary)
+                        Text(([item.mealCount > 1 ? "\(item.mealCount) repas" : "1 repas"] + [item.detail].compactMap { $0 }).joined(separator: " · "))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        if let brand {
+                            Label(brand, systemImage: "checkmark.seal.fill")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Theme.progress)
+                                .lineLimit(1)
+                        }
+                    }
+                    Spacer(minLength: Theme.Spacing.s)
+                    Text(item.quantityLabel)
+                        .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(isChecked ? AnyShapeStyle(.secondary) : AnyShapeStyle(Theme.nutrition))
+                        .lineLimit(1)
+                        .fixedSize()
                 }
-                Spacer(minLength: Theme.Spacing.s)
-                Text(item.quantityLabel)
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(isChecked ? AnyShapeStyle(.secondary) : AnyShapeStyle(Theme.nutrition))
-                    .lineLimit(1)
-                    .fixedSize()
+                .contentShape(.rect)
             }
-            .contentShape(.rect)
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(isChecked ? .isSelected : [])
+
+            if GroceryBrands.query(for: item.name) != nil {
+                Button {
+                    brandsItem = item
+                } label: {
+                    Image(systemName: "tag")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.nutrition)
+                        .frame(width: 32, height: 32)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Marques conseillées : \(item.name)")
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(isChecked ? .isSelected : [])
     }
 
     private func extraRow(_ extra: GroceryExtra, isChecked: Bool) -> some View {
@@ -306,7 +338,9 @@ struct GroceryListView: View {
             guard !left.isEmpty else { continue }
             lines.append("")
             lines.append(section.aisle.title)
-            lines += left.map { "• \($0.name) : \($0.quantityLabel)" }
+            lines += left.map { item in
+                "• \(item.name) : \(item.quantityLabel)" + (state.brand(for: item).map { " (\($0))" } ?? "")
+            }
         }
         let extras = state.extras.filter { !state.checked.contains($0.id) }
         if !extras.isEmpty {
@@ -331,6 +365,13 @@ struct GroceryState: Codable, Equatable {
     /// Aliments déjà à la maison, retirés de la liste.
     var atHome: Set<String> = []
     var extras: [GroceryExtra] = []
+    /// Marque choisie par article (« Siggi's »). Optionnel : les listes enregistrées avant n'en ont pas.
+    var chosenBrands: [String: String]?
+
+    /// Marque affichée : celle choisie, sinon la première de la sélection.
+    func brand(for item: GroceryItem) -> String? {
+        chosenBrands?[item.id] ?? GroceryBrands.picks(for: item.name).first?.brand
+    }
 
     mutating func toggle(_ id: String) {
         if checked.remove(id) == nil { checked.insert(id) }

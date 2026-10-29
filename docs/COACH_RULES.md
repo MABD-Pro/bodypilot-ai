@@ -232,6 +232,10 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Agrégée par aliment, rangée par rayon dans l'ordre d'un parcours (fruits et légumes, viandes et poissons, frais et œufs, boulangerie, épicerie), avec le nombre de repas qui l'utilisent.
 - Quantités d'achat : féculents cuits ramenés au poids sec (rapport des kcal cuit/cru : riz ×0,37, pâtes ×0,35, quinoa et lentilles ×0,33), poulet pesé cru (×1,33), patate douce épluchures comprises (×1,1), thon et pois chiches en boîtes, œufs, bananes, pommes et avocats à l'unité, huile en ml. Arrondi au-dessus : par 50 g, par 100 g au-delà d'un kilo, à l'unité avec 10 % de marge.
 - Période fixée à la création (elle ne glisse pas d'un jour à l'autre), recréée à partir de demain une fois passée ou à la demande. Cochés, « J'en ai déjà » et articles ajoutés restent sur l'iPhone (réglages de l'app, hors base et hors sauvegarde). Partage en texte de ce qui reste à acheter.
+- Marque conseillée (`Nutrition/GroceryBrands`, `App/Groceries/GroceryBrandSheet`) pour les produits emballés (18 articles, `scripts/openfoodfacts/items.json`), pas pour les produits frais. Source : Open Food Facts (licence ODbL, citée dans la feuille) ; Yuka n'a pas d'API publique.
+  - Sélection embarquée : `GroceryBrandTable`, générée par le workflow « Open Food Facts » (`scripts/openfoodfacts/fetch.sh` puis `build.py`, publiée sur la branche `ci/openfoodfacts`), 2 marques par article. Hors ligne, rien n'est envoyé.
+  - Produit retenu : nom contenant tous les mots attendus et aucun mot exclu (« fraise » pour un skyr nature), lipides ≤ 1 g/100 g pour les « 0 % ». Rang : Nutri-Score × 3 + (NOVA − 1) × 2 − protéines/10 (sources de protéines seulement) − log10(scans + 1)/2, une marque une seule fois. Le script et le Swift appliquent les mêmes règles : modifier les deux.
+  - Recherche en direct à la demande (« Chercher d'autres marques ») : seul le nom générique de l'article part (search.pl, souvent saturée : l'app dit alors de réessayer). La marque choisie remplace la première conseillée dans la liste et le partage.
 - Démo : `-demoGroceries YES`.
 
 ## Conseils et sources (`App/Today/CoachGuidesSheet`)
