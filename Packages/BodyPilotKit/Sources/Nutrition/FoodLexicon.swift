@@ -77,6 +77,8 @@ enum FoodLexicon {
         LexiconEntry(Foods.lentils, ["lentille"], portion: 200),
         // Tajine : Ciqual « Tajine de mouton » ; harira : pas de valeur Ciqual, celles de la chorba, soupe proche.
         LexiconEntry(Food("Tajine", kcal: 131, protein: 12.8, carbs: 4.5, fat: 6.8), ["tajine", "tagine"], portion: 350, "1 assiette"),
+        // Ciqual « Pastilla au poulet » ; les noms composés évitent un « Poisson » ou « Poulet » fantôme.
+        LexiconEntry(Food("Pastilla", kcal: 218, protein: 12.3, carbs: 14.1, fat: 12.2), ["pastilla", "pastilla au poisson", "pastilla au poulet", "pastilla aux fruits de mer", "bastilla"], portion: 200, "1 part"),
         LexiconEntry(Food("Harira", kcal: 63, protein: 3.8, carbs: 5.4, fat: 2.5), ["harira"], portion: 300, "1 bol"),
         LexiconEntry(Foods.chickpeas, ["pois chiche"], portion: 150),
         LexiconEntry(Foods.quinoa, ["quinoa"], portion: 150),

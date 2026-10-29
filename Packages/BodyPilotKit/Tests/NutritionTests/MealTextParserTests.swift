@@ -246,6 +246,7 @@ private struct FakeMealModel: MealLanguageModel {
     #expect(MealTextParser.parse("un tajine d'agneau").foods.first?.name == "Tajine")
     #expect(MealTextParser.parse("un yaourt grec").foods.first?.name == "Yaourt à la grecque")
     #expect(MealTextParser.parse("un yaourt grec 0%").foods.first?.name == "Yaourt grec 0 %")
+    #expect(MealTextParser.parse("une part de pastilla au poisson").foods.map(\.name) == ["Pastilla"])
 }
 
 @Test func modelDensityIsCappedByPortion() {

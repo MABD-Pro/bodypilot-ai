@@ -101,7 +101,9 @@ public struct MealDescriber: Sendable {
     public static let defaultModelPortion: Double = 150
     /// Densité maximale plausible par portion (kcal/100 g) : un bol est une soupe ou des céréales au lait,
     /// pas 300 kcal/100 g. Le modèle a donné jusqu'à 850 kcal/100 g pour un tajine.
-    public static let maxDensityByPortion: [String: Double] = ["bol": 150, "assiette": 300, "pot": 200, "verre": 100]
+    public static let maxDensityByPortion: [String: Double] = [
+        "bol": 150, "assiette": 300, "pot": 200, "verre": 100, "part": 350, "pièce": 400, "tranche": 450, "poignée": 650, "cuillère": 900,
+    ]
 
     /// Estimation du modèle (valeurs pour 100 g, type de portion) ramenée à la portion, densité plafonnée
     /// selon la portion : les macros baissent dans la même proportion que les calories.
