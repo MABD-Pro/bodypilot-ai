@@ -9,7 +9,9 @@ Données Open Food Facts, licence ODbL : la source est citée dans l'app.
 import json, math, pathlib, sys, unicodedata
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-ITEMS = json.load(open(pathlib.Path(__file__).with_name("items.json")))["items"]
+CONFIG = json.load(open(pathlib.Path(__file__).with_name("items.json")))
+ITEMS = CONFIG["items"]
+ALIASES = CONFIG.get("brandAliases", {})
 GRADES = {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4}
 PICKS = 2
 
@@ -27,6 +29,12 @@ def contains(name_words, phrase):
         if all(name_words[start + i].startswith(w) for i, w in enumerate(words)):
             return True
     return False
+
+
+def main_brand(product):
+    """Première marque citée, sous son nom usuel (« BJORG ET CIE » → « Bjorg ») ; vide si écartée."""
+    brand = (product.get("brands") or "").split(",")[0].strip()
+    return ALIASES.get(normalize(brand), brand)
 
 
 def starts(name_words, phrase):
@@ -48,7 +56,7 @@ def score(product, item):
 
 def eligible(product, item):
     name = product.get("product_name_fr") or product.get("product_name") or ""
-    brand = (product.get("brands") or "").split(",")[0].strip()
+    brand = main_brand(product)
     if not name or not brand or not product.get("code"):
         return False
     tags = product.get("countries_tags")
@@ -74,7 +82,7 @@ def picks(products, item):
     chosen, brands = [], []
     for product in ranked:
         # « Barilla » et « BARILLA NORGE AS » sont la même marque.
-        brand = normalize(product["brands"].split(",")[0])
+        brand = normalize(main_brand(product))
         if any(brand.startswith(seen) or seen.startswith(brand) for seen in brands):
             continue
         brands.append(brand)
@@ -104,7 +112,7 @@ def main(folder, output):
     ]
     for name, item in ITEMS.items():
         chosen = picks(responses.get(name, []), item)
-        print(f"{name} : {', '.join(p['brands'].split(',')[0] + ' – ' + (p.get('product_name_fr') or p.get('product_name')) for p in chosen) or 'aucun produit retenu'}")
+        print(f"{name} : {', '.join(main_brand(p) + ' – ' + (p.get('product_name_fr') or p.get('product_name')) for p in chosen) or 'aucun produit retenu'}")
         query = (
             f"GroceryBrandQuery(terms: {swift(item['terms'])}, must: {swift(item['must'])}, exclude: {swift(item.get('exclude', []))}"
             + (f", lead: {swift(item['lead'])}" if item.get("lead") else "")
@@ -114,7 +122,7 @@ def main(folder, output):
         )
         picks_swift = ",\n".join(
             "                GroceryBrandPick("
-            f"brand: {swift(p['brands'].split(',')[0].strip())}, "
+            f"brand: {swift(main_brand(p))}, "
             f"product: {swift((p.get('product_name_fr') or p.get('product_name')).strip())}, "
             f"nutriScore: {swift((p.get('nutriscore_grade') or '').upper()) if (p.get('nutriscore_grade') or '').lower() in GRADES else 'nil'}, "
             f"nova: {int(p['nova_group']) if p.get('nova_group') else 'nil'}, "
@@ -125,7 +133,11 @@ def main(folder, output):
         lines.append(f"            query: {query},")
         lines.append(f"            picks: [\n{picks_swift},\n            ]" if chosen else "            picks: []")
         lines.append("        ),")
-    lines += ["    ]", "}", ""]
+    lines.append("    ]")
+    lines.append("")
+    lines.append("    /// Marque affichée pour une marque d'Open Food Facts (normalisée) ; vide : marque écartée.")
+    lines.append(f"    static let brandAliases: [String: String] = {swift(ALIASES).replace('{', '[').replace('}', ']') if ALIASES else '[:]'}")
+    lines += ["}", ""]
     pathlib.Path(output).write_text("\n".join(lines))
 
 
