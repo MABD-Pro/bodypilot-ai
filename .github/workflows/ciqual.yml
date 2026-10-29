@@ -7,6 +7,9 @@ on:
     paths: ["scripts/ciqual/**", ".github/workflows/ciqual.yml"]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   fetch:
     name: Télécharger Ciqual
@@ -18,3 +21,11 @@ jobs:
         with:
           name: ciqual-source
           path: ciqual-source
+      # Copie sur une branche dédiée : les agents cloud ne peuvent pas télécharger les artefacts.
+      - name: Publier sur la branche ci/ciqual
+        working-directory: ciqual-source
+        run: |
+          git init -q -b ci/ciqual
+          git add .
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "Table Ciqual officielle"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:ci/ciqual
