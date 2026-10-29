@@ -50,7 +50,8 @@ private let skyr = GroceryBrandQuery(terms: "skyr nature", must: ["skyr"], exclu
     let words = GroceryBrands.normalize("Lentilles vertes du Puy, BIO").split(separator: " ").map(String.init)
     #expect(GroceryBrands.contains(words, "lentille"))
     #expect(GroceryBrands.contains(words, GroceryBrands.normalize("vertes du")))
-    #expect(!GroceryBrands.contains(words, "ver du"))
+    // Les mots doivent se suivre.
+    #expect(!GroceryBrands.contains(words, "lentilles puy"))
     #expect(!GroceryBrands.contains(words, "entille"))
     #expect(GroceryBrands.normalize("Bœuf haché 5 %") == "bœuf hache 5")
 }
