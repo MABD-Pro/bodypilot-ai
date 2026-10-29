@@ -107,6 +107,15 @@ struct TodayView: View {
         // Journée complète (les quatre repas notés) : ses calories servent à mesurer la dépense.
         let eatenToday = plan.meals.meals.allSatisfy(\.isEaten) ? plan.meals.eatenTotals.kcal.rounded() : nil
 
+        let reviewToday: WeekReviewToday = WeekReviewToday(
+            plan: plan,
+            workoutDone: todayLog?.workoutDone ?? false,
+            healthActivities: healthActivities,
+            compositions: bodyCompositions,
+            dailySteps: dailySteps,
+            stepsGoal: steps(average: averageSteps, now: now)?.goal
+        )
+
         let activityAnalyzer = WeekActivityAnalyzer(calendar: calendar)
         let week = activityAnalyzer.week(
             of: now,
@@ -287,14 +296,7 @@ struct TodayView: View {
             .navigationDestination(isPresented: $isShowingReview) {
                 WeekReviewView(profileRecord: profileRecord, context: reviewContext)
             }
-            .onChange(of: WeekReviewToday(
-                plan: plan,
-                workoutDone: todayLog?.workoutDone ?? false,
-                healthActivities: healthActivities,
-                compositions: bodyCompositions,
-                dailySteps: dailySteps,
-                stepsGoal: steps(average: averageSteps, now: now)?.goal
-            ), initial: true) { _, today in
+            .onChange(of: reviewToday, initial: true) { _, today in
                 reviewContext.today = today
             }
             .sheet(isPresented: $isAddingWeight) {
