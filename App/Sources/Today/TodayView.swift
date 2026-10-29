@@ -29,7 +29,7 @@ struct TodayView: View {
     @State private var isManagingCycle = false
     @State private var isAnsweringScreening = false
     @State private var isShowingHistory = LaunchOptions.demoHistory != nil
-    @State private var isShowingReview = LaunchOptions.demoReview != nil && UserDefaults.standard.string(forKey: "demoReviewDiag") != "seed"
+    @State private var isShowingReview = LaunchOptions.demoReview != nil
     /// Données du jour pour « Mes 7 derniers jours », partagées par référence.
     @State private var reviewContext = WeekReviewContext()
     /// Ce que l'historique montre en s'ouvrant : la partie ou l'élément touché.
@@ -675,15 +675,9 @@ private struct WeekReviewLink: ViewModifier {
     func body(content: Content) -> some View {
         content
             .navigationDestination(isPresented: $isPresented) {
-                if UserDefaults.standard.string(forKey: "demoReviewDiag") == "plain" {
-                    Text("Diagnostic : destination simple")
-                } else {
-                    WeekReviewView(profileRecord: profileRecord, context: context)
-                }
+                WeekReviewView(profileRecord: profileRecord, context: context)
             }
             .onChange(of: today, initial: true) { _, today in
-                // Diagnostic temporaire : contexte posé une seule fois.
-                if UserDefaults.standard.string(forKey: "demoReviewDiag") == "noupdate", context.today != nil { return }
                 context.today = today
             }
     }

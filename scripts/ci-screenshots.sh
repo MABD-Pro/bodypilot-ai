@@ -82,10 +82,6 @@ shoot 4h-bilan-7-jours -demoData YES -demoReview YES -demoActivities YES -demoSt
 shoot 4i-bilan-7-jours-calories -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoMeals breakfast=asPlanned -demoScrollTo calories
 shoot 4j-bilan-7-jours-jours -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoScrollTo days
 shoot 4k-bilan-jour -demoData YES -demoReview jour -demoActivities YES -demoSteps YES
-shoot 9-diag-seed -demoData YES -demoReview YES -demoReviewDiag seed
-shoot 9-diag-plain -demoData YES -demoReview YES -demoReviewDiag plain
-shoot 9-diag-noupdate -demoData YES -demoReview YES -demoReviewDiag noupdate
-shoot 9-diag-notask -demoData YES -demoReview YES -demoReviewDiag notask
 shoot 4e-pas -demoData YES -demoHealth YES -demoSteps YES -demoScrollTo progress
 shoot 4d-records-progression -demoData YES -demoLifts YES -demoScrollTo progress
 shoot 5-ajustement-20min-fatigue -demoData YES -demoAdjustments shortOnTime,tired -demoScrollTo training

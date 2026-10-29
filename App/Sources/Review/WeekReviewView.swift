@@ -21,7 +21,10 @@ struct WeekReviewView: View {
     private var stepsGoal: Int? { context.today?.stepsGoal }
 
     @Query(sort: \WeightRecord.date) private var weights: [WeightRecord]
-    @Query(filter: #Predicate<WaistRecord> { !$0.isScan }, sort: \WaistRecord.date) private var waists: [WaistRecord]
+    /// Sans filtre #Predicate : un prédicat recréé à chaque init rend la vue « différente » pour SwiftUI,
+    /// et la destination de navigation se reconstruisait sans fin (écran figé au premier affichage).
+    @Query(sort: \WaistRecord.date) private var allWaists: [WaistRecord]
+    private var waists: [WaistRecord] { allWaists.filter { !$0.isScan } }
     @Query private var dayLogs: [DayLogRecord]
     /// Bilan calculé une fois à l'ouverture (6 journées rejouées), puis seulement si les données changent.
     @State private var computed: Computed?
@@ -103,23 +106,7 @@ struct WeekReviewView: View {
 
     var body: some View {
         Group {
-            if let part = UserDefaults.standard.string(forKey: "demoReviewPart"), part == "loading" || part == "text" {
-                // Diagnostic temporaire de la boucle de mise en page.
-                if part == "text" { Text(computed?.review.headline ?? "calcul…") } else { ProgressView() }
-            } else if let computed, let part = UserDefaults.standard.string(forKey: "demoReviewPart") {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                        switch part {
-                        case "coach": coachCard(computed.review)
-                        case "advice": adviceCard(title: "Pour le reste de la journée", symbol: "sun.max.fill", tint: Theme.nutrition, advice: computed.review.restOfDay)
-                        case "calories": caloriesCard(computed.review)
-                        case "activity": activityCard(computed.review)
-                        default: daysCard(computed)
-                        }
-                    }
-                    .padding(.horizontal, Theme.Spacing.l)
-                }
-            } else if let computed, LaunchOptions.demoReview == "jour", let yesterday = computed.review.days.dropLast().last {
+            if let computed, LaunchOptions.demoReview == "jour", let yesterday = computed.review.days.dropLast().last {
                 // Capture de démonstration : le détail de la veille.
                 DayReviewView(day: yesterday, meals: computed.meals[yesterday.day])
             } else if let computed {
@@ -133,7 +120,7 @@ struct WeekReviewView: View {
         .navigationTitle("Mes 7 derniers jours")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: inputs) {
-            guard let todayPlan, UserDefaults.standard.string(forKey: "demoReviewDiag") != "notask" else { return }
+            guard let todayPlan else { return }
             computed = compute(today: todayPlan)
         }
     }
@@ -357,7 +344,12 @@ struct WeekReviewView: View {
                 }
             }
             HStack(spacing: 4) {
-                Rectangle().fill(.secondary).frame(width: 12, height: 1.5)
+                Path { path in
+                    path.move(to: CGPoint(x: 0, y: 0.75))
+                    path.addLine(to: CGPoint(x: 12, y: 0.75))
+                }
+                .stroke(.secondary, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                .frame(width: 12, height: 1.5)
                 Text(dashed)
             }
         }
