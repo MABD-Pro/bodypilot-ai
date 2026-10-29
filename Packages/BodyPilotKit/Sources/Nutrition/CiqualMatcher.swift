@@ -50,6 +50,15 @@ enum CiqualMatcher {
     /// Noms génériques préférés : la valeur moyenne vaut mieux qu'une variante.
     static let genericBonus: [String: Double] = ["moyen": 3, "nature": 2, "precision": 1]
 
+    /// Poids d'une pièce, partie mangée (ordre de grandeur, choix BodyPilot) : Ciqual ne donne que 100 g.
+    /// Clés : premier mot normalisé du nom Ciqual.
+    static let pieceGrams: [String: Double] = [
+        "mangue": 220, "kiwi": 75, "banane": 120, "pomme": 150, "poire": 150, "orange": 150, "clementine": 60,
+        "mandarine": 60, "peche": 130, "nectarine": 130, "abricot": 40, "prune": 30, "figue": 50, "citron": 60,
+        "pamplemousse": 250, "avocat": 150, "tomate": 120, "carotte": 80, "courgette": 200, "concombre": 300,
+        "poivron": 150, "aubergine": 250, "oignon": 100, "kaki": 180, "grenade": 200,
+    ]
+
     static func words(of text: String) -> [String] {
         MealTextParser.normalize(text).split(separator: " ").map(String.init)
     }

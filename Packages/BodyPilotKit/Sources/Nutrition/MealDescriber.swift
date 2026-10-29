@@ -99,6 +99,22 @@ public struct MealDescriber: Sendable {
     ]
     public static let modelPortionNames = ["pot", "bol", "assiette", "part", "pièce", "verre", "tranche", "poignée", "cuillère"]
     public static let defaultModelPortion: Double = 150
+    /// Densité maximale plausible par portion (kcal/100 g) : un bol est une soupe ou des céréales au lait,
+    /// pas 300 kcal/100 g. Le modèle a donné jusqu'à 850 kcal/100 g pour un tajine.
+    public static let maxDensityByPortion: [String: Double] = ["bol": 150, "assiette": 300, "pot": 200, "verre": 100]
+
+    /// Estimation du modèle (valeurs pour 100 g, type de portion) ramenée à la portion, densité plafonnée
+    /// selon la portion : les macros baissent dans la même proportion que les calories.
+    public static func draft(name: String, portion: String, kcalPer100g: Double, proteinPer100g: Double, carbsPer100g: Double, fatPer100g: Double) -> FoodEstimateDraft {
+        let grams = modelPortions[portion] ?? defaultModelPortion
+        let cap = maxDensityByPortion[portion] ?? 900
+        let shrink = kcalPer100g > cap ? cap / kcalPer100g : 1
+        let factor = grams / 100 * shrink
+        return FoodEstimateDraft(
+            name: name, grams: grams, kcal: kcalPer100g * factor,
+            proteinG: proteinPer100g * factor, carbsG: carbsPer100g * factor, fatG: fatPer100g * factor
+        )
+    }
 
     /// Bornes réalistes : portion entre 1 g et 1,5 kg, densité sous 900 kcal/100 g,
     /// calories recalculées depuis les macros si le modèle se contredit.

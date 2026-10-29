@@ -22,20 +22,19 @@ struct OnDeviceMealModel: MealLanguageModel {
     func estimate(_ text: String) async throws -> [FoodEstimateDraft] {
         let session = LanguageModelSession(instructions: Self.instructions)
         let estimated = try await session.respond(to: text, generating: EstimatedMeal.self).content
-        // Valeurs pour 100 g, ramenées à la portion ici : le modèle connaît mieux les densités
-        // des tables que le total d'une portion. Le poids vient d'une liste fermée de portions :
+        // Valeurs pour 100 g, ramenées à la portion par `MealDescriber.draft` (densité plafonnée selon
+        // la portion) : le modèle connaît mieux les densités des tables que le total d'une portion.
+        // Le poids vient d'une liste fermée de portions :
         // en grammes libres, le modèle mettait 100 g (ou le nombre de l'exemple) à tout.
         // Une quantité écrite par l'utilisateur remplace ensuite ce poids (`MealDescriber`).
         return estimated.foods.map {
-            let grams = MealDescriber.modelPortions[$0.portion] ?? MealDescriber.defaultModelPortion
-            let factor = grams / 100
-            return FoodEstimateDraft(
+            MealDescriber.draft(
                 name: $0.name,
-                grams: grams,
-                kcal: Double($0.kcalPer100g) * factor,
-                proteinG: $0.proteinPer100g * factor,
-                carbsG: $0.carbsPer100g * factor,
-                fatG: $0.fatPer100g * factor
+                portion: $0.portion,
+                kcalPer100g: Double($0.kcalPer100g),
+                proteinPer100g: $0.proteinPer100g,
+                carbsPer100g: $0.carbsPer100g,
+                fatPer100g: $0.fatPer100g
             )
         }
     }

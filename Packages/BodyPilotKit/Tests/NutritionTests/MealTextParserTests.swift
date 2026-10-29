@@ -41,9 +41,9 @@ import Testing
 }
 
 @Test func unknownFoodIsReportedNotInvented() {
-    let parse = MealTextParser.parse("un tajine d'agneau et un yaourt")
+    let parse = MealTextParser.parse("un mafé et un yaourt")
     #expect(parse.foods.map(\.name) == ["Yaourt"])
-    #expect(parse.unrecognized == ["un tajine d'agneau"])
+    #expect(parse.unrecognized == ["un mafé"])
 }
 
 @Test func longestNameWins() {
@@ -61,34 +61,34 @@ private struct FakeMealModel: MealLanguageModel {
     let describer = MealDescriber(
         router: AIRouter(availableTiers: [.deterministic, .onDevice]),
         model: FakeMealModel(drafts: [
-            FoodEstimateDraft(name: "tajine d'agneau", grams: 350, kcal: 520, proteinG: 35, carbsG: 30, fatG: 28),
+            FoodEstimateDraft(name: "mafé", grams: 350, kcal: 520, proteinG: 35, carbsG: 30, fatG: 28),
             FoodEstimateDraft(name: "absurde", grams: 5000, kcal: 9000, proteinG: 0, carbsG: 0, fatG: 0),
         ])
     )
-    let parse = await describer.describe("un tajine d'agneau et un yaourt")
-    #expect(parse.foods.map(\.name) == ["Yaourt", "Tajine d'agneau"])
+    let parse = await describer.describe("un mafé et un yaourt")
+    #expect(parse.foods.map(\.name) == ["Yaourt", "Mafé"])
     #expect(parse.unrecognized.isEmpty)
     #expect(parse.foods.last?.isEstimate == true)
 }
 
 @Test func partialEstimateKeepsUnknownFoodsToClarify() async {
-    let text = "un tajine d'agneau et une harira"
+    let text = "un mafé et un zaalouk"
     #expect(MealTextParser.parse(text).unrecognized.count == 2)
     let describer = MealDescriber(
         router: AIRouter(availableTiers: [.deterministic, .onDevice]),
         model: FakeMealModel(drafts: [
-            FoodEstimateDraft(name: "tajine d'agneau", grams: 350, kcal: 520, proteinG: 35, carbsG: 30, fatG: 28),
+            FoodEstimateDraft(name: "mafé", grams: 350, kcal: 520, proteinG: 35, carbsG: 30, fatG: 28),
         ])
     )
     let parse = await describer.describe(text)
-    #expect(parse.foods.map(\.name) == ["Tajine d'agneau"])
+    #expect(parse.foods.map(\.name) == ["Mafé"])
     #expect(parse.unrecognized.count == 2)
 }
 
 @Test func withoutModelUnknownFoodsStayToClarify() async {
-    let parse = await MealDescriber().describe("un tajine d'agneau")
+    let parse = await MealDescriber().describe("un mafé")
     #expect(parse.foods.isEmpty)
-    #expect(parse.unrecognized == ["un tajine d'agneau"])
+    #expect(parse.unrecognized == ["un mafé"])
 }
 
 @Test func describedMealReplacesThePlanAndAdjustsTheRest() throws {
@@ -185,8 +185,8 @@ private struct FakeMealModel: MealLanguageModel {
 }
 
 @Test func puisAndPlusSeparateFoods() {
-    #expect(MealTextParser.parse("un tajine d'agneau puis un yaourt").unrecognized == ["un tajine d'agneau"])
-    #expect(MealTextParser.parse("un tajine d'agneau plus un yaourt").unrecognized == ["un tajine d'agneau"])
+    #expect(MealTextParser.parse("un mafé puis un yaourt").unrecognized == ["un mafé"])
+    #expect(MealTextParser.parse("un mafé plus un yaourt").unrecognized == ["un mafé"])
 }
 
 @Test func petitsSuissesAreKnown() throws {
@@ -206,7 +206,7 @@ private struct FakeMealModel: MealLanguageModel {
             FoodEstimateDraft(name: "tajine", grams: 300, kcal: 900, proteinG: 60, carbsG: 30, fatG: 60),
         ])
     )
-    let tajine = try #require(await describer.describe("120 g de tajine d'agneau").foods.first)
+    let tajine = try #require(await describer.describe("120 g de mafé").foods.first)
     #expect(tajine.grams == 120)
     #expect(tajine.quantityLabel == "120 g")
     #expect(abs(tajine.macros.kcal - 360) < 1)
@@ -224,11 +224,36 @@ private struct FakeMealModel: MealLanguageModel {
     #expect(soup.grams == 300)
     #expect(!soup.needsPortion)
     let mango = try #require(MealTextParser.parse("une mangue").foods.first)
-    #expect(mango.grams == 100)
-    #expect(mango.needsPortion)
+    #expect(mango.grams == 220)
+    #expect(!mango.needsPortion)
+    let fig = try #require(MealTextParser.parse("houmous").foods.first)
+    #expect(fig.grams == 100)
+    #expect(fig.needsPortion)
 }
 
 @Test func ciqualLeavesUnknownDishesToTheModel() {
-    #expect(MealTextParser.parse("un tajine d'agneau").unrecognized == ["un tajine d'agneau"])
+    #expect(MealTextParser.parse("un mafé").unrecognized == ["un mafé"])
     #expect(CiqualMatcher.foods.count > 3000)
+}
+
+@Test func preciseNamesGetCiqualValues() throws {
+    let comte = try #require(MealTextParser.parse("2 tranches de comté").foods.first)
+    #expect(comte.name == "Comté")
+    #expect(comte.grams == 70)
+    let kiwi = try #require(MealTextParser.parse("un kiwi").foods.first)
+    #expect(kiwi.name == "Kiwi")
+    #expect(kiwi.grams == 75)
+    #expect(MealTextParser.parse("des épinards").foods.first?.name == "Épinard")
+    #expect(MealTextParser.parse("un tajine d'agneau").foods.first?.name == "Tajine")
+    #expect(MealTextParser.parse("un yaourt grec").foods.first?.name == "Yaourt à la grecque")
+    #expect(MealTextParser.parse("un yaourt grec 0%").foods.first?.name == "Yaourt grec 0 %")
+}
+
+@Test func modelDensityIsCappedByPortion() {
+    let soup = MealDescriber.draft(name: "harira", portion: "bol", kcalPer100g: 400, proteinPer100g: 8, carbsPer100g: 40, fatPer100g: 20)
+    #expect(soup.grams == 300)
+    #expect(abs(soup.kcal - 450) < 0.1)
+    #expect(abs(soup.fatG - 22.5) < 0.1)
+    let plate = MealDescriber.draft(name: "mafé", portion: "assiette", kcalPer100g: 160, proteinPer100g: 9, carbsPer100g: 12, fatPer100g: 8)
+    #expect(abs(plate.kcal - 480) < 0.1)
 }

@@ -47,6 +47,11 @@ public enum MealTextParser {
         .flatMap { entry in entry.aliases.map { (normalize($0), entry) } }
         .sorted { $0.alias.count > $1.alias.count }
 
+    /// Lit la table Ciqual d'avance (environ 70 ms la première fois).
+    public static func preload() {
+        _ = CiqualMatcher.foods.count
+    }
+
     public static func parse(_ text: String) -> MealParse {
         var foods: [DescribedFood] = []
         var unrecognized: [String] = []
@@ -138,7 +143,7 @@ public enum MealTextParser {
             let before = String(padded[previousEnd..<match.range.lowerBound])
             let after = index == matches.count - 1 ? String(padded[match.range.upperBound...]) : ""
             previousEnd = match.range.upperBound
-            return food(match.entry, before: before, after: after)
+            return refined(food(match.entry, before: before, after: after), entry: match.entry, alias: String(padded[match.range]))
         }
     }
 
@@ -180,6 +185,24 @@ public enum MealTextParser {
         return described(entry, grams: grams, label: label, needsPortion: isVague)
     }
 
+    /// Entrées génériques du catalogue : leurs portions servent, mais un nom précis
+    /// (« comté », « kiwi », « épinards ») prend le nom et les valeurs Ciqual de cet aliment.
+    static let genericEntries: Set<String> = ["Fromage", "Fruit", "Légumes", "Poisson"]
+
+    static func refined(_ described: DescribedFood, entry: LexiconEntry, alias: String) -> DescribedFood {
+        guard genericEntries.contains(entry.food.name), alias != normalize(entry.food.name),
+              let ciqual = CiqualMatcher.food(for: alias),
+              ciqual.headWords == alias.split(separator: " ").map(String.init)
+        else { return described }
+        return DescribedFood(
+            name: ciqual.shortName,
+            grams: described.grams,
+            quantityLabel: described.quantityLabel,
+            macros: ciqual.per100g.scaled(by: described.grams / 100),
+            needsPortion: described.needsPortion
+        )
+    }
+
     /// Aliment Ciqual : grammes écrits, sinon contenant (« un bol »), sinon 100 g par pièce, à confirmer.
     /// Ciqual ne donne pas de portion : sans quantité ni contenant, le coach demande « Quelle quantité ? ».
     static func food(_ ciqual: CiqualFood, in segment: String) -> DescribedFood {
@@ -196,6 +219,11 @@ public enum MealTextParser {
                 grams = unitGrams * count
                 let name = unitNames[unit] ?? (singular: unit, plural: unit + "s", masculine: false)
                 label = "\(format(count)) \(count > 1 ? name.plural : name.singular)"
+            } else if let piece = ciqual.headWords.first.flatMap({ CiqualMatcher.pieceGrams[$0] }) {
+                // « une mangue » : le poids d'une pièce ; sans nombre, il reste à confirmer.
+                grams = piece * count
+                label = "\(format(count)) \(count > 1 ? "pièces" : "pièce")"
+                needsPortion = quantity(in: words) == nil
             } else {
                 grams = 100 * count
                 label = "≈ \(Int(grams.rounded())) g"
