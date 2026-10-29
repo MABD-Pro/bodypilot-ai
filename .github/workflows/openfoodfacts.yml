@@ -1,0 +1,29 @@
+name: Open Food Facts
+
+# Interroge Open Food Facts pour les marques conseillées de la liste de courses et publie les
+# réponses brutes et la table générée (scripts/openfoodfacts).
+on:
+  push:
+    paths: ["scripts/openfoodfacts/**", ".github/workflows/openfoodfacts.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    name: Interroger Open Food Facts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/openfoodfacts/fetch.sh off-source
+      - run: scripts/openfoodfacts/build.py off-source off-source/GroceryBrandTable.swift
+      # Copie sur une branche dédiée : les agents cloud ne peuvent ni joindre Open Food Facts
+      # ni télécharger les artefacts.
+      - name: Publier sur la branche ci/openfoodfacts
+        working-directory: off-source
+        run: |
+          git init -q -b ci/openfoodfacts
+          git add .
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "Réponses Open Food Facts"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:ci/openfoodfacts
