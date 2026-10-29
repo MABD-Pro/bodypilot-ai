@@ -59,6 +59,7 @@ actor HealthMeals {
                 }
             } catch {
                 // Réessayé au prochain changement ou au prochain retour dans l'app.
+                AppLog.health.error("Repas non envoyé à Santé : \(error.localizedDescription, privacy: .public)")
                 continue
             }
         }

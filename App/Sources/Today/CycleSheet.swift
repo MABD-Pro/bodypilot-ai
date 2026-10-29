@@ -61,6 +61,7 @@ struct CycleSheet: View {
             Button {
                 profile.cycle = TrainingCycle(program: program, startDate: calendar.storedDay(for: .now))
                 try? context.save()
+                Telemetry.record(.cycleStarted)
                 dismiss()
             } label: {
                 Text("Commencer aujourd'hui")

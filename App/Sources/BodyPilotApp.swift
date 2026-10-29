@@ -10,6 +10,7 @@ struct BodyPilotApp: App {
     private let container: ModelContainer
 
     init() {
+        Telemetry.start()
         container = AppContainer.shared
     }
 
@@ -25,6 +26,7 @@ struct BodyPilotApp: App {
 struct RootView: View {
     @Query(sort: \ProfileRecord.createdAt) private var profiles: [ProfileRecord]
     @State private var showsSplash = true
+    @State private var needsConsent = Telemetry.needsConsent
 
     var body: some View {
         ZStack {
@@ -36,6 +38,15 @@ struct RootView: View {
             } else {
                 OnboardingView()
                     .transition(.opacity)
+            }
+
+            if needsConsent {
+                ConsentView { answer in
+                    Telemetry.setConsent(answer)
+                    withAnimation(Theme.springy) { needsConsent = false }
+                }
+                .transition(.opacity)
+                .zIndex(0.5)
             }
 
             if showsSplash {
