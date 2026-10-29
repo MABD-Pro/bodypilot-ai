@@ -30,7 +30,7 @@ struct CoachGuidesSheet: View {
                         lines: [
                             "Vise 30 g de fibres par jour : des légumes à chaque repas, des fruits entiers, des légumineuses et des céréales complètes.",
                             "Préfère les aliments peu transformés : à calories offertes égales, les produits ultra-transformés font manger environ 500 kcal de plus par jour.",
-                            "Le coach compte les fibres de tes repas et de ta semaine. Un aliment inconnu, estimé par le modèle de l'iPhone, compte pour 0 g de fibres.",
+                            "Le coach compte les fibres de tes repas et de ta semaine (table Ciqual). Un aliment inconnu, estimé par le modèle de l'iPhone, compte pour 0 g de fibres.",
                         ]
                     )
                     guide(

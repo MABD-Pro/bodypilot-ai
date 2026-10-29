@@ -222,7 +222,7 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 - Protéines, glucides, lipides et fibres partout : jauges du jour dans Manger, détail de chaque repas déplié, bilan « Mes 7 derniers jours » et détail d'une journée.
 - Pourcentage : part des calories apportée par les protéines et les glucides (4 kcal/g) et les lipides (9 kcal/g). Les fibres s'affichent en grammes face à l'objectif.
-- Objectif de fibres : 30 g par jour (ANSES, 2016). Fibres pour 100 g : table Ciqual pour les aliments trouvés dans Ciqual, ordre de grandeur Ciqual pour le catalogue et le lexique (choix BodyPilot, à affiner). Un aliment estimé par le modèle embarqué compte 0 g ; un repas au restaurant compte 1 g pour 100 kcal.
+- Objectif de fibres : 30 g par jour (ANSES, 2016). Fibres pour 100 g : valeurs de la table Ciqual 2025 (aliment Ciqual le plus proche pour le catalogue du plan et les aliments simples du lexique ; fruits rouges : moyenne framboise, fraise, myrtille) ; ordre de grandeur pour les plats composés du lexique (burger, kebab, quiche…). Un aliment estimé par le modèle embarqué compte 0 g ; un repas au restaurant compte 1 g pour 100 kcal.
 - Bilan : sous 80 % de l'objectif de fibres en moyenne sur les journées complètes, un conseil de la semaine le signale.
 - Les repas enregistrés avant l'ajout des fibres se relisent avec 0 g de fibres (pas de changement de schéma : les repas décrits sont stockés en JSON).
 
