@@ -188,3 +188,26 @@ private struct FakeMealModel: MealLanguageModel {
     #expect(MealTextParser.parse("un tajine puis un yaourt").unrecognized == ["un tajine"])
     #expect(MealTextParser.parse("un tajine plus un yaourt").unrecognized == ["un tajine"])
 }
+
+@Test func petitsSuissesAreKnown() throws {
+    let weighed = try #require(MealTextParser.parse("120 g de petits suisses").foods.first)
+    #expect(weighed.name == "Petit-suisse")
+    #expect(weighed.grams == 120)
+    #expect(abs(weighed.macros.kcal - 160.8) < 1)
+    let counted = try #require(MealTextParser.parse("2 petits-suisses").foods.first)
+    #expect(counted.grams == 120)
+    #expect(MealTextParser.parse("2 petits-suisses").unrecognized.isEmpty)
+}
+
+@Test func writtenGramsOverrideTheModelPortion() async throws {
+    let describer = MealDescriber(
+        router: AIRouter(availableTiers: [.deterministic, .onDevice]),
+        model: FakeMealModel(drafts: [
+            FoodEstimateDraft(name: "tajine", grams: 300, kcal: 900, proteinG: 60, carbsG: 30, fatG: 60),
+        ])
+    )
+    let tajine = try #require(await describer.describe("120 g de tajine").foods.first)
+    #expect(tajine.grams == 120)
+    #expect(tajine.quantityLabel == "120 g")
+    #expect(abs(tajine.macros.kcal - 360) < 1)
+}

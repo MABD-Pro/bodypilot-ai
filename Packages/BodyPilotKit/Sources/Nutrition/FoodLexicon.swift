@@ -81,6 +81,7 @@ enum FoodLexicon {
         LexiconEntry(Food("Yaourt", kcal: 60, protein: 4, carbs: 5, fat: 3, unit: FoodUnit(grams: 125, singular: "yaourt", plural: "yaourts")), ["yaourt", "yogourt", "yoghourt"], portion: 125, "1 yaourt"),
         LexiconEntry(Foods.greekYogurt, ["yaourt grec"], portion: 150, "1 pot", units: ["pot": 150]),
         LexiconEntry(Foods.skyr, ["skyr"], portion: 150, "1 pot", units: ["pot": 150]),
+        LexiconEntry(Food("Petit-suisse", kcal: 134, protein: 9.8, carbs: 3.4, fat: 8.9, unit: FoodUnit(grams: 60, singular: "petit-suisse", plural: "petits-suisses")), ["petit suisse"], portion: 60, "1 petit-suisse", units: ["pot": 60]),
         LexiconEntry(Foods.cottageCheese, ["fromage blanc"], portion: 150, "1 pot"),
         LexiconEntry(Food("Fromage", kcal: 380, protein: 24, carbs: 0, fat: 31), ["fromage", "comte", "emmental", "camembert", "chevre", "raclette", "mozzarella"], portion: 30, "1 morceau"),
         LexiconEntry(Food("Lait", kcal: 46, protein: 3.3, carbs: 4.8, fat: 1.6), ["lait"], portion: 250, "1 verre"),

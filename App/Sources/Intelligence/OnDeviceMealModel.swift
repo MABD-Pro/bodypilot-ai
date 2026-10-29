@@ -15,21 +15,24 @@ struct OnDeviceMealModel: MealLanguageModel {
 
     private static let instructions = """
         Tu estimes les calories et les macronutriments d'aliments décrits en français.
-        Sans quantité précisée, prends une portion française habituelle pour un adulte.
-        Donne des valeurs réalistes, proches des tables nutritionnelles, sans arrondir à l'excès.
+        Si une quantité est écrite (« 120 g »), garde-la ; sinon prends une portion française habituelle pour un adulte.
+        Donne les valeurs pour 100 g, comme la table Ciqual, sans arrondir à l'excès.
         """
 
     func estimate(_ text: String) async throws -> [FoodEstimateDraft] {
         let session = LanguageModelSession(instructions: Self.instructions)
         let estimated = try await session.respond(to: text, generating: EstimatedMeal.self).content
+        // Valeurs pour 100 g, ramenées à la portion ici : le modèle connaît mieux les densités
+        // des tables que le total d'une portion (un pot de 120 g estimé à 900 kcal sinon).
         return estimated.foods.map {
-            FoodEstimateDraft(
+            let factor = Double($0.grams) / 100
+            return FoodEstimateDraft(
                 name: $0.name,
                 grams: Double($0.grams),
-                kcal: Double($0.kcal),
-                proteinG: Double($0.proteinG),
-                carbsG: Double($0.carbsG),
-                fatG: Double($0.fatG)
+                kcal: Double($0.kcalPer100g) * factor,
+                proteinG: $0.proteinPer100g * factor,
+                carbsG: $0.carbsPer100g * factor,
+                fatG: $0.fatPer100g * factor
             )
         }
     }
@@ -47,12 +50,12 @@ struct EstimatedFood {
     var name: String
     @Guide(description: "Poids de la portion en grammes")
     var grams: Int
-    @Guide(description: "Calories de la portion")
-    var kcal: Int
-    @Guide(description: "Protéines de la portion, en grammes")
-    var proteinG: Int
-    @Guide(description: "Glucides de la portion, en grammes")
-    var carbsG: Int
-    @Guide(description: "Lipides de la portion, en grammes")
-    var fatG: Int
+    @Guide(description: "Calories pour 100 g")
+    var kcalPer100g: Int
+    @Guide(description: "Protéines pour 100 g, en grammes")
+    var proteinPer100g: Double
+    @Guide(description: "Glucides pour 100 g, en grammes")
+    var carbsPer100g: Double
+    @Guide(description: "Lipides pour 100 g, en grammes")
+    var fatPer100g: Double
 }
