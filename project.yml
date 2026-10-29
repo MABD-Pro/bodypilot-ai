@@ -71,7 +71,7 @@ targets:
       - package: Firebase
         product: FirebaseCrashlytics
       - package: Firebase
-        product: FirebaseAnalytics
+        product: FirebaseAnalyticsCore
     # GoogleService-Info.plist n'est pas versionné : copié s'il est là, sinon Firebase reste éteint.
     postBuildScripts:
       - name: Copier GoogleService-Info.plist
