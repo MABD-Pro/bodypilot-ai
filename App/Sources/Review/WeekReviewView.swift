@@ -21,8 +21,6 @@ struct WeekReviewView: View {
     @Query(sort: \WeightRecord.date) private var weights: [WeightRecord]
     @Query(filter: #Predicate<WaistRecord> { !$0.isScan }, sort: \WaistRecord.date) private var waists: [WaistRecord]
     @Query private var dayLogs: [DayLogRecord]
-    /// Journée ouverte en détail.
-    @State private var openedDay: Date?
     /// Bilan calculé une fois à l'ouverture (6 journées rejouées), puis seulement si les données changent.
     @State private var computed: Computed?
 
@@ -36,7 +34,9 @@ struct WeekReviewView: View {
 
     /// Ce qui oblige à refaire le bilan : un repas, une séance, une pesée, une donnée de Santé.
     private struct Inputs: Equatable {
-        var plan: TodayPlan
+        /// Repas notés et objectif du jour, en entiers : une comparaison toujours stable.
+        var eatenKcal: Int
+        var targetKcal: Int
         var workoutDone: Bool
         var logs: Int
         var weights: Int
@@ -45,7 +45,13 @@ struct WeekReviewView: View {
     }
 
     private var inputs: Inputs {
-        Inputs(plan: todayPlan, workoutDone: workoutDone, logs: dayLogs.count, weights: weights.count, activities: healthActivities.count, steps: dailySteps.count)
+        Inputs(
+            eatenKcal: Self.whole(todayPlan.meals.eatenTotals.kcal), targetKcal: Self.whole(todayPlan.targets.macros.kcal),
+            workoutDone: workoutDone, logs: dayLogs.count, weights: weights.count, activities: healthActivities.count, steps: dailySteps.count)
+    }
+
+    private static func whole(_ value: Double) -> Int {
+        value.isFinite ? Int(value.rounded()) : 0
     }
 
     private func compute() -> Computed {
@@ -95,7 +101,10 @@ struct WeekReviewView: View {
 
     var body: some View {
         Group {
-            if let computed {
+            if let computed, LaunchOptions.demoReview == "jour", let yesterday = computed.review.days.dropLast().last {
+                // Capture de démonstration : le détail de la veille.
+                DayReviewView(day: yesterday, meals: computed.meals[yesterday.day])
+            } else if let computed {
                 content(computed)
             } else {
                 ProgressView()
@@ -107,11 +116,6 @@ struct WeekReviewView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: inputs) {
             computed = compute()
-        }
-        .navigationDestination(item: $openedDay) { day in
-            if let computed, let reviewed = computed.review.days.first(where: { $0.day == day }) {
-                DayReviewView(day: reviewed, meals: computed.meals[day])
-            }
         }
     }
 
@@ -127,7 +131,7 @@ struct WeekReviewView: View {
                         .id("calories")
                     activityCard(review)
                         .id("activity")
-                    daysCard(review)
+                    daysCard(computed)
                         .id("days")
                     Text("Les objectifs des jours passés sont recalculés avec ton profil actuel. Un repas noté d'une touche est une estimation ; un repas décrit est plus précis.")
                         .font(.caption)
@@ -145,12 +149,6 @@ struct WeekReviewView: View {
                 try? await Task.sleep(for: .seconds(1))
                 withAnimation { proxy.scrollTo(target, anchor: .top) }
             }
-        }
-        .task {
-            // Capture de démonstration : la veille s'ouvre en détail.
-            guard LaunchOptions.demoReview == "jour", openedDay == nil else { return }
-            try? await Task.sleep(for: .milliseconds(400))
-            openedDay = review.days.dropLast().last?.day
         }
     }
 
@@ -282,11 +280,14 @@ struct WeekReviewView: View {
 
     // MARK: - Jour par jour
 
-    private func daysCard(_ review: WeekReview) -> some View {
-        CoachCard(eyebrow: "Jour par jour", symbol: "list.bullet", tint: Theme.progress) {
+    private func daysCard(_ computed: Computed) -> some View {
+        let review = computed.review
+        return CoachCard(eyebrow: "Jour par jour", symbol: "list.bullet", tint: Theme.progress) {
             VStack(spacing: Theme.Spacing.s) {
                 ForEach(review.days.reversed()) { day in
-                    Button { openedDay = day.day } label: {
+                    NavigationLink {
+                        DayReviewView(day: day, meals: computed.meals[day.day])
+                    } label: {
                         HStack(spacing: Theme.Spacing.m) {
                             Image(systemName: day.statusSymbol)
                                 .font(.title3)
