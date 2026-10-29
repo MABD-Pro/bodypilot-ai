@@ -5,12 +5,15 @@ public struct Macros: Sendable, Equatable, Codable {
     public var proteinG: Double
     public var carbsG: Double
     public var fatG: Double
+    /// Fibres : 0 quand la source ne les donne pas (repas estimé par le modèle, restaurant sans repère).
+    public var fiberG: Double
 
-    public init(kcal: Double, proteinG: Double, carbsG: Double, fatG: Double) {
+    public init(kcal: Double, proteinG: Double, carbsG: Double, fatG: Double, fiberG: Double = 0) {
         self.kcal = kcal
         self.proteinG = proteinG
         self.carbsG = carbsG
         self.fatG = fatG
+        self.fiberG = fiberG
     }
 
     public static let zero = Macros(kcal: 0, proteinG: 0, carbsG: 0, fatG: 0)
@@ -20,13 +23,55 @@ public struct Macros: Sendable, Equatable, Codable {
             kcal: lhs.kcal + rhs.kcal,
             proteinG: lhs.proteinG + rhs.proteinG,
             carbsG: lhs.carbsG + rhs.carbsG,
-            fatG: lhs.fatG + rhs.fatG
+            fatG: lhs.fatG + rhs.fatG,
+            fiberG: lhs.fiberG + rhs.fiberG
         )
     }
 
     public func scaled(by factor: Double) -> Macros {
-        Macros(kcal: kcal * factor, proteinG: proteinG * factor, carbsG: carbsG * factor, fatG: fatG * factor)
+        Macros(kcal: kcal * factor, proteinG: proteinG * factor, carbsG: carbsG * factor, fatG: fatG * factor, fiberG: fiberG * factor)
     }
+
+    /// Part des calories apportée par les protéines, les glucides ou les lipides (0 à 1),
+    /// avec 4, 4 et 9 kcal par gramme. Nil sans calories.
+    public func energyShare(of nutrient: Nutrient) -> Double? {
+        guard kcal > 0 else { return nil }
+        switch nutrient {
+        case .protein: return proteinG * 4 / kcal
+        case .carbs: return carbsG * 4 / kcal
+        case .fat: return fatG * 9 / kcal
+        case .fiber: return nil
+        }
+    }
+
+    public func grams(of nutrient: Nutrient) -> Double {
+        switch nutrient {
+        case .protein: proteinG
+        case .carbs: carbsG
+        case .fat: fatG
+        case .fiber: fiberG
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey { case kcal, proteinG, carbsG, fatG, fiberG }
+
+    /// Les repas enregistrés avant les fibres n'ont pas la clé : elles valent 0.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        kcal = try container.decode(Double.self, forKey: .kcal)
+        proteinG = try container.decode(Double.self, forKey: .proteinG)
+        carbsG = try container.decode(Double.self, forKey: .carbsG)
+        fatG = try container.decode(Double.self, forKey: .fatG)
+        fiberG = try container.decodeIfPresent(Double.self, forKey: .fiberG) ?? 0
+    }
+}
+
+/// Nutriments détaillés dans les repas et les bilans.
+public enum Nutrient: String, CaseIterable, Sendable {
+    case protein
+    case carbs
+    case fat
+    case fiber
 }
 
 /// Besoins du jour, calculés de façon déterministe et explicables.

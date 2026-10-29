@@ -4,6 +4,9 @@ import Foundation
 /// Calcul déterministe des besoins : Mifflin-St Jeor, facteur d'activité (pas mesurés, sinon
 /// niveau déclaré), ajustement à l'objectif.
 public struct EnergyCalculator: Sendable {
+    /// Fibres : 30 g par jour pour un adulte (ANSES, 2016), quelles que soient les calories.
+    public static let fiberTargetG = 30.0
+
     public var calendar: Calendar
 
     public init(calendar: Calendar = .current) {
@@ -102,7 +105,7 @@ public struct EnergyCalculator: Sendable {
         let carbs = max(((kcal - protein * 4 - fat * 9) / 4).rounded(), 0)
 
         return NutritionTargets(
-            macros: Macros(kcal: kcal, proteinG: protein, carbsG: carbs, fatG: fat),
+            macros: Macros(kcal: kcal, proteinG: protein, carbsG: carbs, fatG: fat, fiberG: Self.fiberTargetG),
             maintenanceKcal: maintenance,
             rationale: explanation
         )

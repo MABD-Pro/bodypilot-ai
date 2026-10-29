@@ -210,11 +210,7 @@ struct WeekReviewView: View {
                 Text("Moyenne des \(review.completeDays) journée\(review.completeDays > 1 ? "s" : "") où tous les repas sont notés.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                HStack(spacing: Theme.Spacing.l) {
-                    MacroGauge(label: "Protéines", eaten: eaten.proteinG, target: target.proteinG, tint: Theme.protein)
-                    MacroGauge(label: "Glucides", eaten: eaten.carbsG, target: target.carbsG, tint: Theme.carbs)
-                    MacroGauge(label: "Lipides", eaten: eaten.fatG, target: target.fatG, tint: Theme.fat)
-                }
+                NutrientGauges(eaten: eaten, target: target)
             } else {
                 Text("Aucune journée avec tous ses repas notés")
                     .font(.headline)
@@ -415,11 +411,7 @@ struct DayReviewView: View {
                 Spacer()
                 Tag(text: "\(day.mealsNoted) repas sur \(day.mealsPlanned)", tint: Theme.nutrition)
             }
-            HStack(spacing: Theme.Spacing.l) {
-                MacroGauge(label: "Protéines", eaten: day.eaten.proteinG, target: day.target.proteinG, tint: Theme.protein)
-                MacroGauge(label: "Glucides", eaten: day.eaten.carbsG, target: day.target.carbsG, tint: Theme.carbs)
-                MacroGauge(label: "Lipides", eaten: day.eaten.fatG, target: day.target.fatG, tint: Theme.fat)
-            }
+            NutrientGauges(eaten: day.eaten, target: day.target)
             if let meals {
                 VStack(spacing: Theme.Spacing.s) {
                     ForEach(meals.meals, id: \.slot) { meal in
@@ -436,6 +428,10 @@ struct DayReviewView: View {
                                     Text(intake.label)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
+                                }
+                                if meal.isEaten {
+                                    NutrientBreakdown(macros: meal.macros, approximate: true)
+                                        .padding(.top, 2)
                                 }
                             }
                             Spacer(minLength: Theme.Spacing.s)

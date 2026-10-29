@@ -141,3 +141,13 @@ private func today(workoutDone: Bool = false, steps: Int? = nil, stepsGoal: Int?
     #expect(review.wins.isEmpty)
     #expect(review.days.allSatisfy { $0.mealsNoted == 0 && $0.activities.isEmpty })
 }
+
+@Test func lowFiberIsAdvisedForTheWeek() {
+    let withFiber = Macros(kcal: 2_000, proteinG: 150, carbsG: 200, fatG: 70, fiberG: 30)
+    let days = (23...28).map { day in
+        ReviewDayInput(day: october(day), target: withFiber, eaten: Macros(kcal: 2_000, proteinG: 150, carbsG: 200, fatG: 70, fiberG: 15), mealsNoted: 4, mealsPlanned: 4)
+    }
+    let review = reviewer.review(days: days, samples: [], completed: [], sessionMinutes: 45, today: today(), on: thursdayNoon)
+    #expect(abs((review.averageEaten?.fiberG ?? 0) - 15) < 0.001)
+    #expect(review.restOfWeek.contains { $0.hasPrefix("Fibres : 15 g par jour") })
+}

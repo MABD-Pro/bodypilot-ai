@@ -218,6 +218,14 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Tout est déterministe et local : aucun appel IA.
 - Démo : `-demoReview YES` (ou `jour` pour ouvrir le détail de la veille), avec `-demoScrollTo calories|activity|days`.
 
+## Nutriments détaillés (`BodyPilotCore/Macros`, `App/DesignSystem/Components`)
+
+- Protéines, glucides, lipides et fibres partout : jauges du jour dans Manger, détail de chaque repas déplié, bilan « Mes 7 derniers jours » et détail d'une journée.
+- Pourcentage : part des calories apportée par les protéines et les glucides (4 kcal/g) et les lipides (9 kcal/g). Les fibres s'affichent en grammes face à l'objectif.
+- Objectif de fibres : 30 g par jour (ANSES, 2016). Fibres pour 100 g : table Ciqual pour les aliments trouvés dans Ciqual, ordre de grandeur Ciqual pour le catalogue et le lexique (choix BodyPilot, à affiner). Un aliment estimé par le modèle embarqué compte 0 g ; un repas au restaurant compte 1 g pour 100 kcal.
+- Bilan : sous 80 % de l'objectif de fibres en moyenne sur les journées complètes, un conseil de la semaine le signale.
+- Les repas enregistrés avant l'ajout des fibres se relisent avec 0 g de fibres (pas de changement de schéma : les repas décrits sont stockés en JSON).
+
 ## Liste de courses (`Nutrition/GroceryList`, `App/Groceries/GroceryListView`)
 
 - Depuis Manger, « Préparer mes courses » : les repas que le coach propose sur 3, 5 ou 7 jours à partir de demain, avec les objectifs du jour (pas de restaurant ni de repas noté prévus d'avance), pour les moments de la journée choisis.
@@ -230,6 +238,6 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 - Menu Mon profil > « Conseils et sources » : texte fixe, rien à saisir.
 - Créatine : monohydrate 3 à 5 g par jour, sans phase de charge, facultative ; prévient de la prise d'eau (1 à 2 kg) que la tendance du poids absorbe. Pas avant 18 ans, ni enceinte, ni avec une maladie des reins ; avec un oui au questionnaire de santé, avis du médecin d'abord (Kreider et al., 2017).
-- Fibres : 30 g par jour (ANSES, 2016) et produits peu transformés (Hall et al., 2019 : environ 500 kcal de plus par jour avec des ultra-transformés, essai sur 20 adultes pendant 2 semaines). Les repas décrits ne comptent pas encore les fibres.
+- Fibres : 30 g par jour (ANSES, 2016) et produits peu transformés (Hall et al., 2019 : environ 500 kcal de plus par jour avec des ultra-transformés, essai sur 20 adultes pendant 2 semaines).
 - Sommeil : au moins 7 h (Watson et al., 2015).
 - Sources : les références principales des règles, par thème. La liste complète reste dans ce fichier et dans `docs/TRAINING_EVIDENCE.md`.
