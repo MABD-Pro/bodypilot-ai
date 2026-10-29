@@ -231,6 +231,9 @@ struct TodayView: View {
                             showReview: { isShowingReview = true }
                         )
                         .id("progress")
+                        .modifier(WeekReviewLink(
+                            isPresented: $isShowingReview, profileRecord: profileRecord, context: reviewContext, today: reviewToday
+                        ))
                     }
                     .padding(.horizontal, Theme.Spacing.l)
                     .padding(.bottom, Theme.Spacing.xxl)
@@ -292,12 +295,6 @@ struct TodayView: View {
             }
             .navigationDestination(isPresented: $isShowingHistory) {
                 HistoryView(healthActivities: healthActivities, compositions: bodyCompositions, focus: historyFocus)
-            }
-            .navigationDestination(isPresented: $isShowingReview) {
-                WeekReviewView(profileRecord: profileRecord, context: reviewContext)
-            }
-            .onChange(of: reviewToday, initial: true) { _, today in
-                reviewContext.today = today
             }
             .sheet(isPresented: $isAddingWeight) {
                 WeightEntrySheet(initialKg: weights.last?.kg ?? profileRecord.startWeightKg)
@@ -666,4 +663,22 @@ private struct MealToDescribe: Identifiable {
     let slot: MealSlot
     let current: DescribedMeal?
     var id: String { slot.rawValue }
+}
+
+/// « Mes 7 derniers jours » : destination de navigation et données du jour transmises par référence.
+private struct WeekReviewLink: ViewModifier {
+    @Binding var isPresented: Bool
+    let profileRecord: ProfileRecord
+    let context: WeekReviewContext
+    let today: WeekReviewToday
+
+    func body(content: Content) -> some View {
+        content
+            .navigationDestination(isPresented: $isPresented) {
+                WeekReviewView(profileRecord: profileRecord, context: context)
+            }
+            .onChange(of: today, initial: true) { _, today in
+                context.today = today
+            }
+    }
 }
