@@ -64,6 +64,8 @@ private func targets() -> NutritionTargets {
     #expect(MealPlanner.purchaseLabel(grams: 130, unit: eggs) == "3 œufs")
     #expect(MealPlanner.purchaseLabel(grams: 12, unit: nil) == "50 g")
     #expect(MealPlanner.purchaseLabel(grams: 420, unit: nil) == "450 g")
+    // Juste sous le kilo, arrondi au-dessus : on passe en kilos.
+    #expect(MealPlanner.purchaseLabel(grams: 975, unit: nil) == "1 kg")
     #expect(MealPlanner.purchaseLabel(grams: 1_240, unit: nil) == "1,3 kg")
     #expect(MealPlanner.purchaseLabel(grams: 2_000, unit: nil) == "2 kg")
     #expect(MealPlanner.purchaseLabel(grams: 180, unit: nil, density: 0.92) == "200 ml")

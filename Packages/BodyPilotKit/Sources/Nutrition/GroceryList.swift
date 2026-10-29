@@ -176,17 +176,20 @@ extension MealPlanner {
     /// Quantité arrondie au-dessus, à ce qui s'achète : à l'unité, par 50 g, puis par 100 g au-delà d'un kilo.
     static func purchaseLabel(grams: Double, unit: GroceryUnit?, density: Double? = nil) -> String {
         if let density {
-            let milliliters = grams / density
-            return milliliters < 1000 ? "\(Int(max(50, (milliliters / 50).rounded(.up) * 50))) ml" : "\(((milliliters / 100).rounded(.up) / 10).frenchCompact) l"
+            return rounded(grams / density, small: "ml", large: "l")
         }
         if let unit {
             // Une marge de 10 % évite d'acheter une unité de plus pour quelques grammes.
             let count = max(1, Int((grams / unit.grams - 0.1).rounded(.up)))
             return "\(count) \(count > 1 ? unit.plural : unit.singular)"
         }
-        if grams < 1000 {
-            return "\(Int(max(50, (grams / 50).rounded(.up) * 50))) g"
-        }
-        return "\(((grams / 100).rounded(.up) / 10).frenchCompact) kg"
+        return rounded(grams, small: "g", large: "kg")
+    }
+
+    /// Par 50 sous 1 000, puis par dixième de l'unité supérieure : « 950 g », « 1 kg », « 1,3 kg ».
+    private static func rounded(_ value: Double, small: String, large: String) -> String {
+        let fifties = max(50, (value / 50).rounded(.up) * 50)
+        if fifties < 1000 { return "\(Int(fifties)) \(small)" }
+        return "\(((value / 100).rounded(.up) / 10).frenchCompact) \(large)"
     }
 }

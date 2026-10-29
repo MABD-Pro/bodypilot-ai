@@ -93,7 +93,7 @@ struct NutritionCard: View {
                     HStack(spacing: Theme.Spacing.m) {
                         Image(systemName: "cart.fill")
                             .font(.subheadline.weight(.bold))
-                        Text("Préparer mes courses de la semaine")
+                        Text("Préparer mes courses")
                             .font(.subheadline.weight(.semibold))
                             .multilineTextAlignment(.leading)
                         Spacer(minLength: Theme.Spacing.s)
