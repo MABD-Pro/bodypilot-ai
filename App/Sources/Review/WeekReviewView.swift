@@ -9,14 +9,16 @@ import SwiftUI
 /// fait, et quoi faire pour le reste de la journée et de la semaine.
 struct WeekReviewView: View {
     let profileRecord: ProfileRecord
-    /// Plan du jour tel que l'écran Aujourd'hui l'affiche.
-    let todayPlan: TodayPlan
-    let workoutDone: Bool
-    /// Entraînements, composition et pas lus dans Santé par l'écran Aujourd'hui.
-    var healthActivities: [ActivitySample] = []
-    var compositions: [BodyCompositionEntry] = []
-    var dailySteps: [DailySteps] = []
-    var stepsGoal: Int?
+    /// Ce que l'écran Aujourd'hui sait du jour. Une référence, pas des valeurs : la destination de
+    /// navigation reste identique d'un rendu à l'autre de l'écran Aujourd'hui.
+    let context: WeekReviewContext
+
+    private var todayPlan: TodayPlan? { context.today?.plan }
+    private var workoutDone: Bool { context.today?.workoutDone ?? false }
+    private var healthActivities: [ActivitySample] { context.today?.healthActivities ?? [] }
+    private var compositions: [BodyCompositionEntry] { context.today?.compositions ?? [] }
+    private var dailySteps: [DailySteps] { context.today?.dailySteps ?? [] }
+    private var stepsGoal: Int? { context.today?.stepsGoal }
 
     @Query(sort: \WeightRecord.date) private var weights: [WeightRecord]
     @Query(filter: #Predicate<WaistRecord> { !$0.isScan }, sort: \WaistRecord.date) private var waists: [WaistRecord]
@@ -46,7 +48,7 @@ struct WeekReviewView: View {
 
     private var inputs: Inputs {
         Inputs(
-            eatenKcal: Self.whole(todayPlan.meals.eatenTotals.kcal), targetKcal: Self.whole(todayPlan.targets.macros.kcal),
+            eatenKcal: Self.whole(todayPlan?.meals.eatenTotals.kcal ?? 0), targetKcal: Self.whole(todayPlan?.targets.macros.kcal ?? 0),
             workoutDone: workoutDone, logs: dayLogs.count, weights: weights.count, activities: healthActivities.count, steps: dailySteps.count)
     }
 
@@ -54,7 +56,7 @@ struct WeekReviewView: View {
         value.isFinite ? Int(value.rounded()) : 0
     }
 
-    private func compute() -> Computed {
+    private func compute(today todayPlan: TodayPlan) -> Computed {
         let now = Date.now
         let profile = profileRecord.profile
         let completed = dayLogs.filter(\.workoutDone).map { (day: $0.day, title: $0.doneWorkoutTitle) }
@@ -115,7 +117,8 @@ struct WeekReviewView: View {
         .navigationTitle("Mes 7 derniers jours")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: inputs) {
-            computed = compute()
+            guard let todayPlan else { return }
+            computed = compute(today: todayPlan)
         }
     }
 
@@ -345,6 +348,22 @@ struct WeekReviewView: View {
         .font(.caption2)
         .foregroundStyle(.secondary)
     }
+}
+
+/// Ce que l'écran Aujourd'hui transmet au bilan, mis à jour quand le jour change.
+struct WeekReviewToday: Equatable {
+    var plan: TodayPlan
+    var workoutDone: Bool
+    var healthActivities: [ActivitySample]
+    var compositions: [BodyCompositionEntry]
+    var dailySteps: [DailySteps]
+    var stepsGoal: Int?
+}
+
+@MainActor
+@Observable
+final class WeekReviewContext {
+    var today: WeekReviewToday?
 }
 
 /// Le détail d'une journée : le mot du coach, les repas notés et l'activité.

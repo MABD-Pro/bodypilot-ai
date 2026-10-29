@@ -30,6 +30,8 @@ struct TodayView: View {
     @State private var isAnsweringScreening = false
     @State private var isShowingHistory = LaunchOptions.demoHistory != nil
     @State private var isShowingReview = LaunchOptions.demoReview != nil
+    /// Données du jour pour « Mes 7 derniers jours », partagées par référence.
+    @State private var reviewContext = WeekReviewContext()
     /// Ce que l'historique montre en s'ouvrant : la partie ou l'élément touché.
     @State private var historyFocus = HistoryView.Focus.section(.measures)
     /// Entraînements lus dans Santé (Watch, autres apps), pour la semaine et la régularité.
@@ -283,15 +285,17 @@ struct TodayView: View {
                 HistoryView(healthActivities: healthActivities, compositions: bodyCompositions, focus: historyFocus)
             }
             .navigationDestination(isPresented: $isShowingReview) {
-                WeekReviewView(
-                    profileRecord: profileRecord,
-                    todayPlan: plan,
-                    workoutDone: todayLog?.workoutDone ?? false,
-                    healthActivities: healthActivities,
-                    compositions: bodyCompositions,
-                    dailySteps: dailySteps,
-                    stepsGoal: steps(average: averageSteps, now: now)?.goal
-                )
+                WeekReviewView(profileRecord: profileRecord, context: reviewContext)
+            }
+            .onChange(of: WeekReviewToday(
+                plan: plan,
+                workoutDone: todayLog?.workoutDone ?? false,
+                healthActivities: healthActivities,
+                compositions: bodyCompositions,
+                dailySteps: dailySteps,
+                stepsGoal: steps(average: averageSteps, now: now)?.goal
+            ), initial: true) { _, today in
+                reviewContext.today = today
             }
             .sheet(isPresented: $isAddingWeight) {
                 WeightEntrySheet(initialKg: weights.last?.kg ?? profileRecord.startWeightKg)
