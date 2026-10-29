@@ -16,6 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Repart des réponses déjà publiées : Open Food Facts répond souvent 503.
+      - name: Reprendre les réponses publiées
+        run: |
+          mkdir off-source
+          if git fetch -q --depth=1 origin ci/openfoodfacts; then
+            git archive FETCH_HEAD | tar -x -C off-source --wildcards '*.json' || true
+          fi
       - run: scripts/openfoodfacts/fetch.sh off-source
       - run: scripts/openfoodfacts/build.py off-source off-source/GroceryBrandTable.swift
       # Copie sur une branche dédiée : les agents cloud ne peuvent ni joindre Open Food Facts

@@ -92,7 +92,9 @@ def main(folder, output):
     responses = {}
     for path in sorted(pathlib.Path(folder).glob("*.json")):
         data = json.load(open(path))
-        responses[data["name"]] = data["products"]
+        # Seules les réponses de search.pl pour les termes actuels comptent.
+        if data.get("name") in ITEMS and data.get("terms") == ITEMS[data["name"]]["terms"]:
+            responses[data["name"]] = data["products"]
     lines = [
         "// Fichier généré par scripts/openfoodfacts/build.py : ne pas modifier à la main.",
         "// Données Open Food Facts (openfoodfacts.org), licence ODbL.",
