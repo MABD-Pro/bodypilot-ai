@@ -130,6 +130,8 @@ enum CoachIntents {
             try context.save()
             return true
         } catch {
+            AppLog.persistence.error("Siri n'a pas pu enregistrer : \(error.localizedDescription, privacy: .public)")
+            Telemetry.recordNonFatal(error)
             return false
         }
     }

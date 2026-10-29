@@ -81,6 +81,10 @@ enum LaunchOptions {
     static var demoTargetKg: Double? { defaults.object(forKey: "demoTarget") == nil ? nil : defaults.double(forKey: "demoTarget") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
     static var demoScrollTarget: String? { defaults.string(forKey: "demoScrollTo") }
+    /// `-demoConsent YES` : affiche la question sur les rapports de plantage et statistiques.
+    static var demoConsent: Bool { defaults.bool(forKey: "demoConsent") }
+    /// Lancé avec une option `-demo…` : rien n'est envoyé à Firebase.
+    static var isDemo: Bool { ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-demo") } }
 }
 
 enum AppContainer {
@@ -107,6 +111,8 @@ enum AppContainer {
             StoredDayMigration.run(in: container.mainContext)
             return container
         } catch {
+            AppLog.persistence.fault("Base locale illisible : \(String(describing: error), privacy: .public)")
+            Telemetry.recordNonFatal(error)
             openFailure = String(describing: error)
             return inMemory()
         }

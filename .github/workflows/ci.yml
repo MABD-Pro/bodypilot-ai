@@ -51,6 +51,12 @@ jobs:
           path: build/ModuleCache.noindex
           key: modulecache-${{ steps.xcode.outputs.version }}-${{ hashFiles('project.yml', 'Packages/BodyPilotKit/Package.swift') }}
           restore-keys: modulecache-${{ steps.xcode.outputs.version }}-
+      # Paquets Swift résolus (Firebase) : le clone de firebase-ios-sdk prend plusieurs minutes.
+      - uses: actions/cache@v4
+        with:
+          path: build/SourcePackages
+          key: spm-${{ hashFiles('project.yml') }}
+          restore-keys: spm-
       - run: brew install xcodegen
       - run: xcodegen generate
       - name: Build simulateur et captures d'écran
