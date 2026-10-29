@@ -29,6 +29,9 @@ struct TodayView: View {
     @State private var isManagingCycle = false
     @State private var isAnsweringScreening = false
     @State private var isShowingHistory = LaunchOptions.demoHistory != nil
+    @State private var isShowingReview = LaunchOptions.demoReview != nil
+    /// Données du jour pour « Mes 7 derniers jours », partagées par référence.
+    @State private var reviewContext = WeekReviewContext()
     /// Ce que l'historique montre en s'ouvrant : la partie ou l'élément touché.
     @State private var historyFocus = HistoryView.Focus.section(.measures)
     /// Entraînements lus dans Santé (Watch, autres apps), pour la semaine et la régularité.
@@ -103,6 +106,15 @@ struct TodayView: View {
         )
         // Journée complète (les quatre repas notés) : ses calories servent à mesurer la dépense.
         let eatenToday = plan.meals.meals.allSatisfy(\.isEaten) ? plan.meals.eatenTotals.kcal.rounded() : nil
+
+        let reviewToday: WeekReviewToday = WeekReviewToday(
+            plan: plan,
+            workoutDone: todayLog?.workoutDone ?? false,
+            healthActivities: healthActivities,
+            compositions: bodyCompositions,
+            dailySteps: dailySteps,
+            stepsGoal: steps(average: averageSteps, now: now)?.goal
+        )
 
         let activityAnalyzer = WeekActivityAnalyzer(calendar: calendar)
         let week = activityAnalyzer.week(
@@ -215,9 +227,13 @@ struct TodayView: View {
                             dismissCheckIn: { withAnimation(Theme.springy) { profileRecord.lastCheckInAt = .now } },
                             connectHealth: { Task { await connectHealth() } },
                             disconnectHealth: { healthSync = false },
-                            showHistory: showHistory
+                            showHistory: showHistory,
+                            showReview: { isShowingReview = true }
                         )
                         .id("progress")
+                        .modifier(WeekReviewLink(
+                            isPresented: $isShowingReview, profileRecord: profileRecord, context: reviewContext, today: reviewToday
+                        ))
                     }
                     .padding(.horizontal, Theme.Spacing.l)
                     .padding(.bottom, Theme.Spacing.xxl)
@@ -647,4 +663,22 @@ private struct MealToDescribe: Identifiable {
     let slot: MealSlot
     let current: DescribedMeal?
     var id: String { slot.rawValue }
+}
+
+/// « Mes 7 derniers jours » : destination de navigation et données du jour transmises par référence.
+private struct WeekReviewLink: ViewModifier {
+    @Binding var isPresented: Bool
+    let profileRecord: ProfileRecord
+    let context: WeekReviewContext
+    let today: WeekReviewToday
+
+    func body(content: Content) -> some View {
+        content
+            .navigationDestination(isPresented: $isPresented) {
+                WeekReviewView(profileRecord: profileRecord, context: context)
+            }
+            .onChange(of: today, initial: true) { _, today in
+                context.today = today
+            }
+    }
 }
