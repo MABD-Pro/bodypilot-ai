@@ -30,6 +30,7 @@ struct TodayView: View {
     @State private var isAnsweringScreening = false
     @State private var isShowingHistory = LaunchOptions.demoHistory != nil
     @State private var isShowingReview = LaunchOptions.demoReview != nil
+    @State private var isShowingGroceries = LaunchOptions.demoGroceries
     /// Données du jour pour « Mes 7 derniers jours », partagées par référence.
     @State private var reviewContext = WeekReviewContext()
     /// Ce que l'historique montre en s'ouvrant : la partie ou l'élément touché.
@@ -154,7 +155,7 @@ struct TodayView: View {
                             RecentMeals.list(for: slot, history: recentMealHistory(now: now), today: now, calendar: calendar)
                         }, reuse: { slot, meal in
                             saveDescribed(meal, for: slot)
-                        }, showHistory: { slot in showHistory(slot.map { .meal($0) } ?? .section(.meals)) })
+                        }, showHistory: { slot in showHistory(slot.map { .meal($0) } ?? .section(.meals)) }, showGroceries: { isShowingGroceries = true })
                             .id("nutrition")
                         TrainingCard(
                             training: (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training),
@@ -292,6 +293,9 @@ struct TodayView: View {
             .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
                 // Un repas pris, décrit, modifié ou annulé : Santé suit aussitôt.
                 await exportMeals(plan.meals, on: now)
+            }
+            .navigationDestination(isPresented: $isShowingGroceries) {
+                GroceryListView(targets: plan.targets, profile: profileRecord.profile)
             }
             .navigationDestination(isPresented: $isShowingHistory) {
                 HistoryView(healthActivities: healthActivities, compositions: bodyCompositions, focus: historyFocus)

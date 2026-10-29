@@ -15,6 +15,8 @@ struct NutritionCard: View {
     var reuse: (MealSlot, DescribedMeal) -> Void = { _, _ in }
     /// Historique des repas : tous (`nil`), ou ceux d'un moment de la journée.
     var showHistory: ((MealSlot?) -> Void)?
+    /// Ouvre la liste de courses des prochains jours.
+    var showGroceries: (() -> Void)?
 
     @State private var expanded: MealSlot?
     @State private var showsRationale = false
@@ -84,6 +86,28 @@ struct NutritionCard: View {
                         showHistory: showHistory.map { show in { show(meal.slot) } }
                     )
                 }
+            }
+
+            if let showGroceries {
+                Button(action: showGroceries) {
+                    HStack(spacing: Theme.Spacing.m) {
+                        Image(systemName: "cart.fill")
+                            .font(.subheadline.weight(.bold))
+                        Text("Préparer mes courses")
+                            .font(.subheadline.weight(.semibold))
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: Theme.Spacing.s)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.horizontal, Theme.Spacing.l)
+                    .padding(.vertical, Theme.Spacing.m)
+                    .contentShape(.capsule)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Theme.nutrition)
+                .glassEffect(.regular.tint(Theme.nutrition.opacity(0.12)).interactive(), in: .capsule)
             }
         }
     }

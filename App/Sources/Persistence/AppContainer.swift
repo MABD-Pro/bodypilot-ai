@@ -43,6 +43,8 @@ enum LaunchOptions {
     /// `-demoReview YES` : ouvre « Mes 7 derniers jours », avec une semaine de repas notés ;
     /// `-demoReview jour` : ouvre en plus le détail de la veille.
     static var demoReview: String? { defaults.string(forKey: "demoReview") }
+    /// `-demoGroceries YES` : ouvre la liste de courses des 7 prochains jours.
+    static var demoGroceries: Bool { defaults.bool(forKey: "demoGroceries") }
     /// `-demoComposition YES` : 4 semaines de taux de gras et de masse maigre lus dans Santé.
     static var demoComposition: Bool { defaults.bool(forKey: "demoComposition") }
     /// `-demoActivities YES` : quelques activités Santé dans la semaine (course, vélo, marche).
