@@ -146,6 +146,7 @@ struct OnboardingView: View {
         } else {
             isSaved = true
             context.insert(ProfileRecord(profile))
+            Telemetry.record(.onboardingCompleted)
         }
     }
 }

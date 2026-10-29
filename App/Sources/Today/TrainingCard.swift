@@ -238,6 +238,7 @@ struct TrainingCard: View {
                 // La séance déjà adaptée (temps, fatigue, genou) part sur la montre, guidée série par série.
                 Button {
                     isPreviewingWatch = true
+                    Telemetry.record(.watchPreviewOpened)
                 } label: {
                     Label("Envoyer sur ma Watch", systemImage: "applewatch")
                         .font(.subheadline.weight(.semibold))
@@ -627,6 +628,7 @@ struct TrainingCard: View {
         if training.watchPlan != nil {
             Button {
                 isPreviewingWatch = true
+                Telemetry.record(.watchPreviewOpened)
             } label: {
                 Label("Sur ma Watch", systemImage: "applewatch")
                     .font(.subheadline.weight(.semibold))

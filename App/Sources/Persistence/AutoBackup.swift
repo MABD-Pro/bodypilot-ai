@@ -60,6 +60,7 @@ enum AutoBackup {
             }
             try write(to: folder, context: context, now: now)
         } catch {
+            AppLog.backup.error("Sauvegarde automatique impossible : \(error.localizedDescription, privacy: .public)")
             defaults.set(error.localizedDescription, forKey: errorKey)
         }
     }

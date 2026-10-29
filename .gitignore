@@ -35,3 +35,6 @@ App/Info.plist
 App/BodyPilot.entitlements
 screenshots/
 build.log
+
+# Configuration Firebase propre à chaque installation (voir docs/TELEMETRY.md)
+App/Config/GoogleService-Info.plist

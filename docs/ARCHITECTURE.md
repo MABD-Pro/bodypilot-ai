@@ -23,6 +23,7 @@ App (SwiftUI, cible iOS)                ← UI, HealthKit, SwiftData, StoreKit, 
 - **Jours enregistrés à midi.** Un jour (journal, série, test, début de cycle) s'enregistre à midi local (`Calendar.storedDay`), pour rester le même jour en voyage.
 - **Local-first.** Les identifiants (`EntityID`) sont générés sur l'appareil. Le stockage local est la source de vérité ; la synchronisation viendra plus tard avec une gestion explicite des conflits.
 - **Coût IA maîtrisé.** Toute demande passe par `AIRouter`, qui choisit le niveau le moins coûteux capable de la traiter (déterministe > embarqué > cloud éco > cloud avancé) et refuse le cloud quand le budget est atteint. Chaque appel à un modèle passe par `AIRouter.run`, qui produit un `AIUsageRecord` (niveau, tokens, coût, latence, succès) rangé dans un `AIUsageLedger` : l'app garde les 500 derniers sur l'iPhone (`AIUsageStore`, fichier `ai-usage.json`), et le budget cloud se compte sur le mois en cours. Fonctionnalités mesurées : `command-parsing`, `meal-description`, `meal-photo`, `meal-photo-labels`.
+- **Diagnostics sous consentement.** Journaux `os.Logger` locaux (`AppLog`) ; Crashlytics et Analytics éteints tant que l'utilisateur n'a pas accepté, sans aucune donnée de santé (voir [TELEMETRY.md](TELEMETRY.md)). Firebase n'est importé que par l'App.
 - **Fournisseurs remplaçables.** Aucun SDK de fournisseur IA dans les modules de domaine. Les appels cloud passeront par le backend (proxy), jamais avec une clé dans l'app.
 
 ## Cibles

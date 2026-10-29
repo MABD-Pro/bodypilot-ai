@@ -17,6 +17,10 @@ settings:
 packages:
   BodyPilotKit:
     path: Packages/BodyPilotKit
+  # Crashlytics et Analytics, éteints tant que l'utilisateur n'a pas accepté (voir docs/TELEMETRY.md).
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: 13.1.0
 
 targets:
   BodyPilot:
@@ -34,6 +38,17 @@ targets:
           UIImageRespectsSafeAreaInsets: false
         NSHealthShareUsageDescription: BodyPilot lit ton poids, ton taux de gras et ta masse maigre, ta taille, ta date de naissance, ton sexe, tes entraînements, ton sommeil, ta forme cardio, ton pouls au repos et, si tu le notes, ton cycle menstruel dans Santé pour suivre ta tendance et te proposer la bonne séance du jour sans saisie. Rien ne quitte ton iPhone.
         NSHealthUpdateUsageDescription: BodyPilot enregistre dans Santé les repas que tu as mangés (calories, protéines, glucides, lipides). Rien ne quitte ton iPhone.
+        # Firebase : rien n'est collecté avant le consentement, jamais de publicité ni d'identifiant.
+        FIREBASE_ANALYTICS_COLLECTION_ENABLED: false
+        FirebaseCrashlyticsCollectionEnabled: false
+        FirebaseAutomaticScreenReportingEnabled: false
+        FirebaseAppDelegateProxyEnabled: false
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_ANALYTICS_STORAGE: false
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_STORAGE: false
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_USER_DATA: false
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS: false
+        GOOGLE_ANALYTICS_REGISTRATION_WITH_AD_NETWORK_ENABLED: false
+        GOOGLE_ANALYTICS_IDFV_COLLECTION_ENABLED: false
         NSCameraUsageDescription: BodyPilot photographie ton repas pour estimer ce que tu as mangé, et peut mesurer ton tour de taille au LiDAR si tu le demandes. Les images sont analysées sur ton iPhone et ne sont pas conservées.
     entitlements:
       path: App/BodyPilot.entitlements
@@ -53,6 +68,33 @@ targets:
         product: ProgressInsights
       - package: BodyPilotKit
         product: Coach
+      - package: Firebase
+        product: FirebaseCrashlytics
+      - package: Firebase
+        product: FirebaseAnalytics
+    # GoogleService-Info.plist n'est pas versionné : copié s'il est là, sinon Firebase reste éteint.
+    postBuildScripts:
+      - name: Copier GoogleService-Info.plist
+        basedOnDependencyAnalysis: false
+        script: |
+          PLIST="${SRCROOT}/App/Config/GoogleService-Info.plist"
+          if [ -f "$PLIST" ]; then
+            cp "$PLIST" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/"
+          else
+            echo "GoogleService-Info.plist absent : Firebase éteint dans ce build."
+          fi
+      - name: Crashlytics (envoi des symboles)
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - ${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}
+          - ${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${PRODUCT_NAME}
+          - ${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist
+        script: |
+          PLIST="${SRCROOT}/App/Config/GoogleService-Info.plist"
+          RUN="${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run"
+          [ -f "$PLIST" ] && [ -x "$RUN" ] || exit 0
+          [ "$PLATFORM_NAME" = "iphonesimulator" ] && exit 0
+          "$RUN" -gsp "$PLIST"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mabdpro.bodypilot
@@ -65,6 +107,10 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_EMIT_LOC_STRINGS: YES
+        # Symboles des plantages pour Crashlytics, aussi pour les builds lancés depuis Xcode.
+        DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+        # Les scripts lisent le plist et le dossier SourcePackages, hors de leurs entrées déclarées.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
 
 schemes:
   BodyPilot:

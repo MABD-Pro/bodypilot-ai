@@ -24,6 +24,7 @@ struct TodayView: View {
     @State private var isAddingWeight = false
     @State private var isEditingProfile = false
     @State private var isManagingData = false
+    @State private var isEditingPrivacy = false
     @State private var isShowingGuides = LaunchOptions.demoGuides
     @State private var isManagingCycle = false
     @State private var isAnsweringScreening = false
@@ -245,6 +246,7 @@ struct TodayView: View {
                         Button("Mon profil", systemImage: "person") { isEditingProfile = true }
                         Button("Mes données", systemImage: "externaldrive") { isManagingData = true }
                         Button("Conseils et sources", systemImage: "books.vertical") { isShowingGuides = true }
+                        Button("Confidentialité", systemImage: "hand.raised") { isEditingPrivacy = true }
                     }
                 }
             }
@@ -295,6 +297,9 @@ struct TodayView: View {
             .sheet(isPresented: $isManagingCycle) {
                 CycleSheet(profile: profileRecord)
             }
+            .sheet(isPresented: $isEditingPrivacy) {
+                PrivacySheet()
+            }
             .sheet(isPresented: $isShowingGuides) {
                 CoachGuidesSheet(screening: profileRecord.screening)
             }
@@ -313,6 +318,7 @@ struct TodayView: View {
             profileRecord.calorieAdjustmentKcal += suggestion.deltaKcal
             profileRecord.lastCheckInAt = .now
         }
+        Telemetry.record(.weeklyCheckInApplied)
     }
 
     private var healthLink: HealthLink {
@@ -325,6 +331,7 @@ struct TodayView: View {
         do {
             try await HealthWeight.requestAccess(includeCycle: tracksCycle)
         } catch {
+            AppLog.health.error("Autorisation Santé refusée ou impossible : \(error.localizedDescription, privacy: .public)")
             return
         }
         healthSync = true
@@ -588,6 +595,7 @@ struct TodayView: View {
             log.mealIntakes[slot] = nil
         }
         try? context.save()
+        Telemetry.record(.mealDescribed)
     }
 
     /// Meilleure série du jour : une seule par exercice, la dernière saisie la remplace.
