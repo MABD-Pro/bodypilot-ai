@@ -33,6 +33,8 @@ fastlane/test_output
 # Info.plist et entitlements générés par XcodeGen (voir project.yml)
 App/Info.plist
 App/BodyPilot.entitlements
+App/BodyPilotWidgets-Info.plist
+App/BodyPilotWidgets.entitlements
 screenshots/
 build.log
 

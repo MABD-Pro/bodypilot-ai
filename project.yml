@@ -28,6 +28,7 @@ targets:
     platform: iOS
     sources:
       - App/Sources
+      - App/Shared
       - App/Resources
     info:
       path: App/Info.plist
@@ -55,7 +56,10 @@ targets:
       properties:
         com.apple.developer.healthkit: true
         com.apple.developer.healthkit.access: []
+        # Résumé du jour partagé avec les widgets (voir App/Shared/TodaySnapshot.swift).
+        com.apple.security.application-groups: [group.com.mabdpro.bodypilot]
     dependencies:
+      - target: BodyPilotWidgets
       - package: BodyPilotKit
         product: BodyPilotCore
       - package: BodyPilotKit
@@ -110,6 +114,34 @@ targets:
         # Symboles des plantages pour Crashlytics, aussi pour les builds lancés depuis Xcode.
         DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
         # Les scripts lisent le plist et le dossier SourcePackages, hors de leurs entrées déclarées.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+  # Widgets de l'écran d'accueil et de l'écran verrouillé, boutons du Centre de contrôle.
+  # L'extension n'ouvre pas la base : elle lit le résumé du jour écrit par l'app.
+  BodyPilotWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - App/Widgets
+      - App/Shared
+    info:
+      path: App/BodyPilotWidgets-Info.plist
+      properties:
+        CFBundleDisplayName: BodyPilot
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: App/BodyPilotWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.mabdpro.bodypilot]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mabdpro.bodypilot.widgets
+        PRODUCT_NAME: BodyPilotWidgets
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: BodyPilot
+        SKIP_INSTALL: YES
         ENABLE_USER_SCRIPT_SANDBOXING: NO
 
 schemes:
