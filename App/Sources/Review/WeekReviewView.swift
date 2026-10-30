@@ -48,6 +48,10 @@ struct WeekReviewView: View {
         return feeling.mood == .hard || feeling.obstacles.contains(.motivation)
     }
 
+    private var floorWeekAction: (() -> Void)? {
+        offersFloorWeek ? { startFloorWeek() } : nil
+    }
+
     private func startFloorWeek() {
         withAnimation(Theme.springy) { profileRecord.startFloorWeek(on: .now, calendar: calendar) }
         try? modelContext.save()
@@ -178,7 +182,7 @@ struct WeekReviewView: View {
                     WeekPrioritiesCard(
                         priorities: WeekReviewer(calendar: calendar).priorities(review, feeling: feeling),
                         fromFeeling: feeling != nil,
-                        startFloorWeek: offersFloorWeek ? startFloorWeek : nil
+                        startFloorWeek: floorWeekAction
                     )
                     adviceCard(title: "Pour le reste de la journée", symbol: "sun.max.fill", tint: Theme.nutrition, advice: review.restOfDay)
                     caloriesCard(review)
