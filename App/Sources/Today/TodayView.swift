@@ -171,6 +171,7 @@ struct TodayView: View {
                             swap: swapExercise,
                             isDone: todayLog?.workoutDone ?? false,
                             toggleDone: { toggleWorkoutDone(title: plan.training.workoutTitle) },
+                            startSession: WorkoutLiveActivity.isAvailable ? { workout in Task { await WorkoutLiveActivity.start(workout) } } : nil,
                             week: week,
                             healthLinked: healthLink == .on,
                             lifts: lifts,
@@ -663,6 +664,8 @@ struct TodayView: View {
             log.workoutDone.toggle()
             log.doneWorkoutTitle = log.workoutDone ? title : nil
         }
+        // Séance cochée à la main : le suivi de l'écran verrouillé n'a plus lieu d'être.
+        if log.workoutDone { Task { await WorkoutLiveActivity.endAll() } }
     }
 
     /// Phrase libre comprise : on ajoute les ajustements, sans retirer ceux déjà choisis.
