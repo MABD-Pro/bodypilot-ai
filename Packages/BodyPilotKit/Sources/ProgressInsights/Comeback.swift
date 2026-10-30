@@ -28,13 +28,13 @@ public struct Comeback: Sendable, Equatable {
             return Comeback(
                 quietDays: quiet,
                 title: "Content de te revoir",
-                message: "Pas de rattrapage à faire : on repart de là où tu es. Une semaine plancher, deux séances de 20 min, tes protéines et une pesée, suffit pour relancer la machine."
+                message: "Pas de rattrapage à faire : on repart de là où tu es. Une semaine plancher, deux séances de 20\u{00A0}min, tes protéines et une pesée, suffit pour relancer la machine."
             )
         }
         return Comeback(
             quietDays: quiet,
             title: "\(quiet) jours sans nouvelles",
-            message: "Ça arrive à tout le monde. Plutôt que de tout reprendre d'un coup, une semaine plancher : deux séances de 20 min, tes protéines et une pesée. Le reste est du bonus."
+            message: "Ça arrive à tout le monde. Plutôt que de tout reprendre d'un coup, une semaine plancher : deux séances de 20\u{00A0}min, tes protéines et une pesée. Le reste est du bonus."
         )
     }
 }
@@ -77,7 +77,7 @@ public struct FloorWeekProgress: Sendable, Equatable {
         progress.message = progress.isHeld
             ? "Plancher tenu. C'est exactement ce qui fait tenir sur des mois : tu peux reprendre le plan complet quand tu veux."
             : progress.strengthSessions + progress.proteinDays + (progress.weighedIn ? 1 : 0) == 0
-                ? "Une seule chose aujourd'hui : une séance de 20 min, ou tes protéines, ou une pesée."
+                ? "Une seule chose aujourd'hui : une séance de 20\u{00A0}min, ou tes protéines, ou une pesée."
                 : "Chaque case compte. Continue à ton rythme, rien d'autre n'est demandé cette semaine."
         return progress
     }

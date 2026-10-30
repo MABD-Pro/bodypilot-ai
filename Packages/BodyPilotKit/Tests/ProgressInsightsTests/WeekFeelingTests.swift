@@ -61,3 +61,13 @@ private let numbers = review([
     #expect(reviewer.headline(hard, feeling: WeekFeeling(mood: .hard)) == WeekReviewer.hardWeekHeadline)
     #expect(reviewer.headline(hard, feeling: nil) == WeekReviewer.hardWeekHeadline)
 }
+
+@Test func aHardFeelingTempersPraise() {
+    var praised = numbers
+    praised.headline = "Très belle semaine : tu tiens le cap sur tous les fronts. Continue exactement comme ça."
+    #expect(reviewer.headline(praised, feeling: WeekFeeling(mood: .hard)).hasPrefix("Semaine dure à vivre"))
+    #expect(reviewer.headline(praised, feeling: WeekFeeling(mood: .great)) == praised.headline)
+    var empty = numbers
+    empty.headline = WeekReviewer.emptyWeekHeadline
+    #expect(reviewer.headline(empty, feeling: WeekFeeling(mood: .hard)) == WeekReviewer.emptyWeekHeadline)
+}

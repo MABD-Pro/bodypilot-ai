@@ -237,7 +237,7 @@ public struct WeekReviewer: Sendable {
         } else if isComplete {
             parts.append("\(input.eaten.kcal.frenchInteger) / \(input.target.kcal.frenchInteger) kcal")
         } else {
-            parts.append("\(input.eaten.kcal.frenchInteger) kcal, \(input.mealsNoted) repas sur \(input.mealsPlanned)")
+            parts.append("\(input.eaten.kcal.frenchInteger)\u{00A0}kcal, \(input.mealsNoted) repas sur \(input.mealsPlanned)")
         }
         if let first = activities.last {
             parts.append(activities.count > 1 ? "\(first.title) +\(activities.count - 1)" : first.title)
@@ -254,10 +254,10 @@ public struct WeekReviewer: Sendable {
                 : "Calories dans la cible. Protéines un peu justes (\(percent(input.eaten.proteinG, of: input.target.proteinG)) de l'objectif) : c'est elles qui protègent le muscle.")
         case .over:
             let over = input.eaten.kcal - input.target.kcal
-            sentences.append("\(over.frenchInteger) kcal au-dessus de l'objectif. Une journée ne change rien : c'est la moyenne de la semaine qui compte.")
+            sentences.append("\(over.frenchInteger)\u{00A0}kcal au-dessus de l'objectif. Une journée ne change rien : c'est la moyenne de la semaine qui compte.")
         case .under:
             let under = input.target.kcal - input.eaten.kcal
-            sentences.append("\(under.frenchInteger) kcal sous l'objectif. Manger trop peu fatigue et coûte du muscle : mieux vaut un déficit tenable.")
+            sentences.append("\(under.frenchInteger)\u{00A0}kcal sous l'objectif. Manger trop peu fatigue et coûte du muscle : mieux vaut un déficit tenable.")
         case nil:
             if input.mealsNoted == 0 {
                 sentences.append(isToday ? "Aucun repas noté pour l'instant." : "Aucun repas noté ce jour-là.")
@@ -293,7 +293,7 @@ public struct WeekReviewer: Sendable {
             wins.append("\(review.sessions) séances en 7 jours : la régularité est là.")
         }
         if review.enduranceMinutes >= Self.activeMinutesGoal {
-            wins.append("\(WeekActivityAnalyzer.duration(review.enduranceMinutes)) d'endurance (cardio, marche, sport) : le repère de l'OMS de 150 min est atteint.")
+            wins.append("\(WeekActivityAnalyzer.duration(review.enduranceMinutes)) d'endurance (cardio, marche, sport) : le repère de l'OMS de 150\u{00A0}min est atteint.")
         }
         if review.completeDays >= Self.minimumCompleteDays {
             if review.proteinDays * 2 >= review.completeDays, review.proteinDays > 0 {
@@ -312,12 +312,11 @@ public struct WeekReviewer: Sendable {
         return wins
     }
 
+    static let emptyWeekHeadline = "Ton bilan se remplit au fil des jours : note tes repas d'une touche et coche tes séances, le coach fait le reste."
     static let hardWeekHeadline = "Semaine plus difficile, ça arrive à tout le monde. On repart simple, dès aujourd'hui."
 
     func headline(wins: Int, hasData: Bool) -> String {
-        guard hasData else {
-            return "Ton bilan se remplit au fil des jours : note tes repas d'une touche et coche tes séances, le coach fait le reste."
-        }
+        guard hasData else { return Self.emptyWeekHeadline }
         switch wins {
         case 3...: return "Très belle semaine : tu tiens le cap sur tous les fronts. Continue exactement comme ça."
         case 1...2: return "De bonnes bases cette semaine. Un ou deux réglages, et ça avance encore mieux."
@@ -334,7 +333,7 @@ public struct WeekReviewer: Sendable {
         if remaining.isEmpty {
             let missing = today.target.proteinG - eaten.proteinG
             if eaten.kcal > 0, missing > 15 {
-                advice.append("Repas notés. Il manque environ \(missing.frenchInteger) g de protéines : un skyr ou un verre de lait ce soir comble l'écart.")
+                advice.append("Repas notés. Il manque environ \(missing.frenchInteger)\u{00A0}g de protéines : un skyr ou un verre de lait ce soir comble l'écart.")
             } else if eaten.kcal > 0 {
                 advice.append("Journée de repas bouclée. Rien à ajouter, bravo.")
             }
@@ -344,14 +343,14 @@ public struct WeekReviewer: Sendable {
             let planned = remaining.reduce(Macros.zero) { $0 + $1.macros }
             let next = remaining[0]
             let count = remaining.count
-            advice.append("Encore \(count) repas, environ \(planned.kcal.frenchInteger) kcal et \(planned.proteinG.frenchInteger) g de protéines. Prochain : \(next.title.lowercasedFirst).")
+            advice.append("Encore \(count) repas, environ \(planned.kcal.frenchInteger)\u{00A0}kcal et \(planned.proteinG.frenchInteger)\u{00A0}g de protéines. Prochain : \(next.title.lowercasedFirst).")
         }
 
         switch today.training.kind {
         case .workout(let workout) where !today.workoutDone:
-            advice.append("Ta séance t'attend : \(workout.title.lowercasedFirst), \(today.training.estimatedMinutes) min. Même une version courte compte.")
+            advice.append("Ta séance t'attend : \(workout.title.lowercasedFirst), \(today.training.estimatedMinutes)\u{00A0}min. Même une version courte compte.")
         case .activeRest(let title, let minutes) where !today.workoutDone:
-            advice.append("Au programme : \(title.lowercasedFirst), \(minutes) min.")
+            advice.append("Au programme : \(title.lowercasedFirst), \(minutes)\u{00A0}min.")
         case .rest where !today.workoutDone:
             advice.append("Repos aujourd'hui : une marche tranquille aide à récupérer sans fatiguer.")
         default:
@@ -400,26 +399,26 @@ public struct WeekReviewer: Sendable {
             advice.append(WeekAdvice(.logging, "Note tes repas d'une touche (« Comme prévu » suffit) : avec \(review.completeDays) journée\(review.completeDays > 1 ? "s" : "") complète\(review.completeDays > 1 ? "s" : "") sur 7, le bilan de calories reste partiel."))
         } else if let eaten = review.averageEaten, let target = review.averageTarget {
             if target.proteinG > 0, eaten.proteinG < target.proteinG * Self.proteinReached {
-                advice.append(WeekAdvice(.protein, "Protéines : \(eaten.proteinG.frenchInteger) g par jour en moyenne pour \(target.proteinG.frenchInteger) g visés. Ajoute une portion (skyr, œufs, thon, poulet) au repas qui en manque le plus."))
+                advice.append(WeekAdvice(.protein, "Protéines : \(eaten.proteinG.frenchInteger)\u{00A0}g par jour en moyenne pour \(target.proteinG.frenchInteger)\u{00A0}g visés. Ajoute une portion (skyr, œufs, thon, poulet) au repas qui en manque le plus."))
             }
             if target.kcal > 0, eaten.kcal > target.kcal * Self.kcalHigh {
                 let worst = review.days.filter { $0.kcalStatus == .over }.max { ($0.eaten.kcal - $0.target.kcal) < ($1.eaten.kcal - $1.target.kcal) }
                 let detail = worst.map { ", surtout \(weekday($0.day)) (+\(($0.eaten.kcal - $0.target.kcal).frenchInteger))" } ?? ""
-                advice.append(WeekAdvice(.kcalOver, "Calories : \((eaten.kcal - target.kcal).frenchInteger) kcal par jour au-dessus de l'objectif en moyenne\(detail). Repère le repas en cause dans le détail du jour."))
+                advice.append(WeekAdvice(.kcalOver, "Calories : \((eaten.kcal - target.kcal).frenchInteger)\u{00A0}kcal par jour au-dessus de l'objectif en moyenne\(detail). Repère le repas en cause dans le détail du jour."))
             } else if target.kcal > 0, eaten.kcal < target.kcal * Self.kcalLow {
-                advice.append(WeekAdvice(.kcalUnder, "Tu manges en moyenne \((target.kcal - eaten.kcal).frenchInteger) kcal de moins que prévu. Un déficit trop fort fatigue et coûte du muscle : garde la collation."))
+                advice.append(WeekAdvice(.kcalUnder, "Tu manges en moyenne \((target.kcal - eaten.kcal).frenchInteger)\u{00A0}kcal de moins que prévu. Un déficit trop fort fatigue et coûte du muscle : garde la collation."))
             }
             if target.fiberG > 0, eaten.fiberG < target.fiberG * Self.fiberReached {
-                advice.append(WeekAdvice(.fiber, "Fibres : \(eaten.fiberG.frenchInteger) g par jour en moyenne pour \(target.fiberG.frenchInteger) g visés (ANSES). Un légume de plus à chaque repas, un fruit entier et des légumineuses deux fois par semaine."))
+                advice.append(WeekAdvice(.fiber, "Fibres : \(eaten.fiberG.frenchInteger)\u{00A0}g par jour en moyenne pour \(target.fiberG.frenchInteger)\u{00A0}g visés (ANSES). Un légume de plus à chaque repas, un fruit entier et des légumineuses deux fois par semaine."))
             }
         }
 
         if review.enduranceMinutes < Self.activeMinutesGoal {
-            advice.append(WeekAdvice(.endurance, "\(WeekActivityAnalyzer.duration(review.enduranceMinutes)) d'endurance en 7 jours, pour 150 min recommandées par l'OMS : 20 min de marche rapide par jour comblent l'écart."))
+            advice.append(WeekAdvice(.endurance, "\(WeekActivityAnalyzer.duration(review.enduranceMinutes)) d'endurance en 7 jours, pour 150\u{00A0}min recommandées par l'OMS : 20\u{00A0}min de marche rapide par jour comblent l'écart."))
         }
 
         if let average = review.averageSteps, let goal = today.stepsGoal, average < Double(goal) - 500 {
-            advice.append(WeekAdvice(.steps, "Pas : environ \(StepActivity.displayed(average).frenchInteger) par jour. Vise \(Double(goal).frenchInteger) : 10 min de marche après un repas en ajoutent environ 1\u{202F}000."))
+            advice.append(WeekAdvice(.steps, "Pas : environ \(StepActivity.displayed(average).frenchInteger) par jour. Vise \(Double(goal).frenchInteger) : 10\u{00A0}min de marche après un repas en ajoutent environ 1\u{202F}000."))
         }
 
         if advice.isEmpty {

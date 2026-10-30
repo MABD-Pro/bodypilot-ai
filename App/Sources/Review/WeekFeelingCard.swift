@@ -118,7 +118,7 @@ struct WeekPrioritiesCard: View {
                         .frame(maxWidth: .infinity, minHeight: 44)
                 }
                 .buttonStyle(.glass)
-                Text("Deux séances de \(FloorWeek.sessionMinutes) min, tes protéines et une pesée pendant 7 jours. Rien d'autre n'est demandé.")
+                Text("Deux séances de \(FloorWeek.sessionMinutes)\u{00A0}min, tes protéines et une pesée pendant 7 jours. Rien d'autre n'est demandé.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

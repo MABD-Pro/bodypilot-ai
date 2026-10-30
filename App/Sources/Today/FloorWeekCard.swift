@@ -46,7 +46,7 @@ struct FloorWeekCard: View {
                 row(
                     done: progress.strengthSessions >= FloorWeek.strengthSessions,
                     title: "Force : \(min(progress.strengthSessions, FloorWeek.strengthSessions)) séance\(progress.strengthSessions > 1 ? "s" : "") sur \(FloorWeek.strengthSessions)",
-                    detail: "Séances de \(FloorWeek.sessionMinutes) min cette semaine."
+                    detail: "Séances de \(FloorWeek.sessionMinutes)\u{00A0}min cette semaine."
                 )
                 row(
                     done: progress.proteinDays >= FloorWeek.proteinDays,

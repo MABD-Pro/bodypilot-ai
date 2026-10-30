@@ -14,6 +14,7 @@ struct TodayView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("healthWeightSync") private var healthSync = false
+    @AppStorage(CoachNotifications.enabledKey) private var coachReminders = true
     @Query(sort: \WeightRecord.date) private var weights: [WeightRecord]
     @Query private var dayLogs: [DayLogRecord]
     @Query(filter: #Predicate<WaistRecord> { !$0.isScan }, sort: \WaistRecord.date) private var waists: [WaistRecord]
@@ -111,6 +112,10 @@ struct TodayView: View {
             && plan.meals.eatenTotals.proteinG >= plan.targets.macros.proteinG * FloorWeek.proteinReached
         let floorWeek = floorWeekProgress(completed: completed, now: now)
         let comeback = floorWeek == nil ? currentComeback(now: now) : nil
+        let reminders = CoachReminders.plan(
+            lastActivity: activityDays().max(), floorWeekUntil: profileRecord.floorWeekUntil,
+            floorStrengthSessions: floorWeek?.strengthSessions ?? 0, now: now, calendar: calendar
+        )
         let widgetSnapshot = WidgetBridge.snapshot(
             plan: plan, training: (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training),
             workoutDone: todayLog?.workoutDone ?? false, now: now, calendar: calendar
@@ -328,6 +333,12 @@ struct TodayView: View {
                 let training = (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training)
                 await WatchSchedule.replace(with: (todayLog?.workoutDone ?? false) ? nil : training.watchPlan, ask: false, now: now, calendar: calendar)
             }
+            .task(id: ReminderKey(reminders: reminders, enabled: coachReminders, isActive: scenePhase == .active)) {
+                // Rappels rares : décrochage et semaine plancher, reprogrammés à chaque changement
+                // et au retour dans l'app (l'autorisation a pu être donnée entre-temps).
+                guard scenePhase == .active, !LaunchOptions.demoData else { return }
+                await CoachNotifications.reschedule(reminders, enabled: coachReminders)
+            }
             .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
                 // Un repas pris, décrit, modifié ou annulé : Santé suit aussitôt.
                 await exportMeals(plan.meals, on: now)
@@ -399,6 +410,7 @@ struct TodayView: View {
         withAnimation(Theme.springy) { profileRecord.startFloorWeek(on: .now, calendar: calendar) }
         try? context.save()
         Telemetry.record(.floorWeekStarted)
+        CoachNotifications.floorWeekStarted(until: profileRecord.floorWeekUntil)
     }
 
     private func acceptCheckIn(_ suggestion: CalorieSuggestion?) {
@@ -763,4 +775,10 @@ private struct WatchScheduleKey: Equatable {
     let training: TrainingDay
     let isDone: Bool
     let isActive: Bool
+}
+
+private struct ReminderKey: Equatable {
+    var reminders: [PlannedReminder]
+    var enabled: Bool
+    var isActive: Bool
 }

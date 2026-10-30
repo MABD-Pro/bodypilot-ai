@@ -56,6 +56,7 @@ struct WeekReviewView: View {
         withAnimation(Theme.springy) { profileRecord.startFloorWeek(on: .now, calendar: calendar) }
         try? modelContext.save()
         Telemetry.record(.floorWeekStarted)
+        CoachNotifications.floorWeekStarted(until: profileRecord.floorWeekUntil)
     }
 
     private func saveFeeling(_ feeling: WeekFeeling) {

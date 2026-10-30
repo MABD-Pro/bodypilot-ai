@@ -57,7 +57,7 @@ private func today(workoutDone: Bool = false, steps: Int? = nil, stepsGoal: Int?
     // Le 27, sans journal : aucun repas noté, la journée reste dans la liste.
     #expect(review.days[4].mealsNoted == 0)
     #expect(review.days[4].summary == "Repas non notés")
-    #expect(review.days[1].comment.hasPrefix("400 kcal au-dessus"))
+    #expect(review.days[1].comment.hasPrefix("400\u{00A0}kcal au-dessus"))
 }
 
 @Test func averagesOnlyCountCompleteDays() {
@@ -75,7 +75,7 @@ private func today(workoutDone: Bool = false, steps: Int? = nil, stepsGoal: Int?
     #expect(review.proteinDays == 2)
     #expect(review.kcalOnTargetDays == 2)
     // Protéines à 85 % en moyenne : premier conseil nutrition de la semaine.
-    #expect(review.restOfWeek.contains { $0.hasPrefix("Protéines : 128 g par jour") })
+    #expect(review.restOfWeek.contains { $0.hasPrefix("Protéines : 128\u{00A0}g par jour") })
     #expect(review.wins.contains("Protéines atteintes 2 jours sur 4."))
 }
 
@@ -107,7 +107,7 @@ private func today(workoutDone: Bool = false, steps: Int? = nil, stepsGoal: Int?
     let review = reviewer.review(days: days, samples: [], completed: [], sessionMinutes: 45, today: today(), on: thursdayNoon)
     #expect(review.restOfWeek.count == 3)
     #expect(review.restOfWeek[0].hasPrefix("Force : pas encore de séance depuis lundi. Places-en 2"))
-    #expect(review.restOfWeek[1].hasPrefix("Calories : 400 kcal par jour au-dessus de l'objectif en moyenne, surtout mardi (+600)."))
+    #expect(review.restOfWeek[1].hasPrefix("Calories : 400\u{00A0}kcal par jour au-dessus de l'objectif en moyenne, surtout mardi (+600)."))
 }
 
 @Test func fewCompleteDaysAskForOneTapMeals() {
@@ -119,7 +119,7 @@ private func today(workoutDone: Bool = false, steps: Int? = nil, stepsGoal: Int?
 @Test func theRestOfTheDayFollowsRemainingMealsTrainingAndSteps() {
     let advice = reviewer.restOfDay(today(steps: 3_000, stepsGoal: 8_000))
     #expect(advice.count == 3)
-    #expect(advice[0] == "Encore 3 repas, environ 1\u{202F}500 kcal et 110 g de protéines. Prochain : poulet, riz et légumes.")
+    #expect(advice[0] == "Encore 3 repas, environ 1\u{202F}500\u{00A0}kcal et 110\u{00A0}g de protéines. Prochain : poulet, riz et légumes.")
     #expect(advice[1].hasPrefix("Repos aujourd'hui"))
     #expect(advice[2] == "Encore 5\u{202F}000 pas pour ton objectif du jour (8\u{202F}000).")
     #expect(reviewer.restOfDay(today(workoutDone: true))[1].hasPrefix("Séance du jour faite"))
@@ -149,5 +149,5 @@ private func today(workoutDone: Bool = false, steps: Int? = nil, stepsGoal: Int?
     }
     let review = reviewer.review(days: days, samples: [], completed: [], sessionMinutes: 45, today: today(), on: thursdayNoon)
     #expect(abs((review.averageEaten?.fiberG ?? 0) - 15) < 0.001)
-    #expect(review.restOfWeek.contains { $0.hasPrefix("Fibres : 15 g par jour") })
+    #expect(review.restOfWeek.contains { $0.hasPrefix("Fibres : 15\u{00A0}g par jour") })
 }

@@ -74,6 +74,8 @@ private struct ConsentPoint: View {
 struct PrivacySheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var shares = Telemetry.consent == .granted
+    @AppStorage(CoachNotifications.enabledKey) private var reminders = true
+    @State private var remindersDenied = false
 
     var body: some View {
         NavigationStack {
@@ -85,8 +87,20 @@ struct PrivacySheet: View {
                 }
                 if !Telemetry.isAvailable {
                     Section {
-                        Text("Cette version de l'app n'envoie rien, quel que soit ce réglage.")
+                        Text("Cette version de l'app n'envoie aucun rapport ni statistique, quel que soit ce réglage.")
                             .foregroundStyle(.secondary)
+                    }
+                }
+                Section {
+                    Toggle("Rappels du coach", isOn: $reminders)
+                } footer: {
+                    if reminders, remindersDenied, let settings = URL(string: UIApplication.openNotificationSettingsURLString) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Les notifications de BodyPilot sont coupées dans Réglages.")
+                            Link("Ouvrir Réglages", destination: settings)
+                        }
+                    } else {
+                        Text("Rares et sans reproche : un message après quelques jours sans nouvelles, et un pendant la semaine plancher s'il manque une séance. Jamais de rappel quotidien.")
                     }
                 }
             }
@@ -100,6 +114,11 @@ struct PrivacySheet: View {
             .onChange(of: shares) { _, value in
                 Telemetry.setConsent(value ? .granted : .denied)
             }
+            .onChange(of: reminders) { _, value in
+                guard value else { return }
+                Task { remindersDenied = !(await CoachNotifications.requestAuthorization()) }
+            }
+            .task { remindersDenied = await CoachNotifications.isDenied() }
         }
     }
 }
