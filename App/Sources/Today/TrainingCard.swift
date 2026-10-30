@@ -239,6 +239,7 @@ struct TrainingCard: View {
                 Button {
                     isPreviewingWatch = true
                     Telemetry.record(.watchPreviewOpened)
+                    scheduleOnWatch(plan)
                 } label: {
                     Label("Envoyer sur ma Watch", systemImage: "applewatch")
                         .font(.subheadline.weight(.semibold))
@@ -564,6 +565,17 @@ struct TrainingCard: View {
         return .init(text: item.usesLoads ? "Note ta charge" : "Note tes répétitions", symbol: "square.and.pencil", tint: .secondary)
     }
 
+    /// La séance attend aussi sur la montre (app Exercice, rubrique planifiée) : la première
+    /// touche demande l'autorisation de planifier, ensuite l'app la tient à jour toute seule.
+    private func scheduleOnWatch(_ plan: WorkoutPlan?) {
+        guard !LaunchOptions.demoData else { return }
+        Task {
+            // Déjà autorisé : l'écran Aujourd'hui a déjà planifié cette séance.
+            guard await WorkoutScheduler.shared.authorizationState != .authorized else { return }
+            await WatchSchedule.replace(with: plan, ask: true)
+        }
+    }
+
     private func save(_ entry: LiftEntry) {
         let earlier = lifts.filter { !calendar.isDateInToday($0.date) }
         logLift(entry)
@@ -629,6 +641,7 @@ struct TrainingCard: View {
             Button {
                 isPreviewingWatch = true
                 Telemetry.record(.watchPreviewOpened)
+                scheduleOnWatch(training.watchPlan)
             } label: {
                 Label("Sur ma Watch", systemImage: "applewatch")
                     .font(.subheadline.weight(.semibold))
