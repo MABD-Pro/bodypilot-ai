@@ -30,8 +30,10 @@ enum HealthWorkoutDetail {
     }
     private static let bpm = HKUnit.count().unitDivided(by: .minute())
 
+    /// Le parcours exige son type parent (les entraînements) dans la même demande :
+    /// sans lui, HealthKit lève une exception et l'app plante.
     static var readTypes: Set<HKObjectType> {
-        var types: Set<HKObjectType> = [heartRateType, HKSeriesType.workoutRoute()]
+        var types: Set<HKObjectType> = [HealthWorkouts.workoutType, heartRateType, HKSeriesType.workoutRoute()]
         for type in distanceTypes { types.insert(type) }
         return types
     }
