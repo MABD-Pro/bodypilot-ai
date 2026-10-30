@@ -94,7 +94,7 @@ private func today(workoutDone: Bool = false, steps: Int? = nil, stepsGoal: Int?
     #expect(review.wins.first == "2 séances de force en 7 jours : c'est ce qui garde ton muscle pendant que le gras part.")
     #expect(review.days[4].comment.contains("Séance de force faite."))
     // Une seule séance de force dans la semaine du calendrier (le 27) : une de plus d'ici dimanche.
-    #expect(review.restOfWeek.first?.hasPrefix("Force : 1 séance cette semaine.") == true)
+    #expect(review.restOfWeek.first?.hasPrefix("Force : 1 séance depuis lundi.") == true)
     #expect(review.restOfWeek.contains { $0.hasPrefix("45 min d'endurance en 7 jours") })
 }
 
@@ -106,7 +106,7 @@ private func today(workoutDone: Bool = false, steps: Int? = nil, stepsGoal: Int?
     ]
     let review = reviewer.review(days: days, samples: [], completed: [], sessionMinutes: 45, today: today(), on: thursdayNoon)
     #expect(review.restOfWeek.count == 3)
-    #expect(review.restOfWeek[0].hasPrefix("Force : pas encore de séance cette semaine. Places-en 2"))
+    #expect(review.restOfWeek[0].hasPrefix("Force : pas encore de séance depuis lundi. Places-en 2"))
     #expect(review.restOfWeek[1].hasPrefix("Calories : 400 kcal par jour au-dessus de l'objectif en moyenne, surtout mardi (+600)."))
 }
 

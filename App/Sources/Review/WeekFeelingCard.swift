@@ -28,7 +28,7 @@ struct WeekFeelingCard: View {
                     }
                 }
             } else {
-                Text("Une touche suffit. Le coach en tire tes 3 priorités de la semaine.")
+                Text("Une touche suffit. Le coach en tire tes priorités de la semaine.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -74,7 +74,6 @@ struct WeekFeelingCard: View {
             Label(obstacle.label, systemImage: selected ? "checkmark.circle.fill" : obstacle.symbol)
                 .font(.subheadline.weight(selected ? .semibold : .regular))
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
                 .padding(.horizontal, Theme.Spacing.m)
                 .padding(.vertical, Theme.Spacing.s)
                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)

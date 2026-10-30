@@ -182,7 +182,8 @@ public struct WeekReviewer: Sendable {
             restOfWeek: []
         )
         review.wins = wins(review, stepsGoal: today.stepsGoal)
-        let hasData = days.contains { $0.mealsNoted > 0 } || !entries.isEmpty || averageSteps != nil
+        // Moins de 3 journées complètes et aucune séance : trop peu pour juger la semaine.
+        let hasData = review.completeDays >= Self.minimumCompleteDays || !entries.isEmpty
         review.headline = headline(wins: review.wins.count, hasData: hasData)
         review.restOfDay = restOfDay(today)
         review.weekAdvice = weekAdvice(review, today: today, samples: samples, completed: completed, sessionMinutes: sessionMinutes, on: date)
@@ -311,6 +312,8 @@ public struct WeekReviewer: Sendable {
         return wins
     }
 
+    static let hardWeekHeadline = "Semaine plus difficile, ça arrive à tout le monde. On repart simple, dès aujourd'hui."
+
     func headline(wins: Int, hasData: Bool) -> String {
         guard hasData else {
             return "Ton bilan se remplit au fil des jours : note tes repas d'une touche et coche tes séances, le coach fait le reste."
@@ -318,7 +321,7 @@ public struct WeekReviewer: Sendable {
         switch wins {
         case 3...: return "Très belle semaine : tu tiens le cap sur tous les fronts. Continue exactement comme ça."
         case 1...2: return "De bonnes bases cette semaine. Un ou deux réglages, et ça avance encore mieux."
-        default: return "Semaine plus difficile, ça arrive à tout le monde. On repart simple, dès aujourd'hui."
+        default: return Self.hardWeekHeadline
         }
     }
 
@@ -384,11 +387,11 @@ public struct WeekReviewer: Sendable {
             let needed = Self.strengthGoal - done
             if needed > 0, slots > 0 {
                 if done == 1 {
-                    advice.append(WeekAdvice(.strength, "Force : 1 séance cette semaine. Une de plus d'ici dimanche pour le minimum recommandé de 2 par semaine (OMS)."))
+                    advice.append(WeekAdvice(.strength, "Force : 1 séance depuis lundi. Une de plus d'ici dimanche pour le minimum recommandé de 2 par semaine (OMS)."))
                 } else if slots >= 2 {
-                    advice.append(WeekAdvice(.strength, "Force : pas encore de séance cette semaine. Places-en 2 d'ici dimanche, avec 48 h entre les deux (minimum recommandé par l'OMS)."))
+                    advice.append(WeekAdvice(.strength, "Force : pas encore de séance depuis lundi. Places-en 2 d'ici dimanche, avec 48 h entre les deux (minimum recommandé par l'OMS)."))
                 } else {
-                    advice.append(WeekAdvice(.strength, "Force : pas encore de séance cette semaine. Fais-en au moins une d'ici dimanche ; la régularité se juge sur plusieurs semaines."))
+                    advice.append(WeekAdvice(.strength, "Force : pas encore de séance depuis lundi. Fais-en au moins une d'ici dimanche ; la régularité se juge sur plusieurs semaines."))
                 }
             }
         }

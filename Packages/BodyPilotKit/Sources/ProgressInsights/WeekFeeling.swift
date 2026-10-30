@@ -42,7 +42,7 @@ public enum WeekObstacle: String, Sendable, CaseIterable, Codable {
         case .fatigue: "Fatigue"
         case .hunger: "Faim"
         case .motivation: "Motivation"
-        case .time: "Manque de temps"
+        case .time: "Pas le temps"
         case .eatingOut: "Repas dehors"
         }
     }
@@ -119,6 +119,15 @@ extension WeekReviewer {
             result.append(first)
         }
         return result
+    }
+
+    /// Le mot du coach, corrigé par le ressenti : une semaine vécue comme bonne n'est pas
+    /// qualifiée de difficile parce que les chiffres sont encore maigres.
+    public func headline(_ review: WeekReview, feeling: WeekFeeling?) -> String {
+        guard review.headline == Self.hardWeekHeadline, let mood = feeling?.mood, mood == .good || mood == .great else {
+            return review.headline
+        }
+        return "Tu as vécu une bonne semaine, et c'est ce qui fait durer. Les chiffres suivront : tes priorités ci-dessous y aident."
     }
 
     static func priority(for obstacle: WeekObstacle) -> String {

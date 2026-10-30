@@ -160,7 +160,7 @@ struct WeekReviewView: View {
         return ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                    coachCard(review)
+                    coachCard(review, headline: WeekReviewer(calendar: calendar).headline(review, feeling: feeling))
                     WeekFeelingCard(feeling: feeling, save: saveFeeling)
                         .id("feeling")
                     WeekPrioritiesCard(
@@ -195,9 +195,9 @@ struct WeekReviewView: View {
 
     // MARK: - Le mot du coach
 
-    private func coachCard(_ review: WeekReview) -> some View {
+    private func coachCard(_ review: WeekReview, headline: String) -> some View {
         CoachCard(eyebrow: "Le mot du coach", symbol: "sparkles", tint: Theme.progress) {
-            Text(review.headline)
+            Text(headline)
                 .font(.title3.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
             if !review.wins.isEmpty {

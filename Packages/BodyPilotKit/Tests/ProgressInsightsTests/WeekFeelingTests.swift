@@ -53,3 +53,11 @@ private let numbers = review([
     #expect(reviewer.priorities(calm, feeling: WeekFeeling(mood: .great)).map(\.text) == ["Rien à corriger"])
     #expect(reviewer.priorities(calm, feeling: WeekFeeling(mood: .good, obstacles: [.time])).map(\.topic) == [.obstacle(.time)])
 }
+
+@Test func aGoodFeelingSoftensAHardHeadline() {
+    var hard = numbers
+    hard.headline = WeekReviewer.hardWeekHeadline
+    #expect(reviewer.headline(hard, feeling: WeekFeeling(mood: .good)).hasPrefix("Tu as vécu une bonne semaine"))
+    #expect(reviewer.headline(hard, feeling: WeekFeeling(mood: .hard)) == WeekReviewer.hardWeekHeadline)
+    #expect(reviewer.headline(hard, feeling: nil) == WeekReviewer.hardWeekHeadline)
+}
