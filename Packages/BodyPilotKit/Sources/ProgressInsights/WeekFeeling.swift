@@ -124,10 +124,15 @@ extension WeekReviewer {
     /// Le mot du coach, corrigé par le ressenti : une semaine vécue comme bonne n'est pas
     /// qualifiée de difficile parce que les chiffres sont encore maigres.
     public func headline(_ review: WeekReview, feeling: WeekFeeling?) -> String {
-        guard review.headline == Self.hardWeekHeadline, let mood = feeling?.mood, mood == .good || mood == .great else {
-            return review.headline
+        guard let mood = feeling?.mood else { return review.headline }
+        if (mood == .good || mood == .great), review.headline == Self.hardWeekHeadline {
+            return "Tu as vécu une bonne semaine, et c'est ce qui fait durer. Les chiffres suivront : tes priorités ci-dessous y aident."
         }
-        return "Tu as vécu une bonne semaine, et c'est ce qui fait durer. Les chiffres suivront : tes priorités ci-dessous y aident."
+        // Les chiffres tiennent mais la semaine a été dure : on ne félicite pas à contretemps.
+        if mood == .hard, review.headline != Self.hardWeekHeadline, review.headline != Self.emptyWeekHeadline {
+            return "Semaine dure à vivre, même si tes chiffres tiennent. Cette semaine, on vise simple : tes priorités ci-dessous suffisent."
+        }
+        return review.headline
     }
 
     static func priority(for obstacle: WeekObstacle) -> String {
@@ -135,13 +140,13 @@ extension WeekReviewer {
         case .pain:
             "Douleurs : dis-le au coach (« mal au genou ») pour adapter les exercices. Une douleur qui dure plus d'une semaine ou qui augmente mérite l'avis d'un professionnel de santé."
         case .fatigue:
-            "Fatigue : vise au moins 7 h de sommeil, le minimum recommandé aux adultes par l'American Academy of Sleep Medicine. Les jours sans énergie, touche « Fatigué » : la séance s'allège au lieu de sauter."
+            "Fatigue : vise au moins 7\u{00A0}h de sommeil, le minimum recommandé aux adultes par l'American Academy of Sleep Medicine. Les jours sans énergie, touche « Fatigué » : la séance s'allège au lieu de sauter."
         case .hunger:
             "Faim : commence chaque repas par la protéine et une grosse portion de légumes, et garde la collation. Si la faim reste forte, le bilan de poids dira si le déficit est trop serré."
         case .motivation:
-            "Motivation : un seul objectif cette semaine, deux séances de force, même de 20 min. Une séance courte faite vaut mieux qu'une longue repoussée."
+            "Motivation : un seul objectif cette semaine, deux séances de force, même de 20\u{00A0}min. Une séance courte faite vaut mieux qu'une longue repoussée."
         case .time:
-            "Temps : indique le matin le temps dont tu disposes (« 20 min ») ; le coach garde l'essentiel de la séance. Les jours chargés, une marche de 10 min après un repas compte aussi."
+            "Temps : indique le matin le temps dont tu disposes (« 20\u{00A0}min ») ; le coach garde l'essentiel de la séance. Les jours chargés, une marche de 10\u{00A0}min après un repas compte aussi."
         case .eatingOut:
             "Repas dehors : dis-le le matin (« ce soir resto »), les autres repas s'ajustent. Au restaurant, une protéine en plat principal et des légumes en accompagnement."
         }

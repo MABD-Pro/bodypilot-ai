@@ -107,12 +107,14 @@ public struct DailyCoach: Sendable {
         )
         constraints.averageSleepHours = averageSleepHours
         // Semaine plancher : des séances de 20 min, sauf temps déclaré le matin.
-        if constraints.availableMinutes == nil, profile.isOnFloorWeek(on: date) {
-            constraints.availableMinutes = FloorWeek.sessionMinutes
-        }
+        let floorWeek = constraints.availableMinutes == nil && profile.isOnFloorWeek(on: date)
+        if floorWeek { constraints.availableMinutes = FloorWeek.sessionMinutes }
         let options = training.options(for: profile, on: date, constraints: constraints)
         let chosen = trainingChoice.flatMap { options.option($0) } ?? options.option(options.recommended)
-        let trainingDay = chosen?.day ?? TrainingDay(kind: .rest, estimatedMinutes: 0)
+        var trainingDay = chosen?.day ?? TrainingDay(kind: .rest, estimatedMinutes: 0)
+        if floorWeek, case .workout = trainingDay.kind {
+            trainingDay.notes.insert("Semaine plancher : \(FloorWeek.sessionMinutes)\u{00A0}min suffisent, c'est la séance qui compte, pas sa durée.", at: 0)
+        }
 
         return TodayPlan(
             headline: headline(training: trainingDay, adjustments: adjustments, kcal: targets.macros.kcal),

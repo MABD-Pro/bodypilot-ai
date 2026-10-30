@@ -74,6 +74,8 @@ private struct ConsentPoint: View {
 struct PrivacySheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var shares = Telemetry.consent == .granted
+    @AppStorage(CoachNotifications.enabledKey) private var reminders = true
+    @State private var remindersDenied = false
 
     var body: some View {
         NavigationStack {
@@ -82,6 +84,18 @@ struct PrivacySheet: View {
                     Toggle("Rapports de plantage et statistiques d'usage", isOn: $shares)
                 } footer: {
                     Text("Envoyés à Firebase (Google) pour corriger les plantages et savoir quelles fonctions servent. Jamais tes données de santé, ton poids, tes repas, tes séances ni ce que tu écris. Aucune publicité. Couper efface les rapports pas encore envoyés.")
+                }
+                Section {
+                    Toggle("Rappels du coach", isOn: $reminders)
+                } footer: {
+                    if reminders, remindersDenied, let settings = URL(string: UIApplication.openNotificationSettingsURLString) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Les notifications de BodyPilot sont coupées dans Réglages.")
+                            Link("Ouvrir Réglages", destination: settings)
+                        }
+                    } else {
+                        Text("Rares et sans reproche : un message après quelques jours sans nouvelles, et un pendant la semaine plancher s'il manque une séance. Jamais de rappel quotidien.")
+                    }
                 }
                 if !Telemetry.isAvailable {
                     Section {
@@ -100,6 +114,11 @@ struct PrivacySheet: View {
             .onChange(of: shares) { _, value in
                 Telemetry.setConsent(value ? .granted : .denied)
             }
+            .onChange(of: reminders) { _, value in
+                guard value else { return }
+                Task { remindersDenied = !(await CoachNotifications.requestAuthorization()) }
+            }
+            .task { remindersDenied = await CoachNotifications.isDenied() }
         }
     }
 }
