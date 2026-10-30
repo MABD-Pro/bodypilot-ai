@@ -290,6 +290,12 @@ struct TodayView: View {
                 await importFromHealth()
                 await exportMeals(plan.meals, on: now)
             }
+            .task(id: WatchScheduleKey(training: (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training), isDone: todayLog?.workoutDone ?? false, isActive: scenePhase == .active)) {
+                // La séance choisie attend sur la montre ; faite, elle en disparaît.
+                guard scenePhase == .active, !LaunchOptions.demoData else { return }
+                let training = (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training)
+                await WatchSchedule.replace(with: (todayLog?.workoutDone ?? false) ? nil : training.watchPlan, ask: false, now: now, calendar: calendar)
+            }
             .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
                 // Un repas pris, décrit, modifié ou annulé : Santé suit aussitôt.
                 await exportMeals(plan.meals, on: now)
@@ -685,4 +691,11 @@ private struct WeekReviewLink: ViewModifier {
                 context.today = today
             }
     }
+}
+
+/// Ce qui change la séance planifiée sur la montre.
+private struct WatchScheduleKey: Equatable {
+    let training: TrainingDay
+    let isDone: Bool
+    let isActive: Bool
 }

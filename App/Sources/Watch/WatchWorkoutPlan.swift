@@ -67,3 +67,39 @@ extension TrainingDay {
         }
     }
 }
+
+/// La séance du jour, planifiée sur l'Apple Watch : elle attend dans l'app Exercice, rubrique
+/// planifiée, sans rien valider sur l'iPhone. Une seule à la fois, celle d'aujourd'hui.
+enum WatchSchedule {
+    /// Planifie la séance (ou retire celle de BodyPilot si `plan` est `nil`). `ask` demande
+    /// l'autorisation si besoin : seulement après une touche sur « Envoyer sur ma Watch ».
+    @discardableResult
+    static func replace(with plan: WorkoutPlan?, ask: Bool, now: Date = .now, calendar: Calendar = .current) async -> Bool {
+        guard WorkoutScheduler.isSupported else { return false }
+        let scheduler = WorkoutScheduler.shared
+        var state = await scheduler.authorizationState
+        if state != .authorized, ask { state = await scheduler.requestAuthorization() }
+        guard state == .authorized else { return false }
+        // Le planificateur ne contient que les entraînements de BodyPilot : on repart de zéro.
+        await scheduler.removeAllWorkouts()
+        guard let plan else { return true }
+        await scheduler.schedule(plan, at: slot(after: now, calendar: calendar))
+        return true
+    }
+
+    /// L'utilisateur a déjà permis à BodyPilot de planifier sur la montre.
+    static func isAuthorized() async -> Bool {
+        guard WorkoutScheduler.isSupported else { return false }
+        return await WorkoutScheduler.shared.authorizationState == .authorized
+    }
+
+    /// Prochain quart d'heure d'aujourd'hui, au plus tard 23 h 45 : une heure passée pourrait
+    /// ne plus s'afficher sur la montre. Reprogrammée à chaque retour dans l'app.
+    static func slot(after now: Date, calendar: Calendar = .current) -> DateComponents {
+        var components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: now)
+        let minutes = min((components.hour ?? 0) * 60 + (components.minute ?? 0) + 15, 23 * 60 + 45) / 15 * 15
+        components.hour = minutes / 60
+        components.minute = minutes % 60
+        return components
+    }
+}

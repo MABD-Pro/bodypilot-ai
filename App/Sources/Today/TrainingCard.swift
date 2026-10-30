@@ -118,6 +118,29 @@ struct TrainingCard: View {
 
             notes
 
+            if let plan = training.watchPlan {
+                // En tête de carte, avant la liste des exercices : la séance déjà adaptée (temps, fatigue,
+                // genou) part sur la montre, guidée série par série.
+                Button {
+                    isPreviewingWatch = true
+                    Telemetry.record(.watchPreviewOpened)
+                    scheduleOnWatch(plan)
+                } label: {
+                    Label("Envoyer sur ma Watch", systemImage: "applewatch")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(Theme.training)
+                .workoutPreview(plan, isPresented: $isPreviewingWatch)
+            } else {
+                // Jamais de bouton qui disparaît sans raison : on dit pourquoi la séance ne part pas.
+                Label("Cette séance ne peut pas partir sur la Watch : WorkoutKit n'accepte aucun de ses types d'entraînement sur cet iPhone.", systemImage: "applewatch.slash")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
             if let celebration {
                 Label(celebration, systemImage: "trophy.fill")
                     .font(.subheadline.weight(.semibold))
@@ -233,22 +256,6 @@ struct TrainingCard: View {
             }
             .font(.footnote)
             .foregroundStyle(.secondary)
-
-            if let plan = training.watchPlan {
-                // La séance déjà adaptée (temps, fatigue, genou) part sur la montre, guidée série par série.
-                Button {
-                    isPreviewingWatch = true
-                    Telemetry.record(.watchPreviewOpened)
-                } label: {
-                    Label("Envoyer sur ma Watch", systemImage: "applewatch")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
-                }
-                .buttonStyle(.glassProminent)
-                .tint(Theme.training)
-                .workoutPreview(plan, isPresented: $isPreviewingWatch)
-            }
 
             Button(action: toggleDone) {
                 Label(isDone ? "Séance faite" : "J'ai fait ma séance", systemImage: isDone ? "checkmark.seal.fill" : "checkmark.circle")
@@ -564,6 +571,17 @@ struct TrainingCard: View {
         return .init(text: item.usesLoads ? "Note ta charge" : "Note tes répétitions", symbol: "square.and.pencil", tint: .secondary)
     }
 
+    /// La séance attend aussi sur la montre (app Exercice, rubrique planifiée) : la première
+    /// touche demande l'autorisation de planifier, ensuite l'app la tient à jour toute seule.
+    private func scheduleOnWatch(_ plan: WorkoutPlan?) {
+        guard !LaunchOptions.demoData else { return }
+        Task {
+            // Déjà autorisé : l'écran Aujourd'hui a déjà planifié cette séance.
+            guard await !WatchSchedule.isAuthorized() else { return }
+            await WatchSchedule.replace(with: plan, ask: true)
+        }
+    }
+
     private func save(_ entry: LiftEntry) {
         let earlier = lifts.filter { !calendar.isDateInToday($0.date) }
         logLift(entry)
@@ -629,6 +647,7 @@ struct TrainingCard: View {
             Button {
                 isPreviewingWatch = true
                 Telemetry.record(.watchPreviewOpened)
+                scheduleOnWatch(training.watchPlan)
             } label: {
                 Label("Sur ma Watch", systemImage: "applewatch")
                     .font(.subheadline.weight(.semibold))
