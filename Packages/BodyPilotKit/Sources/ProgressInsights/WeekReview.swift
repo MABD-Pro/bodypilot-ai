@@ -389,7 +389,7 @@ public struct WeekReviewer: Sendable {
                 if done == 1 {
                     advice.append(WeekAdvice(.strength, "Force : 1 séance depuis lundi. Une de plus d'ici dimanche pour le minimum recommandé de 2 par semaine (OMS)."))
                 } else if slots >= 2 {
-                    advice.append(WeekAdvice(.strength, "Force : pas encore de séance depuis lundi. Places-en 2 d'ici dimanche, avec 48 h entre les deux (minimum recommandé par l'OMS)."))
+                    advice.append(WeekAdvice(.strength, "Force : pas encore de séance depuis lundi. Places-en 2 d'ici dimanche, avec 48\u{00A0}h entre les deux (minimum recommandé par l'OMS)."))
                 } else {
                     advice.append(WeekAdvice(.strength, "Force : pas encore de séance depuis lundi. Fais-en au moins une d'ici dimanche ; la régularité se juge sur plusieurs semaines."))
                 }
@@ -419,7 +419,7 @@ public struct WeekReviewer: Sendable {
         }
 
         if let average = review.averageSteps, let goal = today.stepsGoal, average < Double(goal) - 500 {
-            advice.append(WeekAdvice(.steps, "Pas : environ \(StepActivity.displayed(average).frenchInteger) par jour. Vise \(Double(goal).frenchInteger) : 10 min de marche après un repas en ajoutent environ 1 000."))
+            advice.append(WeekAdvice(.steps, "Pas : environ \(StepActivity.displayed(average).frenchInteger) par jour. Vise \(Double(goal).frenchInteger) : 10 min de marche après un repas en ajoutent environ 1\u{202F}000."))
         }
 
         if advice.isEmpty {

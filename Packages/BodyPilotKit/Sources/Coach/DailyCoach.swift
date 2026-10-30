@@ -106,6 +106,10 @@ public struct DailyCoach: Sendable {
             cyclePlan: cycle.flatMap { cycle in cycleSessionsPerWeek.map { CycleSessionPlan(sessions: $0, program: cycle.program) } }
         )
         constraints.averageSleepHours = averageSleepHours
+        // Semaine plancher : des séances de 20 min, sauf temps déclaré le matin.
+        if constraints.availableMinutes == nil, profile.isOnFloorWeek(on: date) {
+            constraints.availableMinutes = FloorWeek.sessionMinutes
+        }
         let options = training.options(for: profile, on: date, constraints: constraints)
         let chosen = trainingChoice.flatMap { options.option($0) } ?? options.option(options.recommended)
         let trainingDay = chosen?.day ?? TrainingDay(kind: .rest, estimatedMinutes: 0)

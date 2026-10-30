@@ -28,6 +28,19 @@ private let monday = day(2026, 10, 26)
     #expect(plan.headline.contains("express"))
 }
 
+@Test func floorWeekKeepsSessionsShort() {
+    var profile = makeProfile(sessionMinutes: 60)
+    profile.floorWeekUntil = FloorWeek.end(startingOn: monday, calendar: utc)
+    let plan = coach.plan(for: profile, weights: [], on: monday)
+    #expect(plan.training.estimatedMinutes <= FloorWeek.sessionMinutes)
+    // Temps déclaré le matin : il passe avant le plancher.
+    let longer = coach.plan(for: profile, weights: [], adjustments: [.shortOnTime], availableMinutes: 45, on: monday)
+    #expect(longer.training.estimatedMinutes > FloorWeek.sessionMinutes)
+    // Semaine terminée : la durée habituelle revient.
+    let after = coach.plan(for: profile, weights: [], on: utc.date(byAdding: .day, value: 7, to: monday)!)
+    #expect(after.training.estimatedMinutes > FloorWeek.sessionMinutes)
+}
+
 @Test func tiredKeepsNutritionUnchanged() {
     let normal = coach.plan(for: makeProfile(), weights: [], on: monday)
     let tired = coach.plan(for: makeProfile(), weights: [], adjustments: [.tired], on: monday)

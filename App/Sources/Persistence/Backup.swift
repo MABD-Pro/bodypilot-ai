@@ -50,6 +50,10 @@ struct BackupArchive: Codable {
         // Semaine à l'équilibre : absente des sauvegardes plus anciennes.
         var maintenanceWeekUntil: Date?
         var maintenanceOfferDismissedAt: Date?
+        // Semaine plancher : absente des sauvegardes plus anciennes.
+        var floorWeekUntil: Date?
+        var comebackDismissedAt: Date?
+        var floorProteinDays: [Date]?
     }
 
     struct Weight: Codable {
@@ -136,7 +140,8 @@ enum Backup {
                 cycleSessionsPerWeek: $0.cycleSessionsPerWeek, cycleSessionsWeekStart: $0.cycleSessionsWeekStart,
                 screeningYesRaw: $0.screeningYesRaw, screeningSituationsRaw: $0.screeningSituationsRaw,
                 screeningAnsweredAt: $0.screeningAnsweredAt, medicalClearance: $0.medicalClearance,
-                maintenanceWeekUntil: $0.maintenanceWeekUntil, maintenanceOfferDismissedAt: $0.maintenanceOfferDismissedAt
+                maintenanceWeekUntil: $0.maintenanceWeekUntil, maintenanceOfferDismissedAt: $0.maintenanceOfferDismissedAt,
+                floorWeekUntil: $0.floorWeekUntil, comebackDismissedAt: $0.comebackDismissedAt, floorProteinDays: $0.floorProteinDays
             )
         }
         archive.weights = try context.fetch(FetchDescriptor<WeightRecord>(sortBy: [SortDescriptor(\.date)])).map {
@@ -241,6 +246,9 @@ enum Backup {
                 record.medicalClearance = item.medicalClearance ?? false
                 record.maintenanceWeekUntil = item.maintenanceWeekUntil
                 record.maintenanceOfferDismissedAt = item.maintenanceOfferDismissedAt
+                record.floorWeekUntil = item.floorWeekUntil
+                record.comebackDismissedAt = item.comebackDismissedAt
+                record.floorProteinDays = item.floorProteinDays ?? []
             }
             for extra in profiles { context.delete(extra) }
             for item in archive.weights {

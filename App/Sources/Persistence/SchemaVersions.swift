@@ -127,7 +127,7 @@ enum SchemaV4: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(4, 0, 0) }
 
     static var models: [any PersistentModel.Type] {
-        [ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self]
+        [SchemaV5.ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self]
     }
 }
 
@@ -138,10 +138,53 @@ enum SchemaV5: VersionedSchema {
     static var models: [any PersistentModel.Type] {
         SchemaV4.models + [WeekFeelingRecord.self]
     }
+
+    /// Profil tel qu'il était avant la semaine plancher (V4 et V5).
+    @Model
+    final class ProfileRecord {
+        var entityID: UUID = UUID()
+        var createdAt: Date = Date.now
+        var sexRaw: String = BiologicalSex.male.rawValue
+        var birthDate: Date = Date.now
+        var heightCm: Double = 175
+        var startWeightKg: Double = 75
+        var targetWeightKg: Double?
+        var activityRaw: String = ActivityLevel.light.rawValue
+        var goalRaw: String = Goal.recomposition.rawValue
+        var trainingDaysPerWeek: Int = 3
+        var trainingWeekdaysRaw: [Int] = []
+        var sessionMinutes: Int = 45
+        var equipmentRaw: String = Equipment.bodyweight.rawValue
+        var calorieAdjustmentKcal: Double = 0
+        var lastCheckInAt: Date?
+        var strengthTestResetAt: Date?
+        var cycleProgramRaw: String?
+        var cycleStartDate: Date?
+        var cycleSessionsPerWeek: Int = 0
+        var cycleSessionsWeekStart: Date?
+        var screeningYesRaw: [String] = []
+        var screeningSituationsRaw: [String] = []
+        var screeningAnsweredAt: Date?
+        var medicalClearance: Bool = false
+        var maintenanceWeekUntil: Date?
+        var maintenanceOfferDismissedAt: Date?
+
+        init() {}
+    }
+}
+
+/// V6 : semaine plancher après un décrochage (`ProfileRecord.floorWeekUntil`, `comebackDismissedAt`,
+/// `floorProteinDays`).
+enum SchemaV6: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(6, 0, 0) }
+
+    static var models: [any PersistentModel.Type] {
+        [ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self, WeekFeelingRecord.self]
+    }
 }
 
 enum BodyPilotMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self, SchemaV5.self] }
+    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self, SchemaV5.self, SchemaV6.self] }
     /// Champs ou modèles ajoutés avec une valeur par défaut : migrations légères, sans perte.
     static var stages: [MigrationStage] {
         [
@@ -149,6 +192,7 @@ enum BodyPilotMigrationPlan: SchemaMigrationPlan {
             .lightweight(fromVersion: SchemaV2.self, toVersion: SchemaV3.self),
             .lightweight(fromVersion: SchemaV3.self, toVersion: SchemaV4.self),
             .lightweight(fromVersion: SchemaV4.self, toVersion: SchemaV5.self),
+            .lightweight(fromVersion: SchemaV5.self, toVersion: SchemaV6.self),
         ]
     }
 }
