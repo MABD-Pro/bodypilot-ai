@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 # Compile l'app pour un simulateur iPhone, la lance avec des données de démo
 # et capture les écrans clés dans screenshots/ (publiés comme artefact de CI).
+#
+# CAPTURES choisit les écrans (chaque capture coûte ~10 s de macOS, facturé x10) :
+#   vide        : seulement 1-aujourdhui, pour vérifier que l'app se lance ;
+#   « toutes »  : toutes les captures ;
+#   sinon       : expression régulière sur les noms, par ex. « 4h|4i|3c ».
 set -euo pipefail
+
+CAPTURES=${CAPTURES:-}
+case "$CAPTURES" in
+  "") CAPTURES='^1-aujourdhui$' ;;
+  toutes|all) CAPTURES='.' ;;
+esac
 
 BUNDLE_ID=com.mabdpro.bodypilot
 OUT=screenshots
@@ -49,6 +60,7 @@ xcrun simctl install "$UDID" "$APP"
 shoot() {
   local name=$1
   shift
+  grep -Eq -- "$CAPTURES" <<< "$name" || return 0
   xcrun simctl terminate "$UDID" "$BUNDLE_ID" 2>/dev/null || true
   xcrun simctl launch "$UDID" "$BUNDLE_ID" -AppleLanguages "(fr)" -AppleLocale fr_FR "$@"
   sleep 7
@@ -83,6 +95,7 @@ shoot 4b-progression-sante -demoData YES -demoHealth YES -demoScrollTo progress
 shoot 4h-bilan-7-jours -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoMeals breakfast=asPlanned
 shoot 4i-bilan-7-jours-calories -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoMeals breakfast=asPlanned -demoScrollTo calories
 shoot 4j-bilan-7-jours-jours -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoScrollTo days
+shoot 4n-bilan-ressenti -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoFeeling soso:hunger,time
 shoot 4k-bilan-jour -demoData YES -demoReview jour -demoActivities YES -demoSteps YES
 shoot 4l-repas-jour-passe -demoData YES -demoHistory Repas -demoPastMeals YES
 shoot 4m-detail-seance -demoData YES -demoActivities YES -demoHealth YES -demoHistory Séances -demoSessionDetail YES

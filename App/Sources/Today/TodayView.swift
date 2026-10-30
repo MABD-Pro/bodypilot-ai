@@ -219,6 +219,7 @@ struct TodayView: View {
                             waistChange: plan.waistChangeCm,
                             composition: plan.composition,
                             records: StrengthProgress.records(in: lifts),
+                            relativeStrength: RelativeStrength.compute(history: lifts, weights: weights.map(\.entry), on: now, calendar: calendar),
                             cardio: CardioTest.latest(cardioMeasures),
                             cardioZone: cardio.moderateHeartRate,
                             sleepHours: sleepHours,

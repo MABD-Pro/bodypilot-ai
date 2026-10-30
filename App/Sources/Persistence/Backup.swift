@@ -1,5 +1,6 @@
 import BodyPilotCore
 import Foundation
+import ProgressInsights
 import SwiftData
 
 /// Sauvegarde complète des données de l'app dans un fichier que l'utilisateur range où il veut
@@ -17,6 +18,8 @@ struct BackupArchive: Codable {
     var dayLogs: [DayLog] = []
     var lifts: [Lift] = []
     var cardioTests: [CardioTest] = []
+    /// Absent des sauvegardes plus anciennes.
+    var weekFeelings: [WeekFeelingItem]?
 
     struct Profile: Codable {
         var entityID: UUID
@@ -102,6 +105,13 @@ struct BackupArchive: Codable {
         var vo2max: Double
     }
 
+    struct WeekFeelingItem: Codable {
+        var weekStart: Date
+        var moodRaw: String
+        var obstaclesRaw: [String]
+        var answeredAt: Date
+    }
+
     var isEmpty: Bool { profiles.isEmpty }
 
     /// « 1 profil, 84 pesées, 120 jours, 56 séries »
@@ -153,6 +163,9 @@ enum Backup {
         archive.cardioTests = try context.fetch(FetchDescriptor<CardioTestRecord>(sortBy: [SortDescriptor(\.day)])).map {
             .init(day: $0.day, minutes: $0.minutes, heartRate: $0.heartRate, vo2max: $0.vo2max)
         }
+        archive.weekFeelings = try context.fetch(FetchDescriptor<WeekFeelingRecord>(sortBy: [SortDescriptor(\.weekStart)])).map {
+            .init(weekStart: $0.weekStart, moodRaw: $0.moodRaw, obstaclesRaw: $0.obstaclesRaw, answeredAt: $0.answeredAt)
+        }
         return archive
     }
 
@@ -189,6 +202,7 @@ enum Backup {
             try deleteAll(DayLogRecord.self)
             try deleteAll(LiftRecord.self)
             try deleteAll(CardioTestRecord.self)
+            try deleteAll(WeekFeelingRecord.self)
 
             // Le profil affiché est mis à jour plutôt que remplacé : l'écran Aujourd'hui le tient,
             // et un profil effacé sous ses yeux ferait planter l'app.
@@ -263,6 +277,13 @@ enum Backup {
             }
             for item in archive.cardioTests {
                 context.insert(CardioTestRecord(day: item.day, minutes: item.minutes, heartRate: item.heartRate, vo2max: item.vo2max))
+            }
+            for item in archive.weekFeelings ?? [] {
+                let record = WeekFeelingRecord(weekStart: item.weekStart, feeling: WeekFeeling(mood: .good))
+                record.moodRaw = item.moodRaw
+                record.obstaclesRaw = item.obstaclesRaw
+                record.answeredAt = item.answeredAt
+                context.insert(record)
             }
             try context.save()
         } catch {

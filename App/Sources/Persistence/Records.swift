@@ -1,6 +1,7 @@
 import BodyPilotCore
 import Coach
 import Foundation
+import ProgressInsights
 import SwiftData
 import Training
 
@@ -329,6 +330,35 @@ final class LiftRecord {
     }
 
     var entry: LiftEntry { LiftEntry(exercise: exercise, date: day, kg: kg, reps: reps, isTest: isTest, effort: effortRaw.flatMap(SetEffort.init(rawValue:))) }
+}
+
+/// Ressenti d'une semaine du calendrier : humeur et ce qui a coincé, base des 3 priorités.
+@Model
+final class WeekFeelingRecord {
+    /// Un jour de la semaine (à midi, voir `Calendar.storedDay`) : comparer avec `.weekOfYear`.
+    var weekStart: Date = Date.now
+    var moodRaw: String = WeekMood.good.rawValue
+    var obstaclesRaw: [String] = []
+    var answeredAt: Date = Date.now
+
+    init(weekStart: Date, feeling: WeekFeeling) {
+        self.weekStart = weekStart
+        self.feeling = feeling
+    }
+
+    var feeling: WeekFeeling {
+        get {
+            WeekFeeling(
+                mood: WeekMood(rawValue: moodRaw) ?? .good,
+                obstacles: Set(obstaclesRaw.compactMap(WeekObstacle.init(rawValue:)))
+            )
+        }
+        set {
+            moodRaw = newValue.mood.rawValue
+            obstaclesRaw = WeekObstacle.allCases.filter(newValue.obstacles.contains).map(\.rawValue)
+            answeredAt = .now
+        }
+    }
 }
 
 /// Test de marche de 1,6 km : temps, pouls à l'arrivée et forme cardio qui en découle.
