@@ -72,6 +72,13 @@ enum LaunchOptions {
     static var demoMaintenanceOffer: Bool { defaults.bool(forKey: "demoMaintenanceOffer") }
     /// `-demoComeback YES` : 5 jours sans rien noter, le coach propose une semaine plancher.
     static var demoComeback: Bool { defaults.bool(forKey: "demoComeback") }
+    /// `-demoWhatIf 200:2000` : ouvre « Et si ? » avec 200 kcal de moins et 2 000 pas de plus par jour
+    /// (sans signe moins : une valeur qui commence par « - » serait lue comme une option).
+    static var demoWhatIf: ProjectionScenario? {
+        guard let value = defaults.string(forKey: "demoWhatIf") else { return nil }
+        let parts = value.split(separator: ":").compactMap { Int($0) }
+        return ProjectionScenario(kcalPerDay: -(parts.first ?? 0), extraSteps: parts.count > 1 ? parts[1] : 0)
+    }
     /// `-demoFloorWeek YES` : semaine plancher commencée il y a 3 jours.
     static var demoFloorWeek: Bool { defaults.bool(forKey: "demoFloorWeek") }
     /// `-demoAge 68` : âge du profil de démo (séries de 10, équilibre à partir de 65 ans).

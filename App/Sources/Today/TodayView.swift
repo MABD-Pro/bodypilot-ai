@@ -31,6 +31,7 @@ struct TodayView: View {
     @State private var isAnsweringScreening = false
     @State private var isShowingHistory = LaunchOptions.demoHistory != nil
     @State private var isShowingReview = LaunchOptions.demoReview != nil
+    @State private var isShowingWhatIf = LaunchOptions.demoWhatIf != nil
     @State private var isShowingGroceries = LaunchOptions.demoGroceries
     /// Données du jour pour « Mes 7 derniers jours », partagées par référence.
     @State private var reviewContext = WeekReviewContext()
@@ -274,7 +275,9 @@ struct TodayView: View {
                                 HealthSnapshotStore.clear()
                             },
                             showHistory: showHistory,
-                            showReview: { isShowingReview = true }
+                            showReview: { isShowingReview = true },
+                            projection: WeightProjector.project(entries: weights.map(\.entry), trend: plan.trend, targetKg: profileRecord.targetWeightKg, on: now, calendar: calendar),
+                            showWhatIf: { isShowingWhatIf = true }
                         )
                         .id("progress")
                         .modifier(WeekReviewLink(
@@ -373,6 +376,11 @@ struct TodayView: View {
             .sheet(item: $describing) { item in
                 MealDescriptionSheet(slot: item.slot, initial: item.current) { meal in
                     saveDescribed(meal, for: item.slot)
+                }
+            }
+            .sheet(isPresented: $isShowingWhatIf) {
+                if let target = profileRecord.targetWeightKg {
+                    WhatIfSheet(entries: weights.map(\.entry), trend: plan.trend, targetKg: target, now: now, scenario: LaunchOptions.demoWhatIf ?? .none)
                 }
             }
             .sheet(isPresented: $isAddingWaist) {

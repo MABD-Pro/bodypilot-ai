@@ -58,6 +58,10 @@ struct ProgressCard: View {
     let showHistory: (HistoryView.Focus) -> Void
     /// Bilan des 7 derniers jours : calories, nutriments, activité et conseils.
     var showReview: (() -> Void)?
+    /// Arrivée à l'objectif en fourchette, au rythme mesuré.
+    var projection: WeightProjection?
+    /// Simulateur « Et si ? ».
+    var showWhatIf: (() -> Void)?
 
     var body: some View {
         CoachCard(eyebrow: "Progresser", symbol: "chart.line.downtrend.xyaxis", tint: Theme.progress) {
@@ -165,17 +169,33 @@ struct ProgressCard: View {
 
             HStack {
                 if let target = profile.targetWeightKg {
-                    Label {
-                        if phase != .maintenance, let date = trend.estimatedTargetDate {
-                            Text("\(phase.title) · \(target.frenchOneDecimal) kg vers \(date.formatted(.dateTime.month(.wide).year().locale(Theme.locale)))")
+                    let label = Label {
+                        if phase != .maintenance, let projection {
+                            Text("\(phase.title) · \(target.frenchOneDecimal)\u{00A0}kg \(projection.rangeText())")
                         } else {
-                            Text("\(phase.title) · objectif \(target.frenchOneDecimal) kg")
+                            Text("\(phase.title) · objectif \(target.frenchOneDecimal)\u{00A0}kg")
                         }
                     } icon: {
                         Image(systemName: "flag.checkered")
                     }
                     .font(.footnote.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    if let showWhatIf, trend.weeklyChangeKg != nil, phase != .maintenance {
+                        Button(action: showWhatIf) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                label
+                                Text("Et si ?")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(Theme.progress)
+                                    .padding(.leading, 23)
+                            }
+                            .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .accessibilityHint("Simuler l'effet de quelques calories ou de pas en plus sur la date")
+                    } else {
+                        label.foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
                 Button(action: addWeight) {
