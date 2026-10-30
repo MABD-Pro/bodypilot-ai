@@ -54,6 +54,21 @@ struct TodayView: View {
 
     private let calendar = Calendar.current
 
+    /// Les lectures Santé du lancement précédent servent tout de suite : l'objectif du jour ne
+    /// change plus quand Santé répond, sauf si ses données ont vraiment bougé.
+    init(profileRecord: ProfileRecord) {
+        self.profileRecord = profileRecord
+        guard UserDefaults.standard.bool(forKey: "healthWeightSync"), let snapshot = HealthSnapshotStore.last() else { return }
+        _healthActivities = State(initialValue: snapshot.activities)
+        _sleepHours = State(initialValue: snapshot.sleepHours)
+        _averageSleepHours = State(initialValue: snapshot.averageSleepHours)
+        _watchCardio = State(initialValue: snapshot.watchCardio)
+        _restingHeartRate = State(initialValue: snapshot.restingHeartRate)
+        _periodStarts = State(initialValue: snapshot.periodStarts)
+        _compositions = State(initialValue: snapshot.compositions)
+        _dailySteps = State(initialValue: snapshot.dailySteps)
+    }
+
     var body: some View {
         let now = Date.now
         let todayLog = log(on: now)
@@ -254,7 +269,10 @@ struct TodayView: View {
                             acceptCheckIn: { acceptCheckIn(checkIn) },
                             dismissCheckIn: { withAnimation(Theme.springy) { profileRecord.lastCheckInAt = .now } },
                             connectHealth: { Task { await connectHealth() } },
-                            disconnectHealth: { healthSync = false },
+                            disconnectHealth: {
+                                healthSync = false
+                                HealthSnapshotStore.clear()
+                            },
                             showHistory: showHistory,
                             showReview: { isShowingReview = true }
                         )
@@ -501,6 +519,11 @@ struct TodayView: View {
             }
         }
         try? context.save()
+        HealthSnapshotStore.save(HealthSnapshot(
+            savedAt: .now, activities: healthActivities, sleepHours: sleepHours, averageSleepHours: averageSleepHours,
+            watchCardio: watchCardio, restingHeartRate: restingHeartRate, periodStarts: periodStarts,
+            compositions: compositions, dailySteps: dailySteps
+        ))
     }
 
     private var tracksCycle: Bool { profileRecord.profile.sex == .female }

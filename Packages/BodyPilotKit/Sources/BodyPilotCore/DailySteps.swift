@@ -1,7 +1,7 @@
 import Foundation
 
 /// Pas d'une journée, lus dans Santé (iPhone ou Apple Watch).
-public struct DailySteps: Sendable, Equatable {
+public struct DailySteps: Sendable, Equatable, Codable {
     public var day: Date
     public var steps: Int
 
