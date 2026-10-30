@@ -120,6 +120,12 @@ enum AppContainer {
     @MainActor
     static let shared = make()
 
+    /// Base dans le bac à sable de l'app, jamais dans l'App Group : avec l'App Group des widgets,
+    /// la configuration par défaut (`groupContainer: .automatic`) ouvrait une base vide dans le
+    /// conteneur partagé et laissait les données existantes de côté. Les widgets lisent
+    /// `TodaySnapshot`, jamais la base.
+    static let storeConfiguration = ModelConfiguration(schema: schema, groupContainer: .none)
+
     @MainActor
     static func make() -> ModelContainer {
         if LaunchOptions.demoData || LaunchOptions.demoOnboarding {
@@ -128,7 +134,7 @@ enum AppContainer {
             return container
         }
         do {
-            let container = try ModelContainer(for: schema, migrationPlan: BodyPilotMigrationPlan.self)
+            let container = try ModelContainer(for: schema, migrationPlan: BodyPilotMigrationPlan.self, configurations: storeConfiguration)
             StoredDayMigration.run(in: container.mainContext)
             return container
         } catch {
