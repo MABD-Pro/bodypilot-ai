@@ -357,7 +357,8 @@ struct HistoryView: View {
                     .padding(.vertical, 2)
                 }
             }
-            .task {
+            // Relancée quand les activités Santé arrivent : la liste peut s'afficher avant elles.
+            .task(id: healthActivities.map(\.id)) {
                 // `-demoSessionDetail YES` : ouvre le détail de la première course.
                 guard LaunchOptions.demoSessionDetail, openedSession == nil,
                       let day = days.first(where: { $0.entries.contains { $0.kind == .running } }),
