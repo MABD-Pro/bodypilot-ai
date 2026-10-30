@@ -50,6 +50,8 @@ targets:
         GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS: false
         GOOGLE_ANALYTICS_REGISTRATION_WITH_AD_NETWORK_ENABLED: false
         GOOGLE_ANALYTICS_IDFV_COLLECTION_ENABLED: false
+        # Séance en cours sur l'écran verrouillé et dans la Dynamic Island.
+        NSSupportsLiveActivities: true
         NSCameraUsageDescription: BodyPilot photographie ton repas pour estimer ce que tu as mangé, et peut mesurer ton tour de taille au LiDAR si tu le demandes. Les images sont analysées sur ton iPhone et ne sont pas conservées.
     entitlements:
       path: App/BodyPilot.entitlements
@@ -134,9 +136,14 @@ targets:
       path: App/BodyPilotWidgets.entitlements
       properties:
         com.apple.security.application-groups: [group.com.mabdpro.bodypilot]
+    dependencies:
+      - package: BodyPilotKit
+        product: BodyPilotCore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mabdpro.bodypilot.widgets
+        # Les intents partagés n'agissent sur la séance en cours que dans l'app (ActivityKit).
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) WIDGET_EXTENSION
         PRODUCT_NAME: BodyPilotWidgets
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES

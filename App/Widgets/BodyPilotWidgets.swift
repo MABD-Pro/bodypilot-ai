@@ -7,6 +7,7 @@ struct BodyPilotWidgets: WidgetBundle {
         TodayWidget()
         WorkoutDoneControl()
         MealTakenControl()
+        WorkoutActivityWidget()
     }
 }
 

@@ -19,6 +19,8 @@ struct TrainingCard: View {
     var swap: (String) -> Void = { _ in }
     var isDone = false
     var toggleDone: () -> Void = {}
+    /// Suit la séance sur l'écran verrouillé (série, repos) ; `nil` : pas proposé.
+    var startSession: ((Workout) -> Void)?
     /// Ce qui a vraiment été fait cette semaine (séances cochées et activités de Santé).
     var week: WeekActivity?
     var healthLinked = false
@@ -55,6 +57,7 @@ struct TrainingCard: View {
     var showHistory: (() -> Void)?
 
     @State private var isPreviewingWatch = false
+    @State private var isSessionStarted = false
     @State private var isLoggingCardioTest = false
     @State private var isLoggingBenchmark = false
     @State private var logging: LiftToLog?
@@ -256,6 +259,25 @@ struct TrainingCard: View {
             }
             .font(.footnote)
             .foregroundStyle(.secondary)
+
+            if let startSession, !isDone, !workout.exercises.isEmpty {
+                Button {
+                    startSession(workout)
+                    isSessionStarted = true
+                } label: {
+                    Label(
+                        isSessionStarted ? "Séance suivie sur l'écran verrouillé" : "Démarrer la séance",
+                        systemImage: isSessionStarted ? "lock.iphone" : "play.fill"
+                    )
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(Theme.training)
+                .accessibilityHint("Suis tes séries et ton repos sur l'écran verrouillé")
+                .sensoryFeedback(.start, trigger: isSessionStarted) { _, started in started }
+            }
 
             Button(action: toggleDone) {
                 Label(isDone ? "Séance faite" : "J'ai fait ma séance", systemImage: isDone ? "checkmark.seal.fill" : "checkmark.circle")
