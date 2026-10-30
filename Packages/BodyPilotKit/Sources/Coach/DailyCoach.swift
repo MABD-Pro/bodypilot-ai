@@ -91,7 +91,8 @@ public struct DailyCoach: Sendable {
         )
         var constraints = DayConstraints(
             today: adjustments,
-            availableMinutes: availableMinutes,
+            // Semaine plancher : des séances de 20 min, sauf temps déclaré le matin.
+            availableMinutes: availableMinutes ?? (profile.isOnFloorWeek(on: date) ? FloorWeek.sessionMinutes : nil),
             exerciseSwaps: exerciseSwaps,
             lastWorkoutTitle: lastWorkoutTitle,
             lastStrengthDay: lastStrengthDay,

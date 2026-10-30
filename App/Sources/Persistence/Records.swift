@@ -46,6 +46,11 @@ final class ProfileRecord {
     /// Semaine à l'équilibre après un long déficit : fin prévue, et dernier « Pas maintenant ».
     var maintenanceWeekUntil: Date?
     var maintenanceOfferDismissedAt: Date?
+    /// Semaine plancher après un décrochage (schéma V6) : fin prévue, et dernier « Plus tard ».
+    var floorWeekUntil: Date?
+    var comebackDismissedAt: Date?
+    /// Jours de la semaine plancher où les protéines ont été atteintes (à midi, `Calendar.storedDay`).
+    var floorProteinDays: [Date] = []
 
     init(_ profile: UserProfile) {
         entityID = profile.id.rawValue
@@ -141,6 +146,7 @@ final class ProfileRecord {
             screening: screening
         )
         profile.maintenanceWeekUntil = maintenanceWeekUntil
+        profile.floorWeekUntil = floorWeekUntil
         return profile
     }
 
@@ -150,6 +156,19 @@ final class ProfileRecord {
         phase == .fatLoss && MaintenanceWeek.isDue(
             deficitSince: maintenanceWeekUntil ?? createdAt, dismissedAt: maintenanceOfferDismissedAt, on: date, calendar: calendar
         )
+    }
+
+    func startFloorWeek(on date: Date, calendar: Calendar = .current) {
+        floorWeekUntil = FloorWeek.end(startingOn: date, calendar: calendar)
+        floorProteinDays = []
+    }
+
+    /// Protéines du jour atteintes ou non pendant la semaine plancher.
+    func recordFloorProtein(_ reached: Bool, on date: Date, calendar: Calendar = .current) {
+        guard profile.isOnFloorWeek(on: date) else { return }
+        let others = floorProteinDays.filter { !calendar.isDate($0, inSameDayAs: date) }
+        let updated = reached ? others + [calendar.storedDay(for: date)] : others
+        if updated != floorProteinDays { floorProteinDays = updated }
     }
 
     func startMaintenanceWeek(on date: Date, calendar: Calendar = .current) {

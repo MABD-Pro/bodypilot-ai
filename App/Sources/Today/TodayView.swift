@@ -107,6 +107,10 @@ struct TodayView: View {
         )
         // Journée complète (les quatre repas notés) : ses calories servent à mesurer la dépense.
         let eatenToday = plan.meals.meals.allSatisfy(\.isEaten) ? plan.meals.eatenTotals.kcal.rounded() : nil
+        let proteinReachedToday = plan.targets.macros.proteinG > 0
+            && plan.meals.eatenTotals.proteinG >= plan.targets.macros.proteinG * FloorWeek.proteinReached
+        let floorWeek = floorWeekProgress(completed: completed, now: now)
+        let comeback = floorWeek == nil ? currentComeback(now: now) : nil
         let widgetSnapshot = WidgetBridge.snapshot(
             plan: plan, training: (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training),
             workoutDone: todayLog?.workoutDone ?? false, now: now, calendar: calendar
@@ -148,6 +152,18 @@ struct TodayView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                         header(plan: plan, date: now)
+                        if let comeback {
+                            ComebackCard(comeback: comeback, startFloorWeek: startFloorWeek, dismiss: {
+                                withAnimation(Theme.springy) { profileRecord.comebackDismissedAt = .now }
+                                try? context.save()
+                            })
+                        }
+                        if let floorWeek {
+                            FloorWeekCard(progress: floorWeek, stop: {
+                                withAnimation(Theme.springy) { profileRecord.floorWeekUntil = calendar.startOfDay(for: .now) }
+                                try? context.save()
+                            })
+                        }
                         if !profileRecord.screening.isAnswered {
                             screeningBanner
                         }
@@ -274,6 +290,9 @@ struct TodayView: View {
                 }
             }
             .sensoryFeedback(.selection, trigger: todayAdjustments)
+            .onChange(of: proteinReachedToday, initial: true) { _, reached in
+                profileRecord.recordFloorProtein(reached, on: now, calendar: calendar)
+            }
             .onChange(of: eatenToday, initial: true) { _, kcal in
                 guard let record = log(on: now), record.eatenKcal != kcal else { return }
                 record.eatenKcal = kcal
@@ -349,6 +368,37 @@ struct TodayView: View {
                 OnboardingView(editing: profileRecord, currentWeightKg: weights.last?.kg)
             }
         }
+    }
+
+    /// Jours où quelque chose a été noté : repas, séance cochée, série, pesée.
+    private func activityDays() -> [Date] {
+        dayLogs.filter { !$0.mealIntakesRaw.isEmpty || $0.describedMealsData != nil || $0.workoutDone }.map(\.day)
+            + liftRecords.map(\.day)
+            + weights.map(\.date)
+    }
+
+    private func currentComeback(now: Date) -> Comeback? {
+        if LaunchOptions.demoComeback {
+            return Comeback.detect(activityDays: [calendar.date(byAdding: .day, value: -6, to: now) ?? now], since: profileRecord.createdAt.addingTimeInterval(-30 * 86_400), on: now, calendar: calendar)
+        }
+        if let dismissed = profileRecord.comebackDismissedAt, calendar.isDate(dismissed, inSameDayAs: now) { return nil }
+        return Comeback.detect(activityDays: activityDays(), since: profileRecord.createdAt, on: now, calendar: calendar)
+    }
+
+    private func floorWeekProgress(completed: [(day: Date, title: String?)], now: Date) -> FloorWeekProgress? {
+        guard let end = profileRecord.floorWeekUntil, profileRecord.profile.isOnFloorWeek(on: now) else { return nil }
+        let strengthDays = completed.filter { $0.title.map(TrainingPlanner.isStrengthSession) == true }.map(\.day)
+            + healthActivities.filter { $0.kind == .strength && $0.minutes >= 20 }.map(\.start)
+        return FloorWeekProgress.evaluate(
+            until: end, strengthDays: strengthDays, proteinReachedDays: profileRecord.floorProteinDays,
+            weighIns: weights.map(\.date), on: now, calendar: calendar
+        )
+    }
+
+    private func startFloorWeek() {
+        withAnimation(Theme.springy) { profileRecord.startFloorWeek(on: .now, calendar: calendar) }
+        try? context.save()
+        Telemetry.record(.floorWeekStarted)
     }
 
     private func acceptCheckIn(_ suggestion: CalorieSuggestion?) {

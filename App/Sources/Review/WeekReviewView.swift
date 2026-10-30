@@ -42,6 +42,18 @@ struct WeekReviewView: View {
         feelingRecord?.feeling ?? LaunchOptions.demoFeeling
     }
 
+    /// Semaine vécue comme difficile, ou motivation en berne : le minimum plutôt que tout le plan.
+    private var offersFloorWeek: Bool {
+        guard let feeling, !profileRecord.profile.isOnFloorWeek(on: .now) else { return false }
+        return feeling.mood == .hard || feeling.obstacles.contains(.motivation)
+    }
+
+    private func startFloorWeek() {
+        withAnimation(Theme.springy) { profileRecord.startFloorWeek(on: .now, calendar: calendar) }
+        try? modelContext.save()
+        Telemetry.record(.floorWeekStarted)
+    }
+
     private func saveFeeling(_ feeling: WeekFeeling) {
         if let feelingRecord {
             feelingRecord.feeling = feeling
@@ -165,7 +177,8 @@ struct WeekReviewView: View {
                         .id("feeling")
                     WeekPrioritiesCard(
                         priorities: WeekReviewer(calendar: calendar).priorities(review, feeling: feeling),
-                        fromFeeling: feeling != nil
+                        fromFeeling: feeling != nil,
+                        startFloorWeek: offersFloorWeek ? startFloorWeek : nil
                     )
                     adviceCard(title: "Pour le reste de la journée", symbol: "sun.max.fill", tint: Theme.nutrition, advice: review.restOfDay)
                     caloriesCard(review)

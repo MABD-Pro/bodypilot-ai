@@ -1,3 +1,4 @@
+import BodyPilotCore
 import ProgressInsights
 import SwiftUI
 
@@ -90,6 +91,8 @@ struct WeekFeelingCard: View {
 struct WeekPrioritiesCard: View {
     let priorities: [WeekAdvice]
     let fromFeeling: Bool
+    /// Semaine difficile ou sans motivation : proposer le minimum (semaine plancher).
+    var startFloorWeek: (() -> Void)?
 
     var body: some View {
         CoachCard(eyebrow: "Tes \(priorities.count) priorité\(priorities.count > 1 ? "s" : "") de la semaine", symbol: "list.number", tint: Theme.training) {
@@ -107,6 +110,18 @@ struct WeekPrioritiesCard: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+            }
+            if let startFloorWeek {
+                Button(action: startFloorWeek) {
+                    Label("Passer en semaine plancher", systemImage: "square.stack.3d.down.forward.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.glass)
+                Text("Deux séances de \(FloorWeek.sessionMinutes) min, tes protéines et une pesée pendant 7 jours. Rien d'autre n'est demandé.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if !fromFeeling {
                 Text("Donne ton ressenti juste au-dessus : les priorités tiendront compte de ce qui a coincé.")

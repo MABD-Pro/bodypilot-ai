@@ -70,6 +70,10 @@ enum LaunchOptions {
     static var demoGuides: Bool { defaults.bool(forKey: "demoGuides") }
     /// `-demoMaintenanceOffer YES` : la semaine à l'équilibre est proposée dans Progresser.
     static var demoMaintenanceOffer: Bool { defaults.bool(forKey: "demoMaintenanceOffer") }
+    /// `-demoComeback YES` : 5 jours sans rien noter, le coach propose une semaine plancher.
+    static var demoComeback: Bool { defaults.bool(forKey: "demoComeback") }
+    /// `-demoFloorWeek YES` : semaine plancher commencée il y a 3 jours.
+    static var demoFloorWeek: Bool { defaults.bool(forKey: "demoFloorWeek") }
     /// `-demoAge 68` : âge du profil de démo (séries de 10, équilibre à partir de 65 ans).
     static var demoAge: Int? { defaults.object(forKey: "demoAge") == nil ? nil : defaults.integer(forKey: "demoAge") }
     /// `-demoSleepAverage 6.25` : sommeil moyen des 7 dernières nuits.
@@ -109,7 +113,7 @@ enum LaunchOptions {
 }
 
 enum AppContainer {
-    static let schema = Schema(versionedSchema: SchemaV5.self)
+    static let schema = Schema(versionedSchema: SchemaV6.self)
 
     /// Raison pour laquelle la base locale n'a pas pu s'ouvrir : l'app l'affiche au lieu de
     /// planter à chaque lancement (Siri compris), sans jamais effacer les données.
@@ -300,6 +304,10 @@ enum DemoData {
         let profileRecord = ProfileRecord(profile)
         if let week = LaunchOptions.demoCycleWeek, let start = calendar.date(byAdding: .day, value: -7 * (week - 1), to: now) {
             profileRecord.cycle = TrainingCycle(program: LaunchOptions.demoHyrox ? .hyrox : .crossfit, startDate: start)
+        }
+        if LaunchOptions.demoFloorWeek, let start = calendar.date(byAdding: .day, value: -3, to: now) {
+            profileRecord.startFloorWeek(on: start, calendar: calendar)
+            profileRecord.floorProteinDays = (1...2).compactMap { calendar.date(byAdding: .day, value: -$0, to: now) }.map(calendar.storedDay(for:))
         }
         context.insert(profileRecord)
 
