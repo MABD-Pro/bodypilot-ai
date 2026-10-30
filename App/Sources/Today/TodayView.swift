@@ -107,6 +107,10 @@ struct TodayView: View {
         )
         // Journée complète (les quatre repas notés) : ses calories servent à mesurer la dépense.
         let eatenToday = plan.meals.meals.allSatisfy(\.isEaten) ? plan.meals.eatenTotals.kcal.rounded() : nil
+        let widgetSnapshot = WidgetBridge.snapshot(
+            plan: plan, training: (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training),
+            workoutDone: todayLog?.workoutDone ?? false, now: now, calendar: calendar
+        )
 
         let reviewToday: WeekReviewToday = WeekReviewToday(
             plan: plan,
@@ -274,6 +278,13 @@ struct TodayView: View {
             }
             .onChange(of: plan.training.workoutTitle, initial: true) { _, title in
                 DisplayedWorkout.remember(title, on: now, calendar: calendar)
+            }
+            .onChange(of: widgetSnapshot, initial: true) { _, snapshot in
+                WidgetBridge.publish(snapshot)
+            }
+            .onChange(of: scenePhase, initial: true) { _, phase in
+                // Repas et séance cochés depuis un widget ou le Centre de contrôle.
+                if phase == .active, !LaunchOptions.demoData { WidgetBridge.applyPending(in: context) }
             }
             .onChange(of: scenePhase) { _, phase in
                 // Tout ce qui a été touché est écrit avant que l'app ne passe en arrière-plan.
