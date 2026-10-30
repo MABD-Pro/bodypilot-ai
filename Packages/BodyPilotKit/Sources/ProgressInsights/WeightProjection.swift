@@ -115,6 +115,26 @@ public enum WeightProjector {
 }
 
 extension WeightProjection {
+    /// Milieu de la fourchette, pour comparer deux scénarios ; le début si la fin manque.
+    public var middle: Date {
+        guard let latest else { return earliest }
+        return earliest.addingTimeInterval(latest.timeIntervalSince(earliest) / 2)
+    }
+
+    /// Plus de 1 % du poids par semaine : au-delà du repère prudent, la perte de muscle augmente
+    /// (Garthe et al., 2011, chez des sportifs : 0,7 % mieux que 1,4 %).
+    public static func isFast(weeklyKg: Double, weightKg: Double) -> Bool {
+        weightKg > 0 && weeklyKg < 0 && -weeklyKg / weightKg > 0.01
+    }
+
+    /// « entre le 4 décembre 2026 et le 8 janvier 2027 » : au jour près, pour que deux scénarios
+    /// proches se distinguent.
+    public func preciseRangeText(locale: Locale = Locale(identifier: "fr_FR"), calendar: Calendar = .current) -> String {
+        let style = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).day().month(.wide).year()
+        guard let latest else { return "pas avant le \(earliest.formatted(style))" }
+        return "entre le \(earliest.formatted(style)) et le \(latest.formatted(style))"
+    }
+
     /// « entre mars et mai 2027 », « en mars 2027 », « à partir de mars 2027 ».
     public func rangeText(locale: Locale = Locale(identifier: "fr_FR"), calendar: Calendar = .current) -> String {
         let monthYear = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).month(.wide).year()

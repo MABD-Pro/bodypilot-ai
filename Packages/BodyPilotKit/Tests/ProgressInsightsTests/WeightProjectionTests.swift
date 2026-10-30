@@ -27,6 +27,7 @@ private func trend(current: Double, weekly: Double) -> WeightTrend {
     #expect(projection.earliest == day(2026, 12, 25))
     #expect(projection.latest == day(2027, 2, 1))
     #expect(projection.rangeText(calendar: utc) == "entre décembre 2026 et février 2027")
+    #expect(projection.preciseRangeText(calendar: utc) == "entre le 25 décembre 2026 et le 1 février 2027")
 }
 
 @Test func noisyWeighInsWidenTheRange() throws {
@@ -60,4 +61,10 @@ private func trend(current: Double, weekly: Double) -> WeightTrend {
     #expect(faster.earliest < base.earliest)
     // Manger plus au point d'inverser le rythme : plus de date.
     #expect(WeightProjector.project(entries: [], trend: trend(current: 90, weekly: -0.2), targetKg: 85, scenario: ProjectionScenario(kcalPerDay: 300), on: today, calendar: utc) == nil)
+}
+
+@Test func moreThanOnePercentAWeekIsFast() {
+    #expect(WeightProjection.isFast(weeklyKg: -1.2, weightKg: 86))
+    #expect(!WeightProjection.isFast(weeklyKg: -0.7, weightKg: 86))
+    #expect(!WeightProjection.isFast(weeklyKg: 0.3, weightKg: 86))
 }

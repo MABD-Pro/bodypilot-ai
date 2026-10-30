@@ -181,11 +181,12 @@ struct ProgressCard: View {
                     .font(.footnote.weight(.medium))
                     if let showWhatIf, trend.weeklyChangeKg != nil, phase != .maintenance {
                         Button(action: showWhatIf) {
-                            HStack(spacing: Theme.Spacing.xs) {
+                            VStack(alignment: .leading, spacing: 2) {
                                 label
                                 Text("Et si ?")
                                     .font(.footnote.weight(.semibold))
                                     .foregroundStyle(Theme.progress)
+                                    .padding(.leading, 26)
                             }
                             .contentShape(.rect)
                         }
