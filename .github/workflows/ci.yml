@@ -8,6 +8,10 @@ on:
     paths-ignore: ["**.md", "docs/**"]
   # Relance manuelle (onglet Actions) si GitHub n'a pas déclenché la CI d'une PR.
   workflow_dispatch:
+    inputs:
+      captures:
+        description: "Captures : « toutes », ou expression régulière sur les noms (vide : écran d'accueil seul)"
+        default: ""
 
 # Un nouveau push sur une PR annule le build précédent, devenu inutile.
 concurrency:
@@ -59,6 +63,15 @@ jobs:
           restore-keys: spm-
       - run: brew install xcodegen
       - run: xcodegen generate
+      # Captures à la demande : une ligne « Captures : toutes » ou « Captures : 4h|3c » dans la
+      # description de la PR (relue au push suivant) ; sinon seulement l'écran d'accueil.
+      - name: Choisir les captures
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          INPUT: ${{ inputs.captures }}
+        run: |
+          value=$(printf '%s\n' "$PR_BODY" | sed -nE 's/^[[:space:]]*Captures[[:space:]]*:[[:space:]]*`?([^`]*)`?[[:space:]]*$/\1/p' | head -n 1 | tr -d '\r')
+          echo "CAPTURES=${INPUT:-$value}" >> "$GITHUB_ENV"
       - name: Build simulateur et captures d'écran
         run: scripts/ci-screenshots.sh
       - uses: actions/upload-artifact@v4

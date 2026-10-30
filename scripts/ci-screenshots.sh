@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 # Compile l'app pour un simulateur iPhone, la lance avec des données de démo
 # et capture les écrans clés dans screenshots/ (publiés comme artefact de CI).
+#
+# CAPTURES choisit les écrans (chaque capture coûte ~10 s de macOS, facturé x10) :
+#   vide        : seulement 1-aujourdhui, pour vérifier que l'app se lance ;
+#   « toutes »  : toutes les captures ;
+#   sinon       : expression régulière sur les noms, par ex. « 4h|4i|3c ».
 set -euo pipefail
+
+CAPTURES=${CAPTURES:-}
+case "$CAPTURES" in
+  "") CAPTURES='^1-aujourdhui$' ;;
+  toutes|all) CAPTURES='.' ;;
+esac
 
 BUNDLE_ID=com.mabdpro.bodypilot
 OUT=screenshots
@@ -49,6 +60,7 @@ xcrun simctl install "$UDID" "$APP"
 shoot() {
   local name=$1
   shift
+  grep -Eq -- "$CAPTURES" <<< "$name" || return 0
   xcrun simctl terminate "$UDID" "$BUNDLE_ID" 2>/dev/null || true
   xcrun simctl launch "$UDID" "$BUNDLE_ID" -AppleLanguages "(fr)" -AppleLocale fr_FR "$@"
   sleep 7
