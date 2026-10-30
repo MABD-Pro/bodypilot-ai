@@ -34,6 +34,8 @@ struct ProgressCard: View {
     var composition: BodyCompositionChange?
     /// Records de force, les plus récents d'abord.
     var records: [PersonalRecord] = []
+    /// Force par kilo de poids de corps, 4 semaines contre les 4 précédentes.
+    var relativeStrength: RelativeStrength?
     /// Dernière forme cardio (Watch ou test de marche) et zone de cardio modéré.
     var cardio: CardioMeasure?
     var cardioZone: ClosedRange<Int>?
@@ -321,8 +323,17 @@ struct ProgressCard: View {
             ForEach(records.prefix(4), id: \.entry.exercise) { record in
                 Button { showHistory(.exercise(record.entry.exercise)) } label: {
                     HStack {
-                        Text(record.entry.exercise)
-                            .font(.subheadline)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(record.entry.exercise)
+                                .font(.subheadline)
+                            // Force relative : 1RM estimé rapporté au poids actuel.
+                            if (record.entry.kg ?? 0) > 0, let weight = trend.currentTrendKg,
+                               let multiple = RelativeStrength.bodyweightMultiple(oneRepMax: record.score, bodyweightKg: weight) {
+                                Text("1RM estimé \(record.score.frenchCompact) kg, \(multiple)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                         Spacer(minLength: Theme.Spacing.s)
                         Text(StrengthProgress.label(record.entry))
                             .font(.subheadline.weight(.semibold))
@@ -336,6 +347,12 @@ struct ProgressCard: View {
                     .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
+            }
+            if let relativeStrength {
+                Text(relativeStrength.message)
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(relativeStrength.ratioChangePercent > -2 ? Theme.progress : .secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(Theme.Spacing.m)

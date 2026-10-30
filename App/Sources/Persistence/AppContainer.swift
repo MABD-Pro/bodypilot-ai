@@ -47,6 +47,14 @@ enum LaunchOptions {
     /// `-demoReview YES` : ouvre « Mes 7 derniers jours », avec une semaine de repas notés ;
     /// `-demoReview jour` : ouvre en plus le détail de la veille.
     static var demoReview: String? { defaults.string(forKey: "demoReview") }
+    /// `-demoFeeling hard:hunger,time` : ressenti de la semaine affiché (non enregistré).
+    static var demoFeeling: WeekFeeling? {
+        guard let value = defaults.string(forKey: "demoFeeling") else { return nil }
+        let parts = value.split(separator: ":", maxSplits: 1)
+        guard let mood = parts.first.flatMap({ WeekMood(rawValue: String($0)) }) else { return nil }
+        let obstacles = parts.count > 1 ? parts[1].split(separator: ",").compactMap { WeekObstacle(rawValue: String($0)) } : []
+        return WeekFeeling(mood: mood, obstacles: Set(obstacles))
+    }
     /// `-demoPastMeals YES` (avec `-demoHistory Repas`) : ouvre les repas de la veille pour les corriger.
     static var demoPastMeals: Bool { defaults.bool(forKey: "demoPastMeals") }
     /// `-demoGroceries YES` : ouvre la liste de courses des 7 prochains jours.
@@ -101,7 +109,7 @@ enum LaunchOptions {
 }
 
 enum AppContainer {
-    static let schema = Schema(versionedSchema: SchemaV4.self)
+    static let schema = Schema(versionedSchema: SchemaV5.self)
 
     /// Raison pour laquelle la base locale n'a pas pu s'ouvrir : l'app l'affiche au lieu de
     /// planter à chaque lancement (Siri compris), sans jamais effacer les données.

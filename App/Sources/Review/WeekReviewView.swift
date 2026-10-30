@@ -26,10 +26,31 @@ struct WeekReviewView: View {
     @Query(sort: \WaistRecord.date) private var allWaists: [WaistRecord]
     private var waists: [WaistRecord] { allWaists.filter { !$0.isScan } }
     @Query private var dayLogs: [DayLogRecord]
+    @Query(sort: \WeekFeelingRecord.weekStart) private var weekFeelings: [WeekFeelingRecord]
+    @Environment(\.modelContext) private var modelContext
     /// Bilan calculé une fois à l'ouverture (6 journées rejouées), puis seulement si les données changent.
     @State private var computed: Computed?
 
     private let calendar = Calendar.current
+
+    /// Ressenti de la semaine du calendrier en cours (démo : `-demoFeeling hard:hunger,time`).
+    private var feelingRecord: WeekFeelingRecord? {
+        weekFeelings.last { calendar.isDate($0.weekStart, equalTo: .now, toGranularity: .weekOfYear) }
+    }
+
+    private var feeling: WeekFeeling? {
+        feelingRecord?.feeling ?? LaunchOptions.demoFeeling
+    }
+
+    private func saveFeeling(_ feeling: WeekFeeling) {
+        if let feelingRecord {
+            feelingRecord.feeling = feeling
+        } else {
+            modelContext.insert(WeekFeelingRecord(weekStart: calendar.storedDay(for: .now), feeling: feeling))
+            Telemetry.record(.weekFeelingSaved)
+        }
+        try? modelContext.save()
+    }
 
     /// Bilan et repas de chaque jour, calculés une seule fois par affichage.
     private struct Computed {
@@ -140,8 +161,13 @@ struct WeekReviewView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                     coachCard(review)
+                    WeekFeelingCard(feeling: feeling, save: saveFeeling)
+                        .id("feeling")
+                    WeekPrioritiesCard(
+                        priorities: WeekReviewer(calendar: calendar).priorities(review, feeling: feeling),
+                        fromFeeling: feeling != nil
+                    )
                     adviceCard(title: "Pour le reste de la journée", symbol: "sun.max.fill", tint: Theme.nutrition, advice: review.restOfDay)
-                    adviceCard(title: "Pour le reste de la semaine", symbol: "calendar", tint: Theme.training, advice: review.restOfWeek)
                     caloriesCard(review)
                         .id("calories")
                     activityCard(review)
