@@ -85,6 +85,12 @@ struct PrivacySheet: View {
                 } footer: {
                     Text("Envoyés à Firebase (Google) pour corriger les plantages et savoir quelles fonctions servent. Jamais tes données de santé, ton poids, tes repas, tes séances ni ce que tu écris. Aucune publicité. Couper efface les rapports pas encore envoyés.")
                 }
+                if !Telemetry.isAvailable {
+                    Section {
+                        Text("Cette version de l'app n'envoie aucun rapport ni statistique, quel que soit ce réglage.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Section {
                     Toggle("Rappels du coach", isOn: $reminders)
                 } footer: {
@@ -95,12 +101,6 @@ struct PrivacySheet: View {
                         }
                     } else {
                         Text("Rares et sans reproche : un message après quelques jours sans nouvelles, et un pendant la semaine plancher s'il manque une séance. Jamais de rappel quotidien.")
-                    }
-                }
-                if !Telemetry.isAvailable {
-                    Section {
-                        Text("Cette version de l'app n'envoie rien, quel que soit ce réglage.")
-                            .foregroundStyle(.secondary)
                     }
                 }
             }
