@@ -186,7 +186,7 @@ struct ProgressCard: View {
                                 Text("Et si ?")
                                     .font(.footnote.weight(.semibold))
                                     .foregroundStyle(Theme.progress)
-                                    .padding(.leading, 26)
+                                    .padding(.leading, 23)
                             }
                             .contentShape(.rect)
                         }

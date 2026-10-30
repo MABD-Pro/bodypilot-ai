@@ -130,9 +130,14 @@ extension WeightProjection {
     /// « entre le 4 décembre 2026 et le 8 janvier 2027 » : au jour près, pour que deux scénarios
     /// proches se distinguent.
     public func preciseRangeText(locale: Locale = Locale(identifier: "fr_FR"), calendar: Calendar = .current) -> String {
-        let style = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).day().month(.wide).year()
-        guard let latest else { return "pas avant le \(earliest.formatted(style))" }
-        return "entre le \(earliest.formatted(style)) et le \(latest.formatted(style))"
+        let monthYear = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).month(.wide).year()
+        // « 1er » comme en typographie française, et le jour jamais séparé de son mois.
+        func day(_ date: Date) -> String {
+            let number = calendar.component(.day, from: date)
+            return "\(number == 1 ? "1er" : String(number))\u{00A0}\(date.formatted(monthYear))"
+        }
+        guard let latest else { return "pas avant le \(day(earliest))" }
+        return "entre le \(day(earliest)) et le \(day(latest))"
     }
 
     /// « entre mars et mai 2027 », « en mars 2027 », « à partir de mars 2027 ».

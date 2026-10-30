@@ -27,7 +27,7 @@ private func trend(current: Double, weekly: Double) -> WeightTrend {
     #expect(projection.earliest == day(2026, 12, 25))
     #expect(projection.latest == day(2027, 2, 1))
     #expect(projection.rangeText(calendar: utc) == "entre décembre 2026 et février 2027")
-    #expect(projection.preciseRangeText(calendar: utc) == "entre le 25 décembre 2026 et le 1 février 2027")
+    #expect(projection.preciseRangeText(calendar: utc) == "entre le 25\u{00A0}décembre 2026 et le 1er\u{00A0}février 2027")
 }
 
 @Test func noisyWeighInsWidenTheRange() throws {
