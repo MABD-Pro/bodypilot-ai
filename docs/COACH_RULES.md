@@ -205,7 +205,9 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Force : par exercice, courbe du 1RM estimé (Epley) de la meilleure série de chaque séance, puis toutes les séries notées, tests compris.
 - Séances : jour par jour, les séances cochées dans l'app et les entraînements lus dans Santé (durée, calories).
 - Repas : jour par jour, la saisie d'une touche de chaque repas ou le repas décrit avec ses calories. Les calories d'un repas « comme prévu » ne sont pas gardées : le plan d'un jour passé n'est pas recalculé.
-- Démo : `-demoHistory Force` ouvre l'historique sur une partie.
+- Repas d'un jour passé (`App/History/PastDayMealsView`) : une journée de la partie Repas, « Un autre jour » (calendrier, jusqu'à hier) ou « Modifier les repas » dans le détail d'un jour du bilan ouvre la carte Manger de ce jour. Mêmes gestes qu'aujourd'hui : comme prévu, plus léger, sauté, décrit, repris, modifié, annulé. L'objectif est rejoué comme dans le bilan (profil actuel) ; pas de notes pour la suite ni de version allégée à proposer.
+- Une correction (jamais la simple ouverture) recalcule les calories de la journée complète (`DayLogRecord.eatenKcal`, donc la dépense mesurée et les objectifs suivants), refait le bilan des 7 derniers jours et met Santé à jour pour ce jour si la liaison est active.
+- Démo : `-demoHistory Force` ouvre l'historique sur une partie ; `-demoHistory Repas -demoPastMeals YES` ouvre les repas de la veille.
 
 ## Mes 7 derniers jours (`ProgressInsights/WeekReview`, `App/Review/WeekReviewView`)
 

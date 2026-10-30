@@ -304,7 +304,7 @@ struct TodayView: View {
                 GroceryListView(targets: plan.targets, profile: profileRecord.profile)
             }
             .navigationDestination(isPresented: $isShowingHistory) {
-                HistoryView(healthActivities: healthActivities, compositions: bodyCompositions, focus: historyFocus)
+                HistoryView(healthActivities: healthActivities, compositions: bodyCompositions, dailySteps: dailySteps, focus: historyFocus)
             }
             .sheet(isPresented: $isAddingWeight) {
                 WeightEntrySheet(initialKg: weights.last?.kg ?? profileRecord.startWeightKg)

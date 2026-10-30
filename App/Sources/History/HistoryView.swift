@@ -63,6 +63,8 @@ struct HistoryView: View {
     /// Entraînements et composition corporelle lus dans Santé par l'écran Aujourd'hui.
     var healthActivities: [ActivitySample] = []
     var compositions: [BodyCompositionEntry] = []
+    /// Pas par jour lus dans Santé : l'objectif d'un jour passé est rejoué comme dans le bilan.
+    var dailySteps: [DailySteps] = []
     /// Partie et élément ouverts au départ : ceux touchés sur l'écran Aujourd'hui.
     var focus: Focus = .section(.measures)
 
@@ -75,6 +77,13 @@ struct HistoryView: View {
     @State private var chosenExercise: String?
     /// `nil` dans le menu : tous les repas.
     @State private var chosenSlot: MealSlot??
+    /// Jour passé dont les repas sont ouverts pour être corrigés.
+    @State private var openedDay: Date? = LaunchOptions.demoPastMeals
+        ? Calendar.current.date(byAdding: .day, value: -1, to: .now) : nil
+    @State private var isPickingDay = false
+    /// Jour choisi au calendrier, ouvert une fois la feuille fermée (une navigation pendant
+    /// la fermeture peut être perdue).
+    @State private var pickedDay: Date?
 
     private let calendar = Calendar.current
 
@@ -145,6 +154,15 @@ struct HistoryView: View {
         .background { AppBackground() }
         .navigationTitle("Historique")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $openedDay) { day in
+            PastDayMealsView(day: day, healthActivities: healthActivities, compositions: compositions, dailySteps: dailySteps)
+        }
+        .sheet(isPresented: $isPickingDay, onDismiss: {
+            if let pickedDay { openedDay = pickedDay }
+            pickedDay = nil
+        }) {
+            PastDayPicker { pickedDay = $0 }
+        }
     }
 
     // MARK: - Mesures
@@ -361,16 +379,41 @@ struct HistoryView: View {
         let days = dayLogs.filter { log in slots.contains { mealText(log, $0) != nil } }
         let options: [(value: MealSlot?, label: String)] = [(value: nil, label: "Tous les repas")]
             + MealSlot.allCases.map { (value: Optional($0), label: $0.title) }
-        filterMenu("Repas", selection: slot, options: options, tint: Theme.nutrition) { chosenSlot = .some($0) }
+        HStack {
+            filterMenu("Repas", selection: slot, options: options, tint: Theme.nutrition) { chosenSlot = .some($0) }
+            Spacer(minLength: Theme.Spacing.s)
+            // Un jour oublié, sans aucun repas noté, n'a pas de ligne à toucher.
+            Button {
+                isPickingDay = true
+            } label: {
+                Label("Un autre jour", systemImage: "calendar.badge.plus")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Theme.nutrition)
+        }
         if days.isEmpty {
             empty("Aucun repas noté", detail: "Les repas pris d'une touche ou décrits apparaîtront ici.")
         } else {
             historyCard(title: "Jour par jour", symbol: "fork.knife", tint: Theme.nutrition) {
                 ForEach(days, id: \.day) { log in
+                    // Un jour passé s'ouvre pour corriger ses repas ; aujourd'hui se corrige sur l'écran Aujourd'hui.
+                    let isPast = !calendar.isDateInToday(log.day)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(dayLabel(log.day))
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        HStack {
+                            Text(dayLabel(log.day))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Spacer(minLength: Theme.Spacing.s)
+                            if isPast {
+                                Text("Modifier")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(Theme.nutrition)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
                         ForEach(slots, id: \.self) { slot in
                             if let text = mealText(log, slot) {
                                 HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
@@ -389,6 +432,11 @@ struct HistoryView: View {
                         }
                     }
                     .padding(.vertical, 2)
+                    .contentShape(.rect)
+                    .onTapGesture { if isPast { openedDay = log.day } }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(isPast ? .isButton : [])
+                    .accessibilityHint(isPast ? "Ouvre les repas de ce jour pour les modifier" : "")
                 }
             }
         }

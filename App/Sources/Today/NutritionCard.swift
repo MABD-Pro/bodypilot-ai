@@ -17,6 +17,8 @@ struct NutritionCard: View {
     var showHistory: ((MealSlot?) -> Void)?
     /// Ouvre la liste de courses des prochains jours.
     var showGroceries: (() -> Void)?
+    /// Jour passé corrigé depuis l'historique : ce qui a été mangé, sans conseils pour la suite.
+    var pastDay = false
 
     @State private var expanded: MealSlot?
     @State private var showsRationale = false
@@ -57,8 +59,11 @@ struct NutritionCard: View {
 
             NutrientGauges(eaten: eaten, target: targets.macros)
 
-            ForEach(meals.notes, id: \.self) { note in
-                CoachNote(text: note, tint: Theme.nutrition)
+            // Les notes parlent du reste de la journée : rien à en tirer pour un jour passé.
+            if !pastDay {
+                ForEach(meals.notes, id: \.self) { note in
+                    CoachNote(text: note, tint: Theme.nutrition)
+                }
             }
 
             VStack(spacing: Theme.Spacing.s) {
@@ -75,7 +80,8 @@ struct NutritionCard: View {
                         describe: { describe(meal.slot) },
                         recent: recent(meal.slot),
                         reuse: { reuse(meal.slot, $0) },
-                        showHistory: showHistory.map { show in { show(meal.slot) } }
+                        showHistory: showHistory.map { show in { show(meal.slot) } },
+                        pastDay: pastDay
                     )
                 }
             }
@@ -108,6 +114,11 @@ struct NutritionCard: View {
 
     /// « Objectif du jour », puis ce qui reste une fois des repas pris.
     private var eatenSummary: String {
+        if pastDay {
+            let noted = meals.meals.filter(\.isEaten).count
+            guard noted > 0 else { return "Objectif de ce jour · aucun repas noté" }
+            return "\(eaten.kcal.frenchInteger) kcal mangées · \(noted) repas sur \(meals.meals.count) notés"
+        }
         guard eaten.kcal > 0 else { return "Objectif du jour · rien de mangé pour l'instant" }
         let over = eaten.kcal - targets.macros.kcal
         // Le reste annoncé est celui des repas encore prévus, pour coller aux chiffres affichés.
@@ -129,6 +140,7 @@ private struct MealRow: View {
     let recent: [RecentMeal]
     let reuse: (DescribedMeal) -> Void
     var showHistory: (() -> Void)?
+    var pastDay = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
@@ -217,7 +229,8 @@ private struct MealRow: View {
                     }
                     NutrientBreakdown(macros: meal.macros, approximate: meal.isEatingOut || meal.described != nil)
                         .padding(.top, 2)
-                    if let described = meal.described {
+                    // Un jour passé garde ce qui a été mangé : pas de version allégée à proposer.
+                    if let described = meal.described, !pastDay {
                         improvements(for: described)
                     }
                     if let showHistory {
