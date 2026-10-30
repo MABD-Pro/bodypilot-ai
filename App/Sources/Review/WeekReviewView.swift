@@ -44,6 +44,8 @@ struct WeekReviewView: View {
         var targetKcal: Int
         var workoutDone: Bool
         var logs: Int
+        /// Repas notés des journaux, jour par jour : un repas corrigé un jour passé refait le bilan.
+        var meals: [MealsNoted]
         var weights: Int
         var activities: Int
         var steps: Int
@@ -52,7 +54,14 @@ struct WeekReviewView: View {
     private var inputs: Inputs {
         Inputs(
             eatenKcal: Self.whole(todayPlan?.meals.eatenTotals.kcal ?? 0), targetKcal: Self.whole(todayPlan?.targets.macros.kcal ?? 0),
-            workoutDone: workoutDone, logs: dayLogs.count, weights: weights.count, activities: healthActivities.count, steps: dailySteps.count)
+            workoutDone: workoutDone, logs: dayLogs.count,
+            meals: dayLogs.sorted { $0.day < $1.day }.suffix(WeekReviewer.days + 1).map { MealsNoted(intakes: $0.mealIntakesRaw, described: $0.describedMealsData) },
+            weights: weights.count, activities: healthActivities.count, steps: dailySteps.count)
+    }
+
+    struct MealsNoted: Equatable {
+        var intakes: [String]
+        var described: Data?
     }
 
     private static func whole(_ value: Double) -> Int {
@@ -108,7 +117,7 @@ struct WeekReviewView: View {
         Group {
             if let computed, LaunchOptions.demoReview == "jour", let yesterday = computed.review.days.dropLast().last {
                 // Capture de démonstration : le détail de la veille.
-                DayReviewView(day: yesterday, meals: computed.meals[yesterday.day])
+                DayReviewView(day: yesterday, meals: computed.meals[yesterday.day], context: context)
             } else if let computed {
                 content(computed)
             } else {
@@ -288,7 +297,7 @@ struct WeekReviewView: View {
             VStack(spacing: Theme.Spacing.s) {
                 ForEach(review.days.reversed()) { day in
                     NavigationLink {
-                        DayReviewView(day: day, meals: computed.meals[day.day])
+                        DayReviewView(day: day, meals: computed.meals[day.day], context: context)
                     } label: {
                         HStack(spacing: Theme.Spacing.m) {
                             Image(systemName: day.statusSymbol)
@@ -374,6 +383,8 @@ final class WeekReviewContext {
 struct DayReviewView: View {
     let day: ReviewDay
     let meals: DayMealPlan?
+    /// Données de Santé lues par l'écran Aujourd'hui, pour corriger les repas d'un jour passé.
+    var context: WeekReviewContext?
 
     var body: some View {
         ScrollView {
@@ -412,6 +423,21 @@ struct DayReviewView: View {
                 Tag(text: "\(day.mealsNoted) repas sur \(day.mealsPlanned)", tint: Theme.nutrition)
             }
             NutrientGauges(eaten: day.eaten, target: day.target)
+            if !Calendar.current.isDateInToday(day.day) {
+                NavigationLink {
+                    PastDayMealsView(
+                        day: day.day,
+                        healthActivities: context?.today?.healthActivities ?? [],
+                        compositions: context?.today?.compositions ?? [],
+                        dailySteps: context?.today?.dailySteps ?? []
+                    )
+                } label: {
+                    Label("Modifier les repas", systemImage: "square.and.pencil")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.nutrition)
+                }
+                .buttonStyle(.plain)
+            }
             if let meals {
                 VStack(spacing: Theme.Spacing.s) {
                     ForEach(meals.meals, id: \.slot) { meal in
