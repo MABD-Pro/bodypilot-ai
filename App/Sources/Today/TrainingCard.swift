@@ -118,6 +118,29 @@ struct TrainingCard: View {
 
             notes
 
+            if let plan = training.watchPlan {
+                // En tête de carte, avant la liste des exercices : la séance déjà adaptée (temps, fatigue,
+                // genou) part sur la montre, guidée série par série.
+                Button {
+                    isPreviewingWatch = true
+                    Telemetry.record(.watchPreviewOpened)
+                    scheduleOnWatch(plan)
+                } label: {
+                    Label("Envoyer sur ma Watch", systemImage: "applewatch")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(Theme.training)
+                .workoutPreview(plan, isPresented: $isPreviewingWatch)
+            } else {
+                // Jamais de bouton qui disparaît sans raison : on dit pourquoi la séance ne part pas.
+                Label("Cette séance ne peut pas partir sur la Watch : WorkoutKit n'accepte aucun de ses types d'entraînement sur cet iPhone.", systemImage: "applewatch.slash")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
             if let celebration {
                 Label(celebration, systemImage: "trophy.fill")
                     .font(.subheadline.weight(.semibold))
@@ -233,23 +256,6 @@ struct TrainingCard: View {
             }
             .font(.footnote)
             .foregroundStyle(.secondary)
-
-            if let plan = training.watchPlan {
-                // La séance déjà adaptée (temps, fatigue, genou) part sur la montre, guidée série par série.
-                Button {
-                    isPreviewingWatch = true
-                    Telemetry.record(.watchPreviewOpened)
-                    scheduleOnWatch(plan)
-                } label: {
-                    Label("Envoyer sur ma Watch", systemImage: "applewatch")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
-                }
-                .buttonStyle(.glassProminent)
-                .tint(Theme.training)
-                .workoutPreview(plan, isPresented: $isPreviewingWatch)
-            }
 
             Button(action: toggleDone) {
                 Label(isDone ? "Séance faite" : "J'ai fait ma séance", systemImage: isDone ? "checkmark.seal.fill" : "checkmark.circle")
