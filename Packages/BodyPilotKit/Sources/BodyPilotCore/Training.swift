@@ -255,7 +255,7 @@ public enum CardioSource: String, Sendable, Codable {
 }
 
 /// Forme cardio mesurée : VO2max en ml/kg/min.
-public struct CardioMeasure: Sendable, Equatable {
+public struct CardioMeasure: Sendable, Equatable, Codable {
     public var vo2max: Double
     public var date: Date
     public var source: CardioSource
@@ -309,7 +309,7 @@ public enum ActivityKind: String, Sendable, Codable, CaseIterable {
 }
 
 /// Activité enregistrée hors de l'app (Santé), sur une période.
-public struct ActivitySample: Sendable, Equatable, Identifiable {
+public struct ActivitySample: Sendable, Equatable, Identifiable, Codable {
     public var id: String
     public var kind: ActivityKind
     public var start: Date
