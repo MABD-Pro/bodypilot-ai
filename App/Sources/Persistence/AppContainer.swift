@@ -2,6 +2,7 @@ import BodyPilotCore
 import Coach
 import Foundation
 import Nutrition
+import ProgressInsights
 import SwiftData
 import Training
 
@@ -40,6 +41,9 @@ enum LaunchOptions {
     }
     /// `-demoHistory Force` : ouvre l'historique sur cette partie (Mesures, Force, Séances, Repas).
     static var demoHistory: String? { defaults.string(forKey: "demoHistory") }
+    /// `-demoSessionDetail YES` : avec `-demoHistory Séances -demoActivities YES`, ouvre le détail
+    /// de la course (parcours, pouls, kilomètres).
+    static var demoSessionDetail: Bool { defaults.bool(forKey: "demoSessionDetail") }
     /// `-demoReview YES` : ouvre « Mes 7 derniers jours », avec une semaine de repas notés ;
     /// `-demoReview jour` : ouvre en plus le détail de la veille.
     static var demoReview: String? { defaults.string(forKey: "demoReview") }
@@ -181,6 +185,41 @@ enum DemoData {
             else { return nil }
             return ActivitySample(id: "demo-\(item.days)", kind: item.kind, start: start, minutes: item.minutes, kcal: item.kcal)
         }
+    }
+
+    /// Détail d'une activité de démo : boucle de ~7 km autour du parc Monceau, pouls qui monte
+    /// puis se stabilise, petite accélération à la fin.
+    static func workoutDetail(for item: SessionDetailSheet.Item) -> WorkoutDetail {
+        let start = item.entry.start ?? item.day
+        let minutes = item.entry.minutes ?? 40
+        let end = start.addingTimeInterval(minutes * 60)
+        let count = 240
+        let route = (0...count).map { index -> RoutePoint in
+            let progress = Double(index) / Double(count)
+            let angle = progress * 2 * .pi
+            // Ellipse d'environ 1,1 km × 0,9 km, parcourue une fois : ~6,3 km avec les détours.
+            let wobble = 0.0006 * sin(angle * 9)
+            return RoutePoint(
+                latitude: 48.8795 + 0.0085 * sin(angle) + wobble,
+                longitude: 2.3090 + 0.0145 * cos(angle) - 0.0145,
+                altitude: 45 + 12 * sin(angle * 2),
+                time: start.addingTimeInterval(minutes * 60 * pow(progress, 0.97))
+            )
+        }
+        let heartRates = stride(from: 0.0, through: minutes * 60, by: 5).map { seconds -> HeartRatePoint in
+            let progress = seconds / (minutes * 60)
+            let warmup = min(progress / 0.15, 1)
+            let finish = progress > 0.88 ? (progress - 0.88) / 0.12 * 18 : 0
+            let noise = 3 * sin(seconds / 37)
+            return HeartRatePoint(time: start.addingTimeInterval(seconds), bpm: 105 + 45 * warmup + finish + noise)
+        }
+        let bpm = heartRates.map(\.bpm)
+        return WorkoutDetail(
+            start: start, end: end, source: "Apple Watch", indoor: false,
+            distanceKm: WorkoutDetails.distanceKm(route), elevationGainM: 48, temperatureC: 12,
+            averageHeartRate: bpm.reduce(0, +) / Double(bpm.count), maxHeartRate: bpm.max(),
+            heartRates: heartRates, route: route
+        )
     }
 
     /// Deux séances passées par exercice ; la dernière dépasse les répétitions prévues, d'où une charge en hausse.

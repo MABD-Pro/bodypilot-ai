@@ -13,5 +13,8 @@ import Testing
     #expect(days.map(\.day) == [day(2026, 10, 25), day(2026, 10, 22), day(2026, 10, 20)].map { utc.startOfDay(for: $0) })
     #expect(days[1].entries.map(\.title) == ["Séance", "Vélo"])
     #expect(days[1].entries[1].kcal == 320)
+    #expect(days[1].entries[1].healthID == "1")
+    #expect(days[1].entries[1].kind == .cycling)
     #expect(days[2].entries.first?.fromHealth == false)
+    #expect(days[2].entries.first?.healthID == nil)
 }

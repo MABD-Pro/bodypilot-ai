@@ -7,12 +7,22 @@ public struct SessionEntry: Sendable, Equatable {
     public var minutes: Double?
     public var kcal: Double?
     public var fromHealth: Bool
+    /// Entraînement Santé d'origine : de quoi relire son parcours et son pouls.
+    public var healthID: String?
+    public var kind: ActivityKind?
+    public var start: Date?
 
-    public init(title: String, minutes: Double? = nil, kcal: Double? = nil, fromHealth: Bool) {
+    public init(
+        title: String, minutes: Double? = nil, kcal: Double? = nil, fromHealth: Bool,
+        healthID: String? = nil, kind: ActivityKind? = nil, start: Date? = nil
+    ) {
         self.title = title
         self.minutes = minutes
         self.kcal = kcal
         self.fromHealth = fromHealth
+        self.healthID = healthID
+        self.kind = kind
+        self.start = start
     }
 }
 
@@ -40,7 +50,10 @@ public enum SessionHistory {
         }
         for sample in samples.sorted(by: { $0.start < $1.start }) {
             byDay[calendar.startOfDay(for: sample.start), default: []].append(
-                SessionEntry(title: sample.kind.title, minutes: sample.minutes, kcal: sample.kcal, fromHealth: true)
+                SessionEntry(
+                    title: sample.kind.title, minutes: sample.minutes, kcal: sample.kcal, fromHealth: true,
+                    healthID: sample.id, kind: sample.kind, start: sample.start
+                )
             )
         }
         return byDay.map { SessionDay(day: $0.key, entries: $0.value) }.sorted { $0.day > $1.day }

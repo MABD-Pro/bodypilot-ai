@@ -72,11 +72,14 @@ struct HistoryView: View {
     @Query(sort: \WaistRecord.date, order: .reverse) private var waists: [WaistRecord]
     @Query(sort: \LiftRecord.day, order: .reverse) private var lifts: [LiftRecord]
     @Query(sort: \DayLogRecord.day, order: .reverse) private var dayLogs: [DayLogRecord]
+    @Query private var profiles: [ProfileRecord]
     /// `nil` tant que l'utilisateur n'a pas changé de partie.
     @State private var chosenSection: Section?
     @State private var chosenExercise: String?
     /// `nil` dans le menu : tous les repas.
     @State private var chosenSlot: MealSlot??
+    /// Séance touchée : son détail s'ouvre en feuille.
+    @State private var openedSession: SessionDetailSheet.Item?
     /// Jour passé dont les repas sont ouverts pour être corrigés.
     @State private var openedDay: Date? = LaunchOptions.demoPastMeals
         ? Calendar.current.date(byAdding: .day, value: -1, to: .now) : nil
@@ -152,6 +155,14 @@ struct HistoryView: View {
             }
         }
         .background { AppBackground() }
+        .sheet(item: $openedSession) { item in
+            SessionDetailSheet(
+                item: item,
+                lifts: lifts.filter { calendar.isDate($0.day, inSameDayAs: item.day) }.map(\.entry),
+                maxHeartRate: profiles.first.map { CardioTest.maxHeartRate(age: $0.profile.age(on: item.day, calendar: calendar)) }
+            )
+            .id(item.id)
+        }
         .navigationTitle("Historique")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $openedDay) { day in
@@ -331,13 +342,17 @@ struct HistoryView: View {
 
     // MARK: - Séances
 
-    @ViewBuilder
-    private var sessions: some View {
-        let days = SessionHistory.days(
+    private var sessionDays: [SessionDay] {
+        SessionHistory.days(
             completed: dayLogs.filter(\.workoutDone).map { (day: $0.day, title: $0.doneWorkoutTitle) },
             samples: healthActivities,
             calendar: calendar
         )
+    }
+
+    @ViewBuilder
+    private var sessions: some View {
+        let days = sessionDays
         if days.isEmpty {
             empty("Aucune séance pour l'instant", detail: "Les séances cochées et les entraînements de Santé (Watch, cours collectifs) apparaîtront ici.")
         } else {
@@ -348,27 +363,52 @@ struct HistoryView: View {
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                         ForEach(Array(day.entries.enumerated()), id: \.offset) { _, entry in
-                            HStack(spacing: Theme.Spacing.s) {
-                                Image(systemName: entry.fromHealth ? "heart.fill" : "checkmark.circle.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(entry.fromHealth ? Theme.protein : Theme.training)
-                                Text(entry.title)
-                                    .font(.subheadline.weight(.semibold))
-                                Spacer(minLength: Theme.Spacing.s)
-                                Text([
-                                    entry.minutes.map { "\(Int($0.rounded())) min" },
-                                    entry.kcal.map { "\($0.frenchInteger) kcal" },
-                                ].compactMap { $0 }.joined(separator: " · "))
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
+                            Button {
+                                openedSession = SessionDetailSheet.Item(day: day.day, entry: entry)
+                            } label: {
+                                sessionRow(entry)
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityHint("Affiche le détail de la séance")
                         }
                     }
                     .padding(.vertical, 2)
                 }
             }
+            // Relancée quand les activités Santé arrivent : la liste peut s'afficher avant elles.
+            .task(id: healthActivities.map(\.id)) {
+                // `-demoSessionDetail YES` : ouvre le détail de la première course.
+                guard LaunchOptions.demoSessionDetail, openedSession == nil,
+                      let day = days.first(where: { $0.entries.contains { $0.kind == .running } }),
+                      let run = day.entries.first(where: { $0.kind == .running })
+                else { return }
+                try? await Task.sleep(for: .milliseconds(400))
+                openedSession = SessionDetailSheet.Item(day: day.day, entry: run)
+            }
         }
+    }
+
+    private func sessionRow(_ entry: SessionEntry) -> some View {
+        HStack(spacing: Theme.Spacing.s) {
+            Image(systemName: entry.fromHealth ? "heart.fill" : "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(entry.fromHealth ? Theme.protein : Theme.training)
+            Text(entry.title)
+                .font(.subheadline.weight(.semibold))
+            Spacer(minLength: Theme.Spacing.s)
+            Text([
+                entry.minutes.map { "\(Int($0.rounded())) min" },
+                entry.kcal.map { "\($0.frenchInteger) kcal" },
+            ].compactMap { $0 }.joined(separator: " · "))
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .monospacedDigit()
+            Image(systemName: "chevron.right")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 4)
+        .contentShape(.rect)
     }
 
     // MARK: - Repas
