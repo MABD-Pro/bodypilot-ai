@@ -87,6 +87,12 @@ enum WatchSchedule {
         return true
     }
 
+    /// L'utilisateur a déjà permis à BodyPilot de planifier sur la montre.
+    static func isAuthorized() async -> Bool {
+        guard WorkoutScheduler.isSupported else { return false }
+        return await WorkoutScheduler.shared.authorizationState == .authorized
+    }
+
     /// Prochain quart d'heure d'aujourd'hui, au plus tard 23 h 45 : une heure passée pourrait
     /// ne plus s'afficher sur la montre. Reprogrammée à chaque retour dans l'app.
     static func slot(after now: Date, calendar: Calendar = .current) -> DateComponents {

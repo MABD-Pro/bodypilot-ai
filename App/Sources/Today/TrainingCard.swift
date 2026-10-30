@@ -571,7 +571,7 @@ struct TrainingCard: View {
         guard !LaunchOptions.demoData else { return }
         Task {
             // Déjà autorisé : l'écran Aujourd'hui a déjà planifié cette séance.
-            guard await WorkoutScheduler.shared.authorizationState != .authorized else { return }
+            guard await !WatchSchedule.isAuthorized() else { return }
             await WatchSchedule.replace(with: plan, ask: true)
         }
     }
