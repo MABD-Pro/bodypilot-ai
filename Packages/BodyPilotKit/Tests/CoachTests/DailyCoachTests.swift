@@ -34,7 +34,7 @@ private let monday = day(2026, 10, 26)
     let plan = coach.plan(for: profile, weights: [], on: monday)
     #expect(plan.training.estimatedMinutes <= FloorWeek.sessionMinutes)
     // Temps déclaré le matin : il passe avant le plancher.
-    let longer = coach.plan(for: profile, weights: [], availableMinutes: 45, on: monday)
+    let longer = coach.plan(for: profile, weights: [], adjustments: [.shortOnTime], availableMinutes: 45, on: monday)
     #expect(longer.training.estimatedMinutes > FloorWeek.sessionMinutes)
     // Semaine terminée : la durée habituelle revient.
     let after = coach.plan(for: profile, weights: [], on: utc.date(byAdding: .day, value: 7, to: monday)!)
