@@ -19,19 +19,21 @@ private func steps(_ counts: [Int]) -> [DailySteps] {
     #expect(days.map(\.steps) == [8_000, 7_000, 3_000])
 }
 
-@Test func summaryAveragesExcludeTodayAndEmptyDays() {
+@Test func summaryAveragesExcludeTodayAndEmptyDays() throws {
     // Aujourd'hui 2 000 (pas fini), puis 7 jours à 6 000 dont un à zéro, puis 7 jours à 5 000.
-    let counts = [2_000] + [6_000, 6_000, 0, 6_000, 6_000, 6_000, 6_000] + Array(repeating: 5_000, count: 7)
+    let counts: [Int] = [2_000] + [6_000, 6_000, 0, 6_000, 6_000, 6_000, 6_000] + Array(repeating: 5_000, count: 7)
     let summary = StepHistory.summary(steps(counts), age: 35, on: today, calendar: utc)
     #expect(summary.average7 == 6_000)
     #expect(summary.previous7 == 5_000)
     #expect(summary.weeklyChange == 1_000)
     #expect(summary.measuredDays30 == 13)
-    #expect(summary.average30.map { abs($0 - (6_000.0 * 6 + 5_000 * 7) / 13) < 0.01 } == true)
+    let expected30: Double = (6_000 * 6 + 5_000 * 7) / 13
+    let average30 = try #require(summary.average30)
+    #expect(abs(average30 - expected30) < 0.01)
 }
 
 @Test func daysInZoneDependOnAge() {
-    let counts = [0] + [9_000, 7_000, 6_500, 8_000, 5_000]
+    let counts: [Int] = [0] + [9_000, 7_000, 6_500, 8_000, 5_000]
     #expect(StepHistory.summary(steps(counts), age: 35, on: today, calendar: utc).daysInZone30 == 2)
     #expect(StepHistory.summary(steps(counts), age: 65, on: today, calendar: utc).daysInZone30 == 4)
 }
@@ -49,7 +51,7 @@ private func steps(_ counts: [Int]) -> [DailySteps] {
 
 @Test func weeksAreMondayToSundayMostRecentFirst() {
     // Samedi 31 : semaine en cours du lundi 26 au vendredi 30 (5 jours), aujourd'hui exclu.
-    let counts = [1_000] + Array(repeating: 6_000, count: 5) + Array(repeating: 8_000, count: 7) + [4_000, 4_000]
+    let counts: [Int] = [1_000] + Array(repeating: 6_000, count: 5) + Array(repeating: 8_000, count: 7) + [4_000, 4_000]
     let weeks = StepHistory.weeks(steps(counts), on: today, calendar: utc)
     #expect(weeks.count == 2)
     #expect(weeks[0].isCurrent)
