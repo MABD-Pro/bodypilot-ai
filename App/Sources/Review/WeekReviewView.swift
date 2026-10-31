@@ -30,6 +30,8 @@ struct WeekReviewView: View {
     @Environment(\.modelContext) private var modelContext
     /// Bilan calculé une fois à l'ouverture (6 journées rejouées), puis seulement si les données changent.
     @State private var computed: Computed?
+    /// « Partager ma semaine » (démo : `-demoShareWeek YES`).
+    @State private var isSharing = LaunchOptions.demoShareWeek
 
     private let calendar = Calendar.current
 
@@ -166,6 +168,18 @@ struct WeekReviewView: View {
         .background { AppBackground() }
         .navigationTitle("Mes 7 derniers jours")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if computed != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Partager ma semaine", systemImage: "square.and.arrow.up") { isSharing = true }
+                }
+            }
+        }
+        .sheet(isPresented: $isSharing) {
+            if let computed {
+                shareSheet(computed.review)
+            }
+        }
         .task(id: inputs) {
             guard let todayPlan else { return }
             computed = compute(today: todayPlan)
@@ -209,6 +223,19 @@ struct WeekReviewView: View {
                 withAnimation { proxy.scrollTo(target, anchor: .top) }
             }
         }
+    }
+
+    // MARK: - Partager
+
+    private func shareSheet(_ review: WeekReview) -> some View {
+        let analyzer = WeightTrendAnalyzer(calendar: calendar)
+        let trend = analyzer.trend(of: weights.map(\.entry), for: profileRecord.profile, on: .now)
+        return WeekShareSheet(
+            review: review,
+            headline: WeekReviewer(calendar: calendar).headline(review, feeling: feeling),
+            weeklyWeightChangeKg: trend.weeklyChangeKg,
+            waistChangeCm: analyzer.waistChange(of: waists.map(\.entry), on: .now)
+        )
     }
 
     // MARK: - Le mot du coach

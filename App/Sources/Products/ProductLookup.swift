@@ -7,6 +7,8 @@ enum ProductLookup {
     enum Failure: Error, Equatable {
         case notFound
         case offline
+        /// Open Food Facts répond mais refuse (trop de requêtes, maintenance).
+        case unavailable
     }
 
     private static let cacheKey = "productCache.v2"
@@ -18,11 +20,12 @@ enum ProductLookup {
         var components = URLComponents(string: "https://world.openfoodfacts.org/api/v2/product/\(barcode).json")
         components?.queryItems = [URLQueryItem(name: "fields", value: "product_name,product_name_fr,brands,serving_quantity,serving_size,nutriscore_grade,nutrition_grades,nutriments")]
         guard let url = components?.url else { return .failure(.notFound) }
-        var request = URLRequest(url: url, timeoutInterval: 10)
-        // Open Food Facts demande d'identifier l'app qui interroge sa base.
-        request.setValue("BodyPilot/1.0 (iOS)", forHTTPHeaderField: "User-Agent")
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await OpenFoodFacts.data(url, timeout: 10)
+            // 404 : produit absent de la base. Tout autre refus (429, 5xx) n'est pas un produit inconnu.
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            if status == 404 { return .failure(.notFound) }
+            guard status == 200 else { return .failure(.unavailable) }
             guard let food = PackagedFood.fromOpenFoodFacts(data, barcode: barcode) else { return .failure(.notFound) }
             remember(food)
             return .success(food)
@@ -57,5 +60,25 @@ enum ProductLookup {
             cache.foods[cache.order.removeFirst()] = nil
         }
         stored = cache
+    }
+}
+
+/// Requêtes vers Open Food Facts, qui demande d'identifier l'app qui interroge sa base.
+enum OpenFoodFacts {
+    static let userAgent = "BodyPilot/1.0 (iOS; https://github.com/MABD-Pro/bodypilot-ai)"
+
+    static func request(_ url: URL, timeout: TimeInterval) -> URLRequest {
+        var request = URLRequest(url: url, timeoutInterval: timeout)
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        return request
+    }
+
+    /// Le serveur limite par moments (429, 503 pendant quelques secondes) : un seul nouvel essai,
+    /// 2 s plus tard, avant de montrer l'erreur.
+    static func data(_ url: URL, timeout: TimeInterval) async throws -> (Data, URLResponse) {
+        let first = try await URLSession.shared.data(for: request(url, timeout: timeout))
+        guard let status = (first.1 as? HTTPURLResponse)?.statusCode, status == 429 || status == 503 else { return first }
+        try await Task.sleep(for: .seconds(2))
+        return try await URLSession.shared.data(for: request(url, timeout: timeout))
     }
 }

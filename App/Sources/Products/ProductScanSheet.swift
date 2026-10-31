@@ -1,6 +1,7 @@
 import BodyPilotCore
 import Nutrition
 import SwiftUI
+import OSLog
 import VisionKit
 
 /// En rayon : scanner le code-barres d'un produit, le coach dit s'il aide ton objectif.
@@ -14,6 +15,8 @@ struct ProductScanSheet: View {
     @State private var failure: ProductLookup.Failure?
     @State private var isLooking = false
     @State private var lastScanned: String?
+    /// Recherche en cours : une nouvelle l'annule, un résultat tardif n'écrase pas le produit affiché.
+    @State private var lookup: Task<Void, Never>?
     @FocusState private var isTypingCode: Bool
 
     private var canScan: Bool { DataScannerViewController.isSupported && DataScannerViewController.isAvailable }
@@ -34,9 +37,7 @@ struct ProductScanSheet: View {
                     } else if let product {
                         ProductCard(product: product)
                     } else if let failure {
-                        CoachNote(text: failure == .offline
-                            ? "Pas de connexion : ce produit n'a pas encore été scanné sur cet iPhone. Réessaie quand tu as du réseau."
-                            : "Produit inconnu d'Open Food Facts. Tu peux le décrire dans « Décrire » avec ses valeurs.", tint: Theme.nutrition)
+                        CoachNote(text: message(for: failure), tint: Theme.nutrition)
                     }
                     Text("Seul le code-barres est envoyé à Open Food Facts, une base libre et collaborative. Les produits déjà vus se relisent hors ligne.")
                         .font(.footnote)
@@ -72,15 +73,18 @@ struct ProductScanSheet: View {
 
     private func found(_ code: String) {
         let digits = code.filter(\.isNumber)
-        guard digits.count >= 8, digits != lastScanned || product == nil else { return }
+        // Le scanner rappelle souvent pour le même code : une seule recherche à la fois par code.
+        guard digits.count >= 8, digits != lastScanned || (product == nil && !isLooking) else { return }
         lastScanned = digits
         barcode = digits
         // Le pavé numérique n'a pas de touche Retour : on le ferme pour montrer le résultat.
         isTypingCode = false
         isLooking = true
         failure = nil
-        Task {
+        lookup?.cancel()
+        lookup = Task {
             let result = await ProductLookup.product(for: digits)
+            guard !Task.isCancelled, digits == lastScanned else { return }
             withAnimation(Theme.springy) {
                 isLooking = false
                 switch result {
@@ -88,6 +92,16 @@ struct ProductScanSheet: View {
                 case .failure(let error): product = nil; failure = error
                 }
             }
+        }
+    }
+}
+
+extension ProductScanSheet {
+    fileprivate func message(for failure: ProductLookup.Failure) -> String {
+        switch failure {
+        case .offline: "Pas de connexion : ce produit n'a pas encore été scanné sur cet iPhone. Réessaie quand tu as du réseau."
+        case .unavailable: "Open Food Facts ne répond pas pour l'instant. Réessaie dans un moment."
+        case .notFound: "Produit inconnu d'Open Food Facts. Tu peux le décrire dans « Décrire » avec ses valeurs."
         }
     }
 }
@@ -168,11 +182,22 @@ private struct BarcodeScanner: UIViewControllerRepresentable {
             isHighlightingEnabled: true
         )
         scanner.delegate = context.coordinator
-        try? scanner.startScanning()
         return scanner
     }
 
-    func updateUIViewController(_ controller: DataScannerViewController, context: Context) {}
+    /// Démarré ici plutôt qu'à la création : relancé si iOS l'a interrompu (appel, retour d'arrière-plan).
+    func updateUIViewController(_ controller: DataScannerViewController, context: Context) {
+        guard !controller.isScanning else { return }
+        do {
+            try controller.startScanning()
+        } catch {
+            AppLog.products.error("Scanner de codes-barres indisponible : \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    static func dismantleUIViewController(_ controller: DataScannerViewController, coordinator: Coordinator) {
+        controller.stopScanning()
+    }
 
     func makeCoordinator() -> Coordinator { Coordinator(found: found) }
 

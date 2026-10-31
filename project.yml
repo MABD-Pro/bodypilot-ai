@@ -53,7 +53,8 @@ targets:
         # Séance en cours sur l'écran verrouillé et dans la Dynamic Island.
         NSSupportsLiveActivities: true
         NSCalendarsFullAccessUsageDescription: BodyPilot lit les événements du jour de ton calendrier pour repérer un restaurant, un déplacement ou une journée trop pleine, et te proposer l'ajustement. Rien n'est enregistré ni ne quitte ton iPhone.
-        NSCameraUsageDescription: BodyPilot photographie ton repas pour estimer ce que tu as mangé, et peut mesurer ton tour de taille au LiDAR si tu le demandes. Les images sont analysées sur ton iPhone et ne sont pas conservées.
+        NSLocationWhenInUseUsageDescription: BodyPilot enregistre l'emplacement de ta salle, une seule fois et à ta demande, pour te rappeler ta séance quand tu y arrives. C'est iOS qui repère l'arrivée ; ta position n'est ni suivie ni envoyée.
+        NSCameraUsageDescription: BodyPilot photographie ton repas ou la carte du restaurant pour estimer ce que tu manges, lit le code-barres d'un produit en rayon pour en donner les valeurs, et peut mesurer ton tour de taille au LiDAR si tu le demandes. Les images sont analysées sur ton iPhone et ne sont pas conservées.
     entitlements:
       path: App/BodyPilot.entitlements
       properties:
