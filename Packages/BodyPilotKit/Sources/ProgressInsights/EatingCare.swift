@@ -41,7 +41,7 @@ public enum EatingCare {
     static let rapidLossRatio = 0.01
     static let weighingsPerDay = 3
     static let frequentWeighingDays = 3
-    static let distressDays = 2
+    static let distressDaysNeeded = 2
     /// « Ça va, merci » : la carte ne revient pas avant 30 jours.
     public static let snoozeDays = 30
     /// Durée de la pause du déficit.
@@ -77,7 +77,7 @@ public enum EatingCare {
         }
         let perDay = Dictionary(grouping: manualWeighIns.filter(inWindow), by: { calendar.startOfDay(for: $0) })
         if perDay.values.filter({ $0.count >= weighingsPerDay }).count >= frequentWeighingDays { found.insert(.frequentWeighing) }
-        if Set(distressDays.filter(inWindow).map { calendar.startOfDay(for: $0) }).count >= distressDays { found.insert(.distressWords) }
+        if Set(distressDays.filter(inWindow).map { calendar.startOfDay(for: $0) }).count >= distressDaysNeeded { found.insert(.distressWords) }
         if purgingDays.contains(where: inWindow) { found.insert(.purging) }
         return found
     }
