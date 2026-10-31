@@ -15,6 +15,7 @@ struct TodayView: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("healthWeightSync") private var healthSync = false
     @AppStorage(CoachNotifications.enabledKey) private var coachReminders = true
+    @AppStorage(CoachNotifications.sessionKey) private var sessionReminders = false
     /// Jour du dernier débrief du soir (enregistré ou écarté), au format 2026-10-30.
     @AppStorage("eveningDebriefDay") private var eveningDebriefDone = ""
     /// Débrief traité pendant ce lancement (la démo ignore le jour enregistré).
@@ -154,7 +155,7 @@ struct TodayView: View {
         let reminders = CoachReminders.plan(
             lastActivity: activityDays().max(), floorWeekUntil: profileRecord.floorWeekUntil,
             floorStrengthSessions: floorWeek?.strengthSessions ?? 0, now: now, calendar: calendar
-        )
+        ) + sessionReminder(todayLog: todayLog, plan: plan, quiet: comeback != nil, now: now)
         let widgetSnapshot = WidgetBridge.snapshot(
             plan: plan, training: (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training),
             workoutDone: todayLog?.workoutDone ?? false, now: now, calendar: calendar
@@ -380,10 +381,11 @@ struct TodayView: View {
                 let training = (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training)
                 await WatchSchedule.replace(with: (todayLog?.workoutDone ?? false) ? nil : training.watchPlan, ask: false, now: now, calendar: calendar)
             }
-            .task(id: ReminderKey(reminders: reminders, enabled: coachReminders, isActive: scenePhase == .active)) {
+            .task(id: ReminderKey(reminders: reminders, enabled: coachReminders, isActive: scenePhase == .active, activities: healthActivities.count)) {
                 // Rappels rares : décrochage et semaine plancher, reprogrammés à chaque changement
                 // et au retour dans l'app (l'autorisation a pu être donnée entre-temps).
                 guard scenePhase == .active, !LaunchOptions.demoData else { return }
+                CoachNotifications.usualSessionMinute = TrainingRhythm.usualStartMinute(healthActivities, before: now, calendar: calendar)
                 await CoachNotifications.reschedule(reminders, enabled: coachReminders)
             }
             .task(id: [String(healthSync)] + HealthMealExport(calendar: calendar).entries(for: plan.meals, on: now, now: now).map(\.fingerprint)) {
@@ -730,6 +732,17 @@ struct TodayView: View {
             )
             .transition(.opacity.combined(with: .move(edge: .top)))
         }
+    }
+
+    /// Rappel avant l'heure habituelle de séance, si l'utilisateur l'a demandé. Rien pendant un
+    /// décrochage (le rappel « On repart » suffit) ni si la séance est faite ou remplacée par le repos.
+    private func sessionReminder(todayLog: DayLogRecord?, plan: TodayPlan, quiet: Bool, now: Date) -> [PlannedReminder] {
+        guard sessionReminders, !quiet, todayLog?.trainingChoice != .rest else { return [] }
+        let training = (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training)
+        return [CoachReminders.session(
+            usualStartMinute: TrainingRhythm.usualStartMinute(healthActivities, before: now, calendar: calendar),
+            sessionTitle: training.workoutTitle, isDone: todayLog?.workoutDone ?? false, now: now, calendar: calendar
+        )].compactMap { $0 }
     }
 
     /// Faim qui revient au même moment ces deux dernières semaines.
@@ -1079,4 +1092,6 @@ private struct ReminderKey: Equatable {
     var reminders: [PlannedReminder]
     var enabled: Bool
     var isActive: Bool
+    /// Séances Santé lues : l'heure habituelle peut changer.
+    var activities: Int
 }
