@@ -92,7 +92,10 @@ struct EatingCareHelpSheet: View {
                 }
                 Section {
                     Link(destination: URL(string: "tel:15")!) {
-                        Label("Urgence : 15 ou 112", systemImage: "cross.case.fill")
+                        Label("Urgence : SAMU, 15", systemImage: "cross.case.fill")
+                    }
+                    Link(destination: URL(string: "tel:112")!) {
+                        Label("Urgence européenne : 112", systemImage: "phone.fill")
                     }
                 }
             }

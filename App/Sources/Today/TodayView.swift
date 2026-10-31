@@ -357,6 +357,8 @@ struct TodayView: View {
                             Button("Reprendre le déficit", systemImage: "play.circle") {
                                 withAnimation(Theme.springy) {
                                     EatingCareStore.pauseUntil = nil
+                                    // Reprendre est un choix : la carte ne revient pas avant 30 jours.
+                                    EatingCareStore.snoozedAt = .now
                                     eatingCareRevision += 1
                                 }
                             }
