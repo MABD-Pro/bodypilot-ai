@@ -188,7 +188,11 @@ struct PrivacySheet: View {
                         Link("Ouvrir Réglages", destination: settings)
                     }
                 case .notScheduled?:
-                    Text("iOS ne peut pas encore te prévenir à l'arrivée : la position doit rester autorisée « Lorsque l'app est active » (pas « Une fois »). Touche « Remplacer par ma position actuelle » sur place pour réactiver le rappel.")
+                    if GymArrival.canDetectArrival {
+                        Text("iOS n'a pas accepté le rappel d'arrivée. Réessaie sur place, ou vérifie la position et les notifications de BodyPilot dans Réglages.")
+                    } else {
+                        Text("iOS ne peut plus te prévenir à l'arrivée : la position doit rester autorisée « Lorsque l'app est active » (pas « Une fois »). Touche « Remplacer par ma position actuelle » sur place pour réactiver le rappel.")
+                    }
                 case .locationUnavailable?:
                     Text("Position introuvable pour l'instant. Réessaie près d'une fenêtre ou à l'entrée de la salle.")
                 case nil:
