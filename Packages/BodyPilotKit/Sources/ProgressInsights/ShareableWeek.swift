@@ -65,7 +65,7 @@ public enum ShareableWeekBuilder {
             ))
         }
         if let steps = review.averageSteps {
-            stats.append(.init(symbol: "shoeprints.fill", value: steps.frenchInteger, label: "pas par jour en moyenne"))
+            stats.append(.init(symbol: "shoeprints.fill", value: ((steps / 100).rounded() * 100).frenchInteger, label: "pas par jour en moyenne"))
         }
         if showsBody {
             if let weight = weeklyWeightChangeKg {
