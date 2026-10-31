@@ -21,7 +21,7 @@ enum ProductLookup {
         components?.queryItems = [URLQueryItem(name: "fields", value: "product_name,product_name_fr,brands,serving_quantity,serving_size,nutriscore_grade,nutrition_grades,nutriments")]
         guard let url = components?.url else { return .failure(.notFound) }
         do {
-            let (data, response) = try await URLSession.shared.data(for: OpenFoodFacts.request(url, timeout: 10))
+            let (data, response) = try await OpenFoodFacts.data(url, timeout: 10)
             // 404 : produit absent de la base. Tout autre refus (429, 5xx) n'est pas un produit inconnu.
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             if status == 404 { return .failure(.notFound) }
@@ -71,5 +71,14 @@ enum OpenFoodFacts {
         var request = URLRequest(url: url, timeoutInterval: timeout)
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         return request
+    }
+
+    /// Le serveur limite par moments (429, 503 pendant quelques secondes) : un seul nouvel essai,
+    /// 2 s plus tard, avant de montrer l'erreur.
+    static func data(_ url: URL, timeout: TimeInterval) async throws -> (Data, URLResponse) {
+        let first = try await URLSession.shared.data(for: request(url, timeout: timeout))
+        guard let status = (first.1 as? HTTPURLResponse)?.statusCode, status == 429 || status == 503 else { return first }
+        try await Task.sleep(for: .seconds(2))
+        return try await URLSession.shared.data(for: request(url, timeout: timeout))
     }
 }

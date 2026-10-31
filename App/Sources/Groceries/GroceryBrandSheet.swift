@@ -180,7 +180,7 @@ private struct NutriScoreBadge: View {
 enum OpenFoodFactsSearch {
     static func picks(for query: GroceryBrandQuery) async throws -> [GroceryBrandPick] {
         guard let url = GroceryBrands.searchURL(for: query) else { throw URLError(.badURL) }
-        let (data, response) = try await URLSession.shared.data(for: OpenFoodFacts.request(url, timeout: 20))
+        let (data, response) = try await OpenFoodFacts.data(url, timeout: 20)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
         return try GroceryBrands.picks(fromSearchResponse: data, for: query)
     }
