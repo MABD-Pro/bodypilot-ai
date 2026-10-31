@@ -19,6 +19,9 @@ struct TodayView: View {
     @AppStorage("eveningDebriefDay") private var eveningDebriefDone = ""
     /// Débrief traité pendant ce lancement (la démo ignore le jour enregistré).
     @State private var eveningDebriefHandled = false
+    @State private var isShowingEatingCareHelp = false
+    /// Change à chaque choix sur la carte du garde-fou, pour la recalculer.
+    @State private var eatingCareRevision = 0
     @Query(sort: \WeightRecord.date) private var weights: [WeightRecord]
     @Query private var dayLogs: [DayLogRecord]
     @Query(filter: #Predicate<WaistRecord> { !$0.isScan }, sort: \WaistRecord.date) private var waists: [WaistRecord]
@@ -132,6 +135,7 @@ struct TodayView: View {
             && plan.meals.eatenTotals.proteinG >= plan.targets.macros.proteinG * FloorWeek.proteinReached
         let floorWeek = floorWeekProgress(completed: completed, now: now)
         let comeback = floorWeek == nil ? currentComeback(now: now) : nil
+        let eatingCare = eatingCareSignals(target: plan.targets.macros.kcal, trend: plan.trend, now: now)
         let reminders = CoachReminders.plan(
             lastActivity: activityDays().max(), floorWeekUntil: profileRecord.floorWeekUntil,
             floorStrengthSessions: floorWeek?.strengthSessions ?? 0, now: now, calendar: calendar
@@ -177,6 +181,24 @@ struct TodayView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                         header(plan: plan, date: now)
+                        if LaunchOptions.demoEatingCare != nil ? eatingCareRevision == 0 : EatingCareStore.shows(eatingCare, on: now, calendar: calendar) {
+                            EatingCareCard(
+                                signals: eatingCare,
+                                pause: {
+                                    withAnimation(Theme.springy) {
+                                        if LaunchOptions.demoEatingCare == nil { EatingCareStore.startPause(on: now, calendar: calendar) }
+                                        eatingCareRevision += 1
+                                    }
+                                },
+                                showHelp: { isShowingEatingCareHelp = true },
+                                dismiss: {
+                                    withAnimation(Theme.springy) {
+                                        if LaunchOptions.demoEatingCare == nil { EatingCareStore.snoozedAt = now }
+                                        eatingCareRevision += 1
+                                    }
+                                }
+                            )
+                        }
                         if let comeback {
                             ComebackCard(comeback: comeback, startFloorWeek: startFloorWeek, dismiss: {
                                 withAnimation(Theme.springy) { profileRecord.comebackDismissedAt = .now }
@@ -331,6 +353,14 @@ struct TodayView: View {
                         Button("Mes données", systemImage: "externaldrive") { isManagingData = true }
                         Button("Conseils et sources", systemImage: "books.vertical") { isShowingGuides = true }
                         Button("Confidentialité", systemImage: "hand.raised") { isEditingPrivacy = true }
+                        if profileRecord.profile.isOnDeficitPause(on: now) {
+                            Button("Reprendre le déficit", systemImage: "play.circle") {
+                                withAnimation(Theme.springy) {
+                                    EatingCareStore.pauseUntil = nil
+                                    eatingCareRevision += 1
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -396,6 +426,9 @@ struct TodayView: View {
                 MealDescriptionSheet(slot: item.slot, initial: item.current) { meal in
                     saveDescribed(meal, for: item.slot)
                 }
+            }
+            .sheet(isPresented: $isShowingEatingCareHelp) {
+                EatingCareHelpSheet()
             }
             .sheet(isPresented: $isShowingWhatIf) {
                 if let target = profileRecord.targetWeightKg {
@@ -780,6 +813,21 @@ struct TodayView: View {
         }
         // Séance cochée à la main : le suivi de l'écran verrouillé n'a plus lieu d'être.
         if log.workoutDone { Task { await WorkoutLiveActivity.endAll() } }
+    }
+
+    /// Signaux du garde-fou alimentaire sur les 14 derniers jours (en démo : imposés).
+    private func eatingCareSignals(target: Double, trend: WeightTrend, now: Date) -> Set<EatingCareSignal> {
+        if let demo = LaunchOptions.demoEatingCare { return demo == "purging" ? [.purging] : [.restriction] }
+        guard !LaunchOptions.demoData else { return [] }
+        _ = eatingCareRevision
+        let days = dayLogs.map { log in
+            EatingCareDay(day: log.day, completeKcal: log.eatenKcal, skippedMeals: log.mealIntakes.values.filter { $0 == .skipped }.count)
+        }
+        return EatingCare.signals(
+            days: days, targetKcal: target, floorKcal: SafetyLimits.minimumKcal(for: profileRecord.profile.sex), trend: trend,
+            manualWeighIns: weights.filter { $0.sourceRaw == WeightSource.manual.rawValue }.map(\.date),
+            distressDays: EatingCareStore.distressDays, purgingDays: EatingCareStore.purgingDays, on: now, calendar: calendar
+        )
     }
 
     /// Jour à raconter : de 18 h à 4 h du matin, une fois par jour. En démo, seulement sur demande

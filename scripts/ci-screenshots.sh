@@ -100,6 +100,7 @@ shoot 1c-retour-plancher -demoData YES -demoComeback YES
 shoot 1d-semaine-plancher -demoData YES -demoFloorWeek YES
 shoot 4o-et-si -demoData YES -demoWhatIf 200:2000
 shoot 1e-debrief-soir -demoData YES -demoDebrief "Séance faite, pizza ce soir et je suis crevé"
+shoot 1f-garde-fou -demoData YES -demoEatingCare YES
 shoot 4k-bilan-jour -demoData YES -demoReview jour -demoActivities YES -demoSteps YES
 shoot 4l-repas-jour-passe -demoData YES -demoHistory Repas -demoPastMeals YES
 shoot 4m-detail-seance -demoData YES -demoActivities YES -demoHealth YES -demoHistory Séances -demoSessionDetail YES

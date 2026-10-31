@@ -72,6 +72,8 @@ enum LaunchOptions {
     static var demoMaintenanceOffer: Bool { defaults.bool(forKey: "demoMaintenanceOffer") }
     /// `-demoComeback YES` : 5 jours sans rien noter, le coach propose une semaine plancher.
     static var demoComeback: Bool { defaults.bool(forKey: "demoComeback") }
+    /// `-demoEatingCare YES` : carte du garde-fou alimentaire ; `-demoEatingCare purging` : version immédiate.
+    static var demoEatingCare: String? { defaults.string(forKey: "demoEatingCare") }
     /// `-demoDebrief YES` : débrief du soir affiché quelle que soit l'heure ; avec une phrase,
     /// elle est déjà comprise (`-demoDebrief "Séance faite, pizza ce soir, crevé"`).
     static var demoDebrief: String? { defaults.string(forKey: "demoDebrief") }

@@ -147,6 +147,8 @@ final class ProfileRecord {
         )
         profile.maintenanceWeekUntil = maintenanceWeekUntil
         profile.floorWeekUntil = floorWeekUntil
+        // Pause choisie depuis le garde-fou alimentaire, gardée sur l'iPhone (4 semaines).
+        profile.deficitPauseUntil = EatingCareStore.pauseUntil
         return profile
     }
 

@@ -125,6 +125,7 @@ struct EveningDebriefCard: View {
     private func submit(_ sentence: String) {
         let trimmed = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        EatingCareStore.note(trimmed)
         let result = EveningDebriefParser.parse(trimmed, pendingSlots: pendingSlots)
         withAnimation(Theme.springy) {
             text = trimmed
