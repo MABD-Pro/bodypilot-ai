@@ -732,9 +732,6 @@ struct TodayView: View {
         }
     }
 
-    /// Cartes d'alerte en tête : garde-fou alimentaire, retour après une pause, semaine plancher.
-    /// À part du corps de l'écran, que le compilateur vérifie plus vite ainsi.
-    @ViewBuilder
     /// Faim qui revient au même moment ces deux dernières semaines.
     private func hungerPattern(now: Date) -> HungerPattern? {
         HungerPatterns.pattern(hungerRecords.map(\.note), on: now, calendar: calendar)
@@ -761,6 +758,9 @@ struct TodayView: View {
         try? context.save()
     }
 
+    /// Cartes d'alerte en tête : garde-fou alimentaire, retour après une pause, semaine plancher.
+    /// À part du corps de l'écran, que le compilateur vérifie plus vite ainsi.
+    @ViewBuilder
     private func coachAlerts(now: Date, eatingCare: Set<EatingCareSignal>, comeback: Comeback?, floorWeek: FloorWeekProgress?) -> some View {
         if LaunchOptions.demoEatingCare != nil ? eatingCareRevision == 0 : EatingCareStore.shows(eatingCare, on: now, calendar: calendar) {
             EatingCareCard(

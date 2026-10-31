@@ -24,7 +24,7 @@ private func note(daysAgo: Int, hour: Int, _ level: HungerLevel = .hungry) -> Hu
     #expect(HungerPatterns.pattern(notes, on: today, calendar: utc) == nil)
 }
 
-@Test func sameDayCountsOnce() {
+@Test func hungerSameDayCountsOnce() {
     let notes = [note(daysAgo: 1, hour: 15), note(daysAgo: 1, hour: 16), note(daysAgo: 1, hour: 18)]
     #expect(HungerPatterns.pattern(notes, on: today, calendar: utc) == nil)
 }
