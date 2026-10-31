@@ -107,6 +107,12 @@ enum LaunchOptions {
     static var demoMuscles: Bool { defaults.bool(forKey: "demoMuscles") }
     /// `-demoProduct YES` : avec `-demoGroceries`, la feuille « Scanner un produit » montre un skyr déjà lu.
     static var demoProduct: Bool { defaults.bool(forKey: "demoProduct") }
+    /// `-demoShareWeek YES` : avec `-demoReview`, la feuille « Partager ma semaine » s'ouvre.
+    static var demoShareWeek: Bool { defaults.bool(forKey: "demoShareWeek") }
+    /// `-demoPrivacy YES` : la feuille Confidentialité s'ouvre au lancement.
+    static var demoPrivacy: Bool { defaults.bool(forKey: "demoPrivacy") }
+    /// `-demoGym YES` : une salle est enregistrée (démo, rien n'est programmé).
+    static var demoGym: Bool { defaults.bool(forKey: "demoGym") }
     /// `-demoMenu YES` : la feuille « Lire la carte » s'ouvre sur une carte de brasserie déjà lue.
     static var demoMenu: Bool { defaults.bool(forKey: "demoMenu") }
     /// `-demoHunger YES` : faim notée l'après-midi quatre jours sur quatorze, et une petite faim il y a vingt minutes.

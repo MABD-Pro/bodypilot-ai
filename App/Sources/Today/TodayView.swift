@@ -36,7 +36,7 @@ struct TodayView: View {
     @State private var isEditingProfile = false
     @State private var isEditingFoodPreferences = false
     @State private var isManagingData = false
-    @State private var isEditingPrivacy = false
+    @State private var isEditingPrivacy = LaunchOptions.demoPrivacy
     @State private var isShowingGuides = LaunchOptions.demoGuides
     @State private var isManagingCycle = false
     @State private var isAnsweringScreening = false

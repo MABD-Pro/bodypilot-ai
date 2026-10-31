@@ -78,6 +78,9 @@ struct PrivacySheet: View {
     @AppStorage(CoachNotifications.enabledKey) private var reminders = true
     @AppStorage(CoachNotifications.sessionKey) private var sessionReminder = false
     @State private var remindersDenied = false
+    @State private var hasGym = GymArrival.savedCoordinate != nil
+    @State private var isSavingGym = false
+    @State private var gymFailure: GymArrival.Failure?
 
     var body: some View {
         NavigationStack {
@@ -116,6 +119,7 @@ struct PrivacySheet: View {
                         }
                     }
                 }
+                gymSection
             }
             .navigationTitle("Confidentialité")
             .navigationBarTitleDisplayMode(.inline)
@@ -136,6 +140,70 @@ struct PrivacySheet: View {
                 Task { remindersDenied = !(await CoachNotifications.requestAuthorization()) }
             }
             .task { remindersDenied = await CoachNotifications.isDenied() }
+        }
+    }
+
+    /// « Ma salle » : rappel à l'arrivée, enregistré une fois sur place.
+    private var gymSection: some View {
+        Section {
+            if hasGym {
+                Label("Rappel en arrivant à ma salle", systemImage: "mappin.and.ellipse")
+                Button("Remplacer par ma position actuelle", action: saveGym)
+                    .disabled(isSavingGym)
+                Button("Oublier ma salle", role: .destructive) {
+                    GymArrival.forget()
+                    withAnimation(Theme.springy) { hasGym = false }
+                }
+            } else {
+                Button(action: saveGym) {
+                    HStack {
+                        Label("Je suis à ma salle : enregistrer ce lieu", systemImage: "mappin.and.ellipse")
+                        if isSavingGym {
+                            Spacer()
+                            ProgressView()
+                        }
+                    }
+                }
+                .disabled(isSavingGym)
+            }
+        } header: {
+            Text("Ma salle")
+        } footer: {
+            VStack(alignment: .leading, spacing: 4) {
+                switch gymFailure {
+                case .locationDenied?:
+                    Text("La localisation de BodyPilot est coupée dans Réglages.")
+                    if let settings = URL(string: UIApplication.openSettingsURLString) {
+                        Link("Ouvrir Réglages", destination: settings)
+                    }
+                case .notificationsDenied?:
+                    Text("Les notifications de BodyPilot sont coupées dans Réglages.")
+                    if let settings = URL(string: UIApplication.openNotificationSettingsURLString) {
+                        Link("Ouvrir Réglages", destination: settings)
+                    }
+                case .locationUnavailable?:
+                    Text("Position introuvable pour l'instant. Réessaie près d'une fenêtre ou à l'entrée de la salle.")
+                case nil:
+                    Text(hasGym
+                         ? "Un message quand tu arrives à ta salle, pour ouvrir ta séance du jour. C'est iOS qui repère l'arrivée : BodyPilot ne suit pas ta position et le lieu reste sur ton iPhone."
+                         : "À faire une fois, sur place : ensuite, un message quand tu arrives à ta salle pour ouvrir ta séance du jour. Le lieu reste sur ton iPhone et BodyPilot ne suit pas ta position.")
+                }
+            }
+        }
+    }
+
+    private func saveGym() {
+        isSavingGym = true
+        gymFailure = nil
+        Task {
+            let result = await GymArrival.saveCurrentLocation()
+            withAnimation(Theme.springy) {
+                isSavingGym = false
+                switch result {
+                case .success: hasGym = true
+                case .failure(let failure): gymFailure = failure
+                }
+            }
         }
     }
 }

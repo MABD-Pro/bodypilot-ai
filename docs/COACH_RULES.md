@@ -290,3 +290,14 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Depuis la liste de courses : scanner (VisionKit, EAN-13, EAN-8, UPC-E) ou saisir le code. Seul le code part vers Open Food Facts ; produit gardé en cache sur l'iPhone.
 - Valeurs pour 100 g (kcal, ou kJ convertis à 4,184), portion de l'emballage et Nutri-Score quand ils sont connus.
 - Avis, d'après les protéines pour 100 kcal (choix BodyPilot) : 10 g ou plus, « Très bon choix pour tes protéines » ; plus de 400 kcal pour 100 g avec moins de 5 g pour 100 kcal, « À garder pour le plaisir » ; 5 g ou plus, « Correct » ; sinon « Peu de protéines ».
+
+## Partager ma semaine (`ProgressInsights/ShareableWeek`, `App/Review/WeekShareSheet`)
+
+- Depuis « Mes 7 derniers jours », bouton Partager : une image (fond plein, lisible hors de l'app) ou le même contenu en texte. Rien ne part sans le geste de l'utilisateur, qui choisit le destinataire.
+- Contenu : le mot du coach, séances (dont force), minutes d'activité face au repère de l'OMS, jours avec les protéines atteintes (seulement avec au moins 3 journées notées en entier), pas moyens, une réussite de la semaine.
+- Le poids n'apparaît jamais en valeur absolue. La tendance du poids (kg par semaine) et le tour de taille (4 semaines) ne figurent qu'en variation, et seulement si l'utilisateur l'active (coupé par défaut, réglage gardé).
+
+## Ma salle (`App/Today/GymArrival`)
+
+- Dans Confidentialité, « Je suis à ma salle : enregistrer ce lieu » : une position prise une fois (autorisation « Pendant l'utilisation »), précise à 100 m, gardée sur l'iPhone.
+- Un rappel « Te voilà à la salle » à chaque arrivée dans un rayon de 150 m, déclenché par iOS (notification de lieu) même app fermée. BodyPilot ne suit pas la position. « Oublier ma salle » efface le lieu et le rappel.
