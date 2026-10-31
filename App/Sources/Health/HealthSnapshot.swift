@@ -1,5 +1,6 @@
 import BodyPilotCore
 import Foundation
+import ProgressInsights
 
 /// Dernières lectures Santé, gardées sur l'iPhone : au lancement, l'écran part de ce que Santé
 /// disait la dernière fois au lieu de rien. Sans elles, le premier calcul ignore les pas, les
@@ -14,6 +15,9 @@ struct HealthSnapshot: Codable, Equatable {
     var periodStarts: [Date]
     var compositions: [BodyCompositionEntry]
     var dailySteps: [DailySteps]
+    /// VFC et pouls au repos sur 28 jours ; absents des relevés plus anciens.
+    var hrvReadings: [DatedValue]? = nil
+    var restingReadings: [DatedValue]? = nil
 }
 
 @MainActor

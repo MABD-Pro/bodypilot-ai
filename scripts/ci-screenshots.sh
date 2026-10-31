@@ -90,6 +90,8 @@ shoot 3e-test-de-force -demoData YES -demoCalibration YES -demoScrollTo training
 shoot 3f-recuperation -demoData YES -demoRecovery YES -demoScrollTo training
 shoot 3g-propositions-nuit-courte -demoData YES -demoSleep 5.5 -demoScrollTo training
 shoot 4-aujourdhui-progression -demoData YES -demoScrollTo progress
+shoot 4q-progresser-pas -demoData YES -demoHealth YES -demoSteps YES -demoScrollTo steps
+shoot 4r-historique-pas -demoData YES -demoHealth YES -demoSteps YES -demoHistory Pas
 shoot 4c-bilan-semaine -demoData YES -demoCheckIn YES -demoScrollTo progress
 shoot 4b-progression-sante -demoData YES -demoHealth YES -demoScrollTo progress
 shoot 4h-bilan-7-jours -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoMeals breakfast=asPlanned
@@ -103,6 +105,7 @@ shoot 1e-debrief-soir -demoData YES -demoDebrief "Séance faite, pizza ce soir e
 shoot 1f-garde-fou -demoData YES -demoEatingCare YES
 # Repas habituel au petit-déjeuner, sans poisson ni laitages.
 shoot 1g-habitudes -demoData YES -demoHabits YES -demoAvoid fish,dairy -demoScrollTo nutrition
+shoot 1h-recuperation -demoData YES -demoLowRecovery YES -demoRecovery YES
 shoot 4k-bilan-jour -demoData YES -demoReview jour -demoActivities YES -demoSteps YES
 shoot 4l-repas-jour-passe -demoData YES -demoHistory Repas -demoPastMeals YES
 shoot 4m-detail-seance -demoData YES -demoActivities YES -demoHealth YES -demoHistory Séances -demoSessionDetail YES

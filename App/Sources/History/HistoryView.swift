@@ -12,6 +12,7 @@ struct HistoryView: View {
         case strength = "Force"
         case sessions = "Séances"
         case meals = "Repas"
+        case steps = "Pas"
         var id: String { rawValue }
     }
 
@@ -138,6 +139,7 @@ struct HistoryView: View {
                         case .strength: strength
                         case .sessions: sessions
                         case .meals: meals
+                        case .steps: stepsHistory
                         }
                     }
                     .id(section)
@@ -488,6 +490,120 @@ struct HistoryView: View {
             return "\(described.title) · \(described.macros.kcal.frenchInteger) kcal"
         }
         return log.mealIntakes[slot]?.label
+    }
+
+    // MARK: - Pas
+
+    private var age: Int {
+        profiles.first.map { $0.profile.age(on: .now, calendar: calendar) } ?? 35
+    }
+
+    @ViewBuilder
+    private var stepsHistory: some View {
+        let now = Date.now
+        let all = StepHistory.lastDays(dailySteps, count: StepHistory.historyDays + 1, through: now, calendar: calendar)
+        if all.isEmpty {
+            empty("Aucun pas pour l'instant", detail: "Relie BodyPilot à Santé : les pas de ton iPhone et de ton Apple Watch apparaîtront ici, jour par jour.")
+        } else {
+            let summary = StepHistory.summary(dailySteps, age: age, on: now, calendar: calendar)
+            let goal = StepActivity.goal(averageSteps: StepActivity.average(dailySteps, excluding: healthActivities, before: now, calendar: calendar), age: age)
+            let zone = StepActivity.zone(age: age)
+            let month = StepHistory.lastDays(dailySteps, count: 30, through: now, calendar: calendar)
+            let todaySteps = all.last { calendar.isDateInToday($0.day) }?.steps ?? 0
+            historyCard(title: "Pas", symbol: "shoeprints.fill", tint: Theme.progress) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        if let average7 = summary.average7 {
+                            Text("\(StepActivity.displayed(average7).frenchInteger) pas/jour")
+                                .font(.display(28))
+                                .monospacedDigit()
+                            Text("Moyenne des 7 derniers jours")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("\(Double(todaySteps).frenchInteger) pas")
+                                .font(.display(28))
+                                .monospacedDigit()
+                            Text("Aujourd'hui, moyenne après 3 jours mesurés")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    if let change = summary.weeklyChange {
+                        Text("\(change >= 0 ? "+" : "")\(StepActivity.displayed(change).frenchInteger) par rapport à la semaine d'avant")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(change >= 0 ? Theme.progress : .secondary)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+                Label(
+                    todaySteps >= goal
+                        ? "Aujourd'hui \(Double(todaySteps).frenchInteger) pas, objectif de \(Double(goal).frenchInteger) atteint"
+                        : "Aujourd'hui \(Double(todaySteps).frenchInteger) pas sur \(Double(goal).frenchInteger)",
+                    systemImage: todaySteps >= goal ? "checkmark.circle.fill" : "figure.walk"
+                )
+                .font(.subheadline.weight(.medium))
+                if month.count >= 2 {
+                    Chart {
+                        ForEach(month, id: \.day) { day in
+                            BarMark(x: .value("Jour", day.day, unit: .day), y: .value("Pas", day.steps))
+                                .foregroundStyle(day.steps >= goal ? Theme.progress : Theme.progress.opacity(0.4))
+                                .cornerRadius(2)
+                        }
+                        RuleMark(y: .value("Objectif", goal))
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .foregroundStyle(.secondary)
+                            .annotation(position: .top, alignment: .leading) {
+                                Text("Objectif \(Double(goal).frenchInteger)")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                    }
+                    .chartXAxis {
+                        AxisMarks(values: .stride(by: .day, count: 7)) { _ in
+                            AxisGridLine()
+                            AxisValueLabel(format: .dateTime.day().month(.abbreviated).locale(Theme.locale))
+                        }
+                    }
+                    .frame(height: 150)
+                    .accessibilityLabel("Pas des 30 derniers jours")
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    if let average30 = summary.average30 {
+                        Text("Sur 30 jours : \(StepActivity.displayed(average30).frenchInteger) pas/jour en moyenne, \(summary.daysInZone30) jour\(summary.daysInZone30 > 1 ? "s" : "") à \(Double(zone.lowerBound).frenchInteger) pas ou plus.")
+                    }
+                    if let best = summary.best {
+                        Text("Meilleur jour (\(dayLabel(best.day).lowercased())) : \(Double(best.steps).frenchInteger) pas.")
+                    }
+                    Text("Lus dans Santé (iPhone et Apple Watch). Un jour sans aucun pas, téléphone resté à la maison, n'est pas compté. L'objectif monte de 1 000 au-dessus de ta moyenne, jusqu'à \(Double(zone.upperBound).frenchInteger).")
+                        .foregroundStyle(.secondary)
+                }
+                .font(.footnote)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            let weeks = StepHistory.weeks(dailySteps, on: now, calendar: calendar)
+            if !weeks.isEmpty {
+                historyCard(title: "Par semaine", symbol: "calendar", tint: Theme.progress) {
+                    ForEach(weeks, id: \.start) { week in
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(week.isCurrent ? "Cette semaine" : "Semaine du \(week.start.formatted(.dateTime.day().month(.abbreviated).locale(Theme.locale)))")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Spacer(minLength: Theme.Spacing.s)
+                            Text("\(StepActivity.displayed(week.average).frenchInteger) pas/jour")
+                                .font(.subheadline.weight(.semibold))
+                                .monospacedDigit()
+                        }
+                    }
+                }
+            }
+            historyCard(title: "Jour par jour", symbol: "list.bullet", tint: Theme.progress) {
+                ForEach(all.reversed(), id: \.day) { day in
+                    row(date: day.day, value: "\(Double(day.steps).frenchInteger)\u{00A0}pas\(day.steps >= zone.lowerBound ? "\u{00A0}✓" : "")")
+                }
+            }
+        }
     }
 
     // MARK: - Éléments communs

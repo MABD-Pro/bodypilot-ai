@@ -39,13 +39,15 @@ enum LaunchOptions {
         guard parts.count == 2, let slot = MealSlot(rawValue: parts[0]) else { return nil }
         return (slot, parts[1])
     }
+    /// `-demoLowRecovery YES` : VFC basse et pouls au repos haut sur la dernière semaine.
+    static var demoLowRecovery: Bool { defaults.bool(forKey: "demoLowRecovery") }
     /// `-demoHabits YES` : le même petit-déjeuner décrit 4 jours sur les 5 derniers, proposé comme habitude.
     static var demoHabits: Bool { defaults.bool(forKey: "demoHabits") }
     /// `-demoAvoid fish,dairy` : aliments écartés des repas proposés (valeurs de `FoodAversion`).
     static var demoAvoid: Set<FoodAversion> {
         Set((defaults.string(forKey: "demoAvoid") ?? "").split(separator: ",").compactMap { FoodAversion(rawValue: String($0)) })
     }
-    /// `-demoHistory Force` : ouvre l'historique sur cette partie (Mesures, Force, Séances, Repas).
+    /// `-demoHistory Force` : ouvre l'historique sur cette partie (Mesures, Force, Séances, Repas, Pas).
     static var demoHistory: String? { defaults.string(forKey: "demoHistory") }
     /// `-demoSessionDetail YES` : avec `-demoHistory Séances -demoActivities YES`, ouvre le détail
     /// de la course (parcours, pouls, kilomètres).
@@ -118,7 +120,7 @@ enum LaunchOptions {
     static var demoOnboardingStep: Int? { defaults.object(forKey: "demoOnboardingStep") == nil ? nil : defaults.integer(forKey: "demoOnboardingStep") }
     /// `-demoIntake YES` : les 3 dernières semaines ont leurs quatre repas notés (dépense mesurée).
     static var demoIntake: Bool { defaults.bool(forKey: "demoIntake") }
-    /// `-demoSteps YES` : deux semaines de pas lus dans Santé (environ 6 500 par jour).
+    /// `-demoSteps YES` : deux mois de pas lus dans Santé (environ 6 500 par jour ces deux semaines).
     static var demoSteps: Bool { defaults.bool(forKey: "demoSteps") }
     /// `-demoTarget 92` : poids visé de la démo (au-dessus du poids actuel : phase de légère prise).
     static var demoTargetKg: Double? { defaults.object(forKey: "demoTarget") == nil ? nil : defaults.double(forKey: "demoTarget") }
@@ -186,12 +188,39 @@ enum AppContainer {
 
 enum DemoData {
     /// Pas des 14 derniers jours et d'aujourd'hui (matinée) : environ 6 500 par jour.
+    /// Quatre semaines de VFC et de pouls au repos : la dernière semaine, VFC en baisse et pouls en hausse.
+    static func lowRecovery(now: Date = .now, calendar: Calendar = .current) -> (hrv: [DatedValue], resting: [DatedValue]) {
+        let noise = [3.0, -2.0, 1.0, -4.0, 2.0, 0.0, -1.0]
+        var hrv: [DatedValue] = []
+        var resting: [DatedValue] = []
+        for daysAgo in 0..<28 {
+            guard let date = calendar.date(byAdding: .day, value: -daysAgo, to: now) else { continue }
+            let tired = daysAgo < 7
+            hrv.append(DatedValue(date: date, value: (tired ? 38 : 52) + noise[daysAgo % noise.count]))
+            resting.append(DatedValue(date: date, value: (tired ? 62 : 56) + noise[daysAgo % noise.count] / 2))
+        }
+        return (hrv, resting)
+    }
+
+    /// 60 jours de pas : environ 5 500 par jour il y a deux mois, 6 500 ces deux dernières
+    /// semaines, quelques jours sans téléphone, aujourd'hui en cours.
     static func steps(now: Date = .now, calendar: Calendar = .current) -> [DailySteps] {
         let today = calendar.startOfDay(for: now)
-        let counts = [5_800, 7_200, 6_100, 8_400, 5_200, 6_900, 7_600, 4_800, 6_300, 7_100, 5_900, 6_700, 8_000, 5_400, 3_200]
-        return counts.enumerated().compactMap { index, steps in
-            calendar.date(byAdding: .day, value: index - (counts.count - 1), to: today).map { DailySteps(day: $0, steps: steps) }
+        let recent = [5_800, 7_200, 6_100, 8_400, 5_200, 6_900, 7_600, 4_800, 6_300, 7_100, 5_900, 6_700, 8_000, 5_400, 3_200]
+        let noise = [600, -900, 300, 1_400, -400, -1_200, 800, 0, -700, 1_100, 200, -300, 2_600, -1_500]
+        var days: [DailySteps] = []
+        for daysAgo in stride(from: 59, through: recent.count, by: -1) {
+            // Un jour sur onze sans téléphone : pas de pas lus.
+            guard daysAgo % 11 != 0, let day = calendar.date(byAdding: .day, value: -daysAgo, to: today) else { continue }
+            let base = 5_500 + (59 - daysAgo) * 15
+            days.append(DailySteps(day: day, steps: base + noise[daysAgo % noise.count]))
         }
+        for (index, steps) in recent.enumerated() {
+            if let day = calendar.date(byAdding: .day, value: index - (recent.count - 1), to: today) {
+                days.append(DailySteps(day: day, steps: steps))
+            }
+        }
+        return days
     }
 
     /// Balance à impédance sur 4 semaines : le gras baisse d'environ un point, la masse maigre monte un peu.

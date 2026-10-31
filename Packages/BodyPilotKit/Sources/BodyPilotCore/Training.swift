@@ -242,8 +242,14 @@ public struct DayConstraints: Sendable, Equatable {
         self.medicalCaution = medicalCaution
     }
 
+    /// VFC basse et pouls au repos haut sur 7 jours (`RecoveryStatus.isLow`) : pas de cardio dur,
+    /// la force reste proposée.
+    public var lowRecovery: Bool = false
+
     /// Pas d'effort maximal aujourd'hui : fatigue ou avis médical en attente.
     public var avoidsMaximalEffort: Bool { lowEnergy || medicalCaution }
+    /// Pas de fractionné ni de test de cardio : effort maximal évité, ou récupération basse.
+    public var avoidsHardCardio: Bool { avoidsMaximalEffort || lowRecovery }
 }
 
 /// D'où vient une mesure de forme cardio.

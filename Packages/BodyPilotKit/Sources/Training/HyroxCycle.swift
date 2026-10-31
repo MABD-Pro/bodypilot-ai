@@ -168,7 +168,7 @@ public enum HyroxCycle {
     /// (ni fatigue, ni courbatures, ni nuit courte), puis les fondamentaux, puis la course facile.
     static func session(for week: CycleWeek, constraints: DayConstraints) -> Session {
         let done = constraints.cycleWorkoutsThisWeek
-        let fresh = !constraints.avoidsMaximalEffort && !constraints.sore && (constraints.sleepHours ?? 8) >= 6
+        let fresh = !constraints.avoidsHardCardio && !constraints.sore && (constraints.sleepHours ?? 8) >= 6
         let hardDone = done.contains { $0 == qualityTitle || $0 == benchmarkTitle }
         if fresh, !hardDone {
             return benchmarkWeeks.contains(week.number) ? .benchmark : .quality

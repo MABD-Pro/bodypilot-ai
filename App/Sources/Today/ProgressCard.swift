@@ -42,6 +42,8 @@ struct ProgressCard: View {
     /// Sommeil de la nuit passée, lu dans Santé.
     var sleepHours: Double?
     var steps: StepsToday?
+    /// Pas par jour lus dans Santé : moyenne sur 7 jours et petites barres de la semaine.
+    var stepDays: [DailySteps] = []
     /// Phase choisie par le coach : perte de gras, équilibre ou légère prise.
     var phase: BodyPhase = .fatLoss
     /// 12 semaines de déficit : une semaine à l'équilibre est proposée.
@@ -126,6 +128,11 @@ struct ProgressCard: View {
 
             cardioRow
 
+            if let steps {
+                stepsRow(steps)
+                    .id("steps")
+            }
+
             if trend.points.count >= 2 {
                 chart
                     .frame(height: 150)
@@ -158,7 +165,7 @@ struct ProgressCard: View {
             }
 
             Button { showHistory(.section(.measures)) } label: {
-                Label("Historique : mesures, force, séances, repas", systemImage: "clock.arrow.circlepath")
+                Label("Historique : mesures, force, séances, repas, pas", systemImage: "clock.arrow.circlepath")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(Theme.Spacing.m)
@@ -411,6 +418,60 @@ struct ProgressCard: View {
         .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
     }
 
+    /// Pas : le jour sur l'objectif, la moyenne de la semaine et son évolution ; l'historique au toucher.
+    private func stepsRow(_ steps: StepsToday) -> some View {
+        let calendar = Calendar.current
+        let now = Date.now
+        let summary = StepHistory.summary(stepDays, age: profile.age(on: now, calendar: calendar), on: now, calendar: calendar)
+        let week = StepHistory.lastDays(stepDays, count: 7, through: now, calendar: calendar)
+        return Button { showHistory(.section(.steps)) } label: {
+            HStack(spacing: Theme.Spacing.m) {
+                IconBadge(symbol: steps.today >= steps.goal ? "checkmark.circle.fill" : "shoeprints.fill", tint: Theme.progress, size: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(steps.today >= steps.goal
+                         ? "\(Double(steps.today).frenchInteger) pas, objectif atteint"
+                         : "\(Double(steps.today).frenchInteger) pas sur \(Double(steps.goal).frenchInteger)")
+                        .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
+                    if let line = Self.stepsAverageLine(summary) {
+                        Text(line)
+                            .font(.footnote)
+                            .foregroundStyle((summary.weeklyChange ?? 0) > 0 ? Theme.progress : .secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: Theme.Spacing.s)
+                if week.count >= 2 {
+                    Chart(week, id: \.day) { day in
+                        BarMark(x: .value("Jour", day.day, unit: .day), y: .value("Pas", day.steps))
+                            .foregroundStyle(day.steps >= steps.goal ? Theme.progress : Theme.progress.opacity(0.4))
+                            .cornerRadius(1.5)
+                    }
+                    .chartXAxis(.hidden)
+                    .chartYAxis(.hidden)
+                    .frame(width: 64, height: 32)
+                    .accessibilityHidden(true)
+                }
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(Theme.Spacing.m)
+            .background(Color.primary.opacity(0.04), in: .rect(cornerRadius: Theme.Radius.inner))
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Voir l'historique des pas")
+    }
+
+    /// « Moyenne 6 500 sur 7 jours, +600 en une semaine »
+    static func stepsAverageLine(_ summary: StepSummary) -> String? {
+        guard let average7 = summary.average7 else { return nil }
+        let average = "Moyenne \(StepActivity.displayed(average7).frenchInteger) sur 7 jours"
+        guard let change = summary.weeklyChange, abs(change) >= 100 else { return average }
+        return "\(average), \(change > 0 ? "+" : "")\(StepActivity.displayed(change).frenchInteger) en une semaine"
+    }
+
     static func hours(_ value: Double) -> String {
         let total = Int((value * 60).rounded())
         return total % 60 == 0 ? "\(total / 60) h" : "\(total / 60) h \(String(format: "%02d", total % 60))"
@@ -448,12 +509,9 @@ struct ProgressCard: View {
                 Button("Ne plus relier à Santé", systemImage: "heart.slash", role: .destructive, action: disconnectHealth)
             } label: {
                 VStack(alignment: .leading, spacing: 2) {
-                    Label("Relié à Santé : pesées, séances, sommeil, forme cardio et repas", systemImage: "heart.fill")
+                    Label("Relié à Santé : pesées, pas, séances, sommeil, forme cardio et repas", systemImage: "heart.fill")
                     if let sleepHours {
                         Label("Nuit dernière : \(Self.hours(sleepHours))", systemImage: "bed.double.fill")
-                    }
-                    if let steps {
-                        Label(Self.stepsLine(steps), systemImage: steps.today >= steps.goal ? "checkmark.circle.fill" : "shoeprints.fill")
                     }
                 }
                 .font(.footnote.weight(.medium))
@@ -461,16 +519,6 @@ struct ProgressCard: View {
                 .multilineTextAlignment(.leading)
             }
         }
-    }
-
-    /// « 4 200 pas sur 7 500 aujourd'hui (moyenne 6 500) »
-    static func stepsLine(_ steps: StepsToday) -> String {
-        let done = Double(steps.today).frenchInteger
-        let goal = Double(steps.goal).frenchInteger
-        let average = steps.average.map { " (moyenne \(StepActivity.displayed($0).frenchInteger))" } ?? ""
-        return steps.today >= steps.goal
-            ? "\(done) pas aujourd'hui, objectif de \(goal) atteint\(average)"
-            : "\(done) pas sur \(goal) aujourd'hui\(average)"
     }
 
     /// Un repère par semaine, sans le coller au bord droit où il serait tronqué.

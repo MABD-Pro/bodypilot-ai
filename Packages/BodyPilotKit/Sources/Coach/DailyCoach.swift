@@ -60,6 +60,7 @@ public struct DailyCoach: Sendable {
         calibratedLifts: Set<String>? = nil,
         sleepHours: Double? = nil,
         averageSleepHours: Double? = nil,
+        lowRecovery: Bool = false,
         activeDays: Set<Date> = [],
         recentActivities: [ActivitySample] = [],
         trainingChoice: TrainingChoice? = nil,
@@ -107,6 +108,7 @@ public struct DailyCoach: Sendable {
             cyclePlan: cycle.flatMap { cycle in cycleSessionsPerWeek.map { CycleSessionPlan(sessions: $0, program: cycle.program) } }
         )
         constraints.averageSleepHours = averageSleepHours
+        constraints.lowRecovery = lowRecovery
         // Semaine plancher : des séances de 20 min, sauf temps déclaré le matin.
         let floorWeek = constraints.availableMinutes == nil && profile.isOnFloorWeek(on: date)
         if floorWeek { constraints.availableMinutes = FloorWeek.sessionMinutes }

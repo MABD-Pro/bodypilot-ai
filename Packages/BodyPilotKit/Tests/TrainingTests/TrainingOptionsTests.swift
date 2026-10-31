@@ -84,3 +84,21 @@ private func daysBefore(_ count: Int) -> Set<Date> {
     #expect(result.recommended == .light)
     #expect(result.reason.contains("ratée"))
 }
+
+@Test func lowRecoveryKeepsStrengthAndSaysWhy() {
+    var constraints = DayConstraints()
+    constraints.lowRecovery = true
+    let result = options(constraints)
+    #expect(result.recommended == .strength)
+    #expect(result.reason.contains("VFC plus basse"))
+}
+
+@Test func lowRecoveryTurnsCardioDayIntoAWalk() {
+    var constraints = DayConstraints(lastStrengthDay: sunday)
+    constraints.lowRecovery = true
+    let result = options(constraints)
+    #expect(result.recommended == .light)
+    #expect(result.reason.contains("marche tranquille"))
+    // Le cardio reste proposé : la personne garde le choix.
+    #expect(result.options.map(\.choice).contains(.conditioning))
+}
