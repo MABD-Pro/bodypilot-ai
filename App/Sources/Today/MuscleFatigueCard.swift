@@ -89,8 +89,6 @@ struct MuscleFatigueCard: View {
         }
     }
 
-    }
-
     /// « quadriceps, fessiers et dos ».
     static func list(_ groups: [MuscleGroup]) -> String {
         let names = groups.map { $0.label.lowercased() }
