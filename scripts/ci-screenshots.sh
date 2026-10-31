@@ -90,6 +90,8 @@ shoot 3e-test-de-force -demoData YES -demoCalibration YES -demoScrollTo training
 shoot 3f-recuperation -demoData YES -demoRecovery YES -demoScrollTo training
 shoot 3g-propositions-nuit-courte -demoData YES -demoSleep 5.5 -demoScrollTo training
 shoot 4-aujourdhui-progression -demoData YES -demoScrollTo progress
+shoot 4q-progresser-pas -demoData YES -demoHealth YES -demoSteps YES -demoScrollTo steps
+shoot 4r-historique-pas -demoData YES -demoHealth YES -demoSteps YES -demoHistory Pas
 shoot 4c-bilan-semaine -demoData YES -demoCheckIn YES -demoScrollTo progress
 shoot 4b-progression-sante -demoData YES -demoHealth YES -demoScrollTo progress
 shoot 4h-bilan-7-jours -demoData YES -demoReview YES -demoActivities YES -demoSteps YES -demoMeals breakfast=asPlanned

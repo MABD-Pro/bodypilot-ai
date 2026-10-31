@@ -310,6 +310,7 @@ struct TodayView: View {
                             cardioZone: cardio.moderateHeartRate,
                             sleepHours: sleepHours,
                             steps: steps(average: averageSteps, now: now),
+                            stepDays: dailySteps,
                             phase: plan.phase,
                             maintenanceOffer: profileRecord.isMaintenanceWeekDue(phase: plan.phase, on: now, calendar: calendar) || (LaunchOptions.demoMaintenanceOffer && profileRecord.maintenanceWeekUntil == nil),
                             acceptMaintenance: { withAnimation(Theme.springy) { profileRecord.startMaintenanceWeek(on: now, calendar: calendar) } },

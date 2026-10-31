@@ -1,16 +1,19 @@
 import BodyPilotCore
 import Foundation
 import HealthKit
+import ProgressInsights
 
 /// Lecture des pas dans Santé (iPhone et Apple Watch, sans doublon : Santé les fusionne) : ils
 /// remplacent le niveau d'activité déclaré et donnent l'objectif de pas du jour.
 enum HealthSteps {
     static var stepType: HKQuantityType { HKQuantityType(.stepCount) }
 
-    /// Pas par jour, des 14 jours précédents jusqu'à aujourd'hui ; vide si la lecture est refusée.
+    /// Pas par jour, des 90 jours précédents jusqu'à aujourd'hui (l'historique des pas ; la moyenne
+    /// du coach ne garde que ses 14 jours) ; vide si la lecture est refusée.
     static func daily(now: Date = .now, calendar: Calendar = .current) async throws -> [DailySteps] {
         let today = calendar.startOfDay(for: now)
-        guard let start = calendar.date(byAdding: .day, value: -StepActivity.windowDays, to: today) else { return [] }
+        let days = max(StepHistory.historyDays, StepActivity.windowDays)
+        guard let start = calendar.date(byAdding: .day, value: -days, to: today) else { return [] }
         let descriptor = HKStatisticsCollectionQueryDescriptor(
             predicate: .quantitySample(type: stepType, predicate: HKQuery.predicateForSamples(withStart: start, end: nil)),
             options: .cumulativeSum,
