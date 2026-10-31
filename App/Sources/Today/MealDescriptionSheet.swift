@@ -443,7 +443,7 @@ extension MealSlot {
 }
 
 /// Appareil photo système, le temps d'une prise de vue.
-private struct CameraPicker: UIViewControllerRepresentable {
+struct CameraPicker: UIViewControllerRepresentable {
     let done: (UIImage?) -> Void
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
