@@ -1,3 +1,4 @@
+import BodyPilotCore
 import Foundation
 
 /// Zone d'une silhouette : plus fine que `MuscleGroup` (le dos devient dorsaux, trapèzes et
