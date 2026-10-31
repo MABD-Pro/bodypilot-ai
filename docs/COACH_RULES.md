@@ -284,3 +284,9 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Lignes : prix retirés, rubriques écartées, lignes des desserts, boissons, vins, sauces et suppléments ignorées ; une ligne en minuscules complète le plat du dessus (description).
 - Chaque plat passe par le lecteur de « Décrire » (portions habituelles). Classement : protéines jusqu'aux repères du repas, pénalité au-delà de 110 % des calories et sous 60 %. Trois plats au plus, le premier recommandé. « Copieux » au-delà de 110 % des calories, « protéines justes » sous 75 % des protéines (choix BodyPilot).
 - « Je commande ça » enregistre le plat comme repas décrit, sous le nom de la carte : la journée se réajuste, les quantités restent corrigeables dans « Décrire » et le repas peut être annulé.
+
+## Produit scanné en rayon (`Nutrition/PackagedFood`, `ProductVerdict`)
+
+- Depuis la liste de courses : scanner (VisionKit, EAN-13, EAN-8, UPC-E) ou saisir le code. Seul le code part vers Open Food Facts ; produit gardé en cache sur l'iPhone.
+- Valeurs pour 100 g (kcal, ou kJ convertis à 4,184), portion de l'emballage et Nutri-Score quand ils sont connus.
+- Avis, d'après les protéines pour 100 kcal (choix BodyPilot) : 10 g ou plus, « Très bon choix pour tes protéines » ; plus de 400 kcal pour 100 g avec moins de 5 g pour 100 kcal, « À garder pour le plaisir » ; 5 g ou plus, « Correct » ; sinon « Peu de protéines ».

@@ -105,6 +105,8 @@ enum LaunchOptions {
     static var demoHyrox: Bool { defaults.bool(forKey: "demoHyrox") }
     /// `-demoMuscles YES` : séance lourde notée hier (jambes et dos durs), carte de fatigue par muscle.
     static var demoMuscles: Bool { defaults.bool(forKey: "demoMuscles") }
+    /// `-demoProduct YES` : avec `-demoGroceries`, la feuille « Scanner un produit » montre un skyr déjà lu.
+    static var demoProduct: Bool { defaults.bool(forKey: "demoProduct") }
     /// `-demoMenu YES` : la feuille « Lire la carte » s'ouvre sur une carte de brasserie déjà lue.
     static var demoMenu: Bool { defaults.bool(forKey: "demoMenu") }
     /// `-demoHunger YES` : faim notée l'après-midi quatre jours sur quatorze, et une petite faim il y a vingt minutes.
@@ -219,6 +221,10 @@ enum DemoData {
         "frites maison et salade verte", "Burger du chef, frites ........ 18,90", "Pâtes carbonara 16 €",
         "Pavé de saumon, riz 22€", "Desserts", "Brownie au chocolat 7 €", "Boissons", "Coca 4,00 €",
     ]
+    static let product = PackagedFood(
+        barcode: "1234567890128", name: "Skyr nature", brand: "Exemple",
+        per100g: Macros(kcal: 63, proteinG: 11, carbsG: 4, fatG: 0.2), servingGrams: 150, nutriScore: "a"
+    )
     static let menuTarget = Macros(kcal: 800, proteinG: 50, carbsG: 80, fatG: 30)
 
     /// Faims de `-demoHunger` : l'après-midi plusieurs jours, une fois le soir.
