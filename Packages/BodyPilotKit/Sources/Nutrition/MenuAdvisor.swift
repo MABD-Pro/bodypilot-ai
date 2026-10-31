@@ -62,8 +62,9 @@ public enum MenuAdvisor {
                 let hasFood = !MealTextParser.parse(line).foods.isEmpty
                 if named, !hasFood || words.count == 1 { skipping = true; continue }
                 if dishPart, words.count == 1 || !hasFood { skipping = false; continue }
-                // Autre titre en capitales sans aliment reconnu (« LA MAISON ») : ignoré.
-                if isHeading(line), !hasFood { continue }
+                // Autre titre en capitales (« LA BRASSERIE ») : ignoré, sauf s'il nomme un plat du catalogue
+                // (la table Ciqual reconnaît trop de mots pour en juger).
+                if isHeading(line), MealTextParser.parseSegment(key).isEmpty { continue }
             }
             guard !skipping, line.count <= 90 else { continue }
             if let first = line.first, first.isLowercase, let last = result.popLast() {

@@ -96,7 +96,8 @@ struct NutritionCard: View {
                         recent: recent(meal.slot),
                         reuse: { reuse(meal.slot, $0) },
                         showHistory: showHistory.map { show in { show(meal.slot) } },
-                        pastDay: pastDay
+                        pastDay: pastDay,
+                        scanMenu: pastDay ? nil : scanMenu.map { scan in { scan(meal.slot, meal.macros) } }
                     )
                 }
             }
@@ -156,6 +157,8 @@ private struct MealRow: View {
     let reuse: (DescribedMeal) -> Void
     var showHistory: (() -> Void)?
     var pastDay = false
+    /// Repas au restaurant : lire la carte en photo.
+    var scanMenu: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
@@ -242,9 +245,7 @@ private struct MealRow: View {
                             .foregroundStyle(.secondary)
                             .padding(.top, 2)
                         if let scanMenu, !meal.isEaten {
-                            Button {
-                                scanMenu(meal.slot, meal.macros)
-                            } label: {
+                            Button(action: scanMenu) {
                                 Label("Lire la carte en photo", systemImage: "text.viewfinder")
                                     .font(.subheadline.weight(.semibold))
                                     .frame(maxWidth: .infinity, minHeight: 36)
