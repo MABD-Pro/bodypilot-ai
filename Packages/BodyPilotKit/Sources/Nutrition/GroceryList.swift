@@ -131,6 +131,8 @@ enum GroceryProducts {
         Foods.tomato.name: GroceryProduct(.produce),
         Foods.feta.name: GroceryProduct(.dairy),
         Foods.oliveOil.name: GroceryProduct(.pantry, detail: "souvent déjà au placard", density: 0.92),
+        Foods.soyYogurt.name: GroceryProduct(.dairy),
+        Foods.pumpkinSeeds.name: GroceryProduct(.pantry),
     ]
 
     /// Noms d'achat : « Riz basmati » plutôt que « Riz basmati cuit ».

@@ -31,6 +31,7 @@ struct TodayView: View {
     @State private var describing: MealToDescribe?
     @State private var isAddingWeight = false
     @State private var isEditingProfile = false
+    @State private var isEditingFoodPreferences = false
     @State private var isManagingData = false
     @State private var isEditingPrivacy = false
     @State private var isShowingGuides = LaunchOptions.demoGuides
@@ -112,6 +113,7 @@ struct TodayView: View {
             exerciseSwaps: todayLog?.exerciseSwaps ?? [:],
             mealIntakes: todayLog?.mealIntakes ?? [:],
             describedMeals: todayLog?.describedMeals ?? [:],
+            habitMeals: HabitMeals.usual(history: DayLogEditor.mealHistory(dayLogs, days: HabitMeals.windowDays, now: now, calendar: calendar), today: now, calendar: calendar),
             lastWorkoutTitle: lastStrength.title,
             lastStrengthDay: lastStrength.day,
             calibratedLifts: DayLogEditor.calibratedLifts(lifts, before: now, since: profileRecord.strengthTestResetAt, lastStrengthDay: lastStrength.day, calendar: calendar),
@@ -350,6 +352,7 @@ struct TodayView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu("Mon profil", systemImage: "person.crop.circle") {
                         Button("Mon profil", systemImage: "person") { isEditingProfile = true }
+                        Button("Mes préférences alimentaires", systemImage: "fork.knife") { isEditingFoodPreferences = true }
                         Button("Mes données", systemImage: "externaldrive") { isManagingData = true }
                         Button("Conseils et sources", systemImage: "books.vertical") { isShowingGuides = true }
                         Button("Confidentialité", systemImage: "hand.raised") { isEditingPrivacy = true }
@@ -425,7 +428,10 @@ struct TodayView: View {
                 WeightEntrySheet(initialKg: weights.last?.kg ?? profileRecord.startWeightKg)
             }
             .sheet(item: $describing) { item in
-                MealDescriptionSheet(slot: item.slot, initial: item.current) { meal in
+                MealDescriptionSheet(
+                    slot: item.slot, initial: item.current,
+                    usualPortions: UsualPortions.learn(history: DayLogEditor.mealHistory(dayLogs, days: UsualPortions.windowDays, now: .now, calendar: calendar), today: .now, calendar: calendar)
+                ) { meal in
                     saveDescribed(meal, for: item.slot)
                 }
             }
@@ -454,6 +460,9 @@ struct TodayView: View {
             }
             .sheet(isPresented: $isManagingData) {
                 DataBackupSheet()
+            }
+            .sheet(isPresented: $isEditingFoodPreferences) {
+                FoodPreferencesSheet(profileRecord: profileRecord)
             }
             .sheet(isPresented: $isEditingProfile) {
                 OnboardingView(editing: profileRecord, currentWeightKg: weights.last?.kg)
@@ -768,10 +777,7 @@ struct TodayView: View {
     }
 
     private func recentMealHistory(now: Date) -> [(day: Date, meals: [MealSlot: DescribedMeal])] {
-        guard let since = calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: now)) else { return [] }
-        return dayLogs
-            .filter { $0.day >= since && $0.describedMealsData != nil }
-            .map { (day: $0.day, meals: $0.describedMeals) }
+        DayLogEditor.mealHistory(dayLogs, days: 7, now: now, calendar: calendar)
     }
 
     /// Repas décrit en texte : il remplace la saisie d'une touche pour ce repas.

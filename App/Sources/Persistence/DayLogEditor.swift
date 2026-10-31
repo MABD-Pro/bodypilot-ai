@@ -1,6 +1,7 @@
 import BodyPilotCore
 import Coach
 import Foundation
+import Nutrition
 import ProgressInsights
 import SwiftData
 import Training
@@ -36,6 +37,20 @@ enum DayLogEditor {
         }
     }
 
+    /// Repas décrits des `days` derniers jours, pour les habitudes et les portions habituelles.
+    static func mealHistory(_ logs: [DayLogRecord], days: Int, now: Date, calendar: Calendar = .current) -> [(day: Date, meals: [MealSlot: DescribedMeal])] {
+        guard let since = calendar.date(byAdding: .day, value: -days, to: calendar.startOfDay(for: now)) else { return [] }
+        return logs
+            .filter { $0.day >= since && $0.describedMealsData != nil }
+            .map { (day: $0.day, meals: $0.describedMeals) }
+    }
+
+    static func mealHistory(in context: ModelContext, days: Int, now: Date, calendar: Calendar = .current) -> [(day: Date, meals: [MealSlot: DescribedMeal])] {
+        guard let since = calendar.date(byAdding: .day, value: -days, to: calendar.startOfDay(for: now)) else { return [] }
+        let logs = (try? context.fetch(FetchDescriptor<DayLogRecord>(predicate: #Predicate { $0.day >= since }))) ?? []
+        return mealHistory(logs, days: days, now: now, calendar: calendar)
+    }
+
     /// Plan du jour calculé depuis la base, hors de toute vue (Siri, Raccourcis).
     static func todayPlan(in context: ModelContext, calendar: Calendar = .current, now: Date = .now) -> TodayPlan? {
         let profiles = (try? context.fetch(FetchDescriptor<ProfileRecord>(sortBy: [SortDescriptor(\.createdAt)]))) ?? []
@@ -59,6 +74,7 @@ enum DayLogEditor {
             exerciseSwaps: today?.exerciseSwaps ?? [:],
             mealIntakes: today?.mealIntakes ?? [:],
             describedMeals: today?.describedMeals ?? [:],
+            habitMeals: HabitMeals.usual(history: mealHistory(in: context, days: HabitMeals.windowDays, now: now, calendar: calendar), today: now, calendar: calendar),
             lastWorkoutTitle: last.title,
             lastStrengthDay: last.day,
             calibratedLifts: calibratedLifts(lifts.map(\.entry), before: now, since: profile.strengthTestResetAt, lastStrengthDay: last.day, calendar: calendar),

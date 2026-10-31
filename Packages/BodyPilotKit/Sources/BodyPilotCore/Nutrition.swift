@@ -188,6 +188,8 @@ public struct PlannedMeal: Sendable, Equatable {
     public var intake: MealIntake?
     /// Décrit par l'utilisateur : les aliments et les macros sont ceux qu'il a vraiment mangés.
     public var described: DescribedMeal?
+    /// Assemblé depuis un repas que l'utilisateur mange souvent, plutôt que tiré des modèles.
+    public var isHabit: Bool = false
 
     public init(slot: MealSlot, title: String, items: [MealItem], macros: Macros, isEatingOut: Bool = false, intake: MealIntake? = nil, described: DescribedMeal? = nil) {
         self.slot = slot
@@ -218,6 +220,26 @@ public struct DayMealPlan: Sendable, Equatable {
     public var eatenTotals: Macros { meals.filter(\.isEaten).reduce(.zero) { $0 + $1.macros } }
 }
 
+/// Aliments que l'utilisateur ne veut pas voir dans les repas proposés : goût, régime ou intolérance.
+/// Ses propres repas (décrits, ou ses habitudes) ne sont jamais filtrés.
+public enum FoodAversion: String, CaseIterable, Sendable, Codable {
+    case meat
+    case fish
+    case eggs
+    case dairy
+    case nuts
+
+    public var label: String {
+        switch self {
+        case .meat: "Viande"
+        case .fish: "Poisson"
+        case .eggs: "Œufs"
+        case .dairy: "Produits laitiers"
+        case .nuts: "Fruits à coque"
+        }
+    }
+}
+
 /// Contraintes alimentaires du jour déclarées par l'utilisateur.
 public struct MealConstraints: Sendable, Equatable {
     /// Repas pris au restaurant, s'il y en a un.
@@ -227,12 +249,16 @@ public struct MealConstraints: Sendable, Equatable {
     public var eaten: [MealSlot: MealIntake]
     /// Repas décrits en texte : ils priment sur la saisie d'une touche.
     public var described: [MealSlot: DescribedMeal]
+    /// Repas que l'utilisateur mange souvent à ce moment de la journée (`HabitMeals`) : proposés
+    /// à la place des modèles, portions ajustées au jour.
+    public var habits: [MealSlot: DescribedMeal]
 
-    public init(eatingOut: MealSlot? = nil, lowAppetite: Bool = false, eaten: [MealSlot: MealIntake] = [:], described: [MealSlot: DescribedMeal] = [:]) {
+    public init(eatingOut: MealSlot? = nil, lowAppetite: Bool = false, eaten: [MealSlot: MealIntake] = [:], described: [MealSlot: DescribedMeal] = [:], habits: [MealSlot: DescribedMeal] = [:]) {
         self.eatingOut = eatingOut
         self.lowAppetite = lowAppetite
         self.eaten = eaten
         self.described = described
+        self.habits = habits
     }
 }
 

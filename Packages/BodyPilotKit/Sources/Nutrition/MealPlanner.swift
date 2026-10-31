@@ -95,7 +95,7 @@ public struct MealPlanner: NutritionPlanning {
 
         // Les protéines ne suivent pas « Pas faim » : elles comptent le plus pour le muscle.
         let baseProtein = proteinShares.mapValues { targets.macros.proteinG * $0 }
-        return plannedMeals(day: dayIndex(of: date), baseKcal: baseKcal, baseProtein: baseProtein, shownKcal: shownKcal, fixed: counted, scale: remainingScale, constraints: constraints, notes: notes)
+        return plannedMeals(day: dayIndex(of: date), baseKcal: baseKcal, baseProtein: baseProtein, shownKcal: shownKcal, fixed: counted, scale: remainingScale, constraints: constraints, avoided: profile.avoidedFoods ?? [], notes: notes)
     }
 
     private func plannedMeals(
@@ -106,6 +106,7 @@ public struct MealPlanner: NutritionPlanning {
         fixed: Set<MealSlot>,
         scale remainingScale: Double,
         constraints: MealConstraints,
+        avoided: Set<FoodAversion>,
         notes: [String]
     ) -> DayMealPlan {
         let meals = MealSlot.allCases.compactMap { slot -> PlannedMeal? in
@@ -127,14 +128,10 @@ public struct MealPlanner: NutritionPlanning {
             var meal: PlannedMeal
             if slot == constraints.eatingOut {
                 meal = restaurantMeal(slot: slot, kcal: kcal, proteinG: protein)
+            } else if let habit = constraints.habits[slot], let fromHabit = habitMeal(habit, slot: slot, targetKcal: kcal, targetProteinG: protein) {
+                meal = fromHabit
             } else {
-                let options = MealTemplates.all.filter { $0.slot == slot }
-                var template = options[day % options.count]
-                if constraints.lowAppetite, slot == .snack {
-                    // Collation dense et facile à avaler.
-                    template = MealTemplates.snacks[1]
-                }
-                meal = portioned(template, targetKcal: kcal, targetProteinG: protein)
+                meal = portioned(template(for: slot, day: day, lowAppetite: constraints.lowAppetite, avoiding: avoided), targetKcal: kcal, targetProteinG: protein)
             }
             if let intake {
                 meal.macros = meal.macros.scaled(by: intake.factor)
@@ -143,6 +140,32 @@ public struct MealPlanner: NutritionPlanning {
             return meal
         }
         return DayMealPlan(meals: meals, notes: notes)
+    }
+
+    /// Modèle du jour pour ce repas, parmi ceux qui évitent les aliments écartés. Si aucun ne les
+    /// évite, le modèle du jour avec ses aliments remplacés.
+    func template(for slot: MealSlot, day: Int, lowAppetite: Bool, avoiding avoided: Set<FoodAversion>) -> MealTemplate {
+        let options = MealTemplates.all.filter { $0.slot == slot }
+        // Pas faim : collation dense et facile à avaler.
+        if lowAppetite, slot == .snack, !MealTemplates.snacks[1].contains(any: avoided) { return MealTemplates.snacks[1] }
+        let fitting = options.filter { !$0.contains(any: avoided) }
+        if !fitting.isEmpty { return fitting[day % fitting.count] }
+        return options[day % options.count].avoiding(avoided)
+    }
+
+    /// Une habitude ne remplace le modèle que si elle reste dans l'ordre de grandeur du repas :
+    /// un café seul au petit-déjeuner ne deviendra pas un repas de 600 kcal.
+    static let habitKcalRange = 0.6...1.6
+
+    /// Repas habituel, portions ajustées aux calories et aux protéines du jour comme un modèle.
+    func habitMeal(_ habit: DescribedMeal, slot: MealSlot, targetKcal: Double, targetProteinG: Double) -> PlannedMeal? {
+        let kcal = habit.macros.kcal
+        guard kcal > 0, Self.habitKcalRange.contains(targetKcal / kcal) else { return nil }
+        let ingredients = habit.foods.compactMap { food in Food(described: food).map { Ingredient($0, food.grams) } }
+        guard ingredients.count == habit.foods.count else { return nil }
+        var meal = portioned(MealTemplate(slot: slot, title: habit.title, ingredients: ingredients), targetKcal: targetKcal, targetProteinG: targetProteinG)
+        meal.isHabit = true
+        return meal
     }
 
     /// Les repas restants bougent dans des limites raisonnables : on ne saute pas un repas

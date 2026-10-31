@@ -54,6 +54,7 @@ public struct DailyCoach: Sendable {
         exerciseSwaps: [String: Int] = [:],
         mealIntakes: [MealSlot: MealIntake] = [:],
         describedMeals: [MealSlot: DescribedMeal] = [:],
+        habitMeals: [MealSlot: DescribedMeal] = [:],
         lastWorkoutTitle: String? = nil,
         lastStrengthDay: Date? = nil,
         calibratedLifts: Set<String>? = nil,
@@ -87,7 +88,7 @@ public struct DailyCoach: Sendable {
             for: targets,
             profile: profile,
             on: date,
-            constraints: MealConstraints(today: adjustments, at: date, calendar: calendar, eatingOutSlot: eatingOutSlot, eaten: mealIntakes, described: describedMeals)
+            constraints: MealConstraints(today: adjustments, at: date, calendar: calendar, eatingOutSlot: eatingOutSlot, eaten: mealIntakes, described: describedMeals, habits: habitMeals)
         )
         var constraints = DayConstraints(
             today: adjustments,
