@@ -78,6 +78,7 @@ shoot 2f-liste-de-courses -demoData YES -demoGroceries YES
 shoot 2g-marques-conseillees -demoData YES -demoGroceries YES -demoBrands "Skyr nature"
 shoot 2h-faim -demoData YES -demoHunger YES -demoScrollTo nutrition
 shoot 3z-fatigue-muscles -demoData YES -demoMuscles YES -demoScrollTo muscles
+shoot 3m-fiche-muscles -demoData YES -demoLifts YES -demoTechnique YES -demoScrollTo training
 shoot 3i-isolation -demoData YES -demoScrollTo training
 shoot 3k-senior -demoData YES -demoLifts YES -demoAge 68 -demoScrollTo training
 shoot 3j-sommeil-moyen -demoData YES -demoSleepAverage 6.25 -demoScrollTo training

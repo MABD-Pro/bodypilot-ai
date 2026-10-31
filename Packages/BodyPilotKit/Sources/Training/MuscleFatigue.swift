@@ -26,7 +26,7 @@ public enum MuscleGroup: String, CaseIterable, Sendable, Codable {
         let keys: [(String, MuscleGroup)] = [
             ("quadriceps", .quadriceps), ("ischio", .hamstrings), ("fessier", .glutes), ("hanche", .glutes),
             ("pectora", .chest), ("dorsal", .back), ("dos", .back), ("trapèze", .back), ("lombaire", .back),
-            ("épaule", .shoulders), ("biceps", .arms), ("triceps", .arms), ("bras", .arms),
+            ("épaule", .shoulders), ("biceps", .arms), ("triceps", .arms), ("bras", .arms), ("avant-bras", .arms),
             ("gainage", .core), ("mollet", .calves),
         ]
         return keys.filter { word.contains($0.0) }.map(\.1).reduce(into: []) { if !$0.contains($1) { $0.append($1) } }

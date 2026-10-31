@@ -8,18 +8,22 @@ struct MuscleFatigueCard: View {
     /// Muscles principaux de la séance du jour encore fatigués.
     let fatiguedTargets: [MuscleGroup]
 
-    private let columns = [GridItem(.flexible(), spacing: Theme.Spacing.s), GridItem(.flexible(), spacing: Theme.Spacing.s), GridItem(.flexible(), spacing: Theme.Spacing.s)]
-
     var body: some View {
         CoachCard(eyebrow: "Tes muscles", symbol: "figure.strengthtraining.traditional", tint: Theme.training) {
             Text(summary)
                 .font(.subheadline.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
-            LazyVGrid(columns: columns, spacing: Theme.Spacing.s) {
-                ForEach(MuscleGroup.allCases, id: \.self) { group in
-                    tile(group)
+            HStack(alignment: .center, spacing: Theme.Spacing.l) {
+                BodyMapPair(color: { Self.fill(map.state($0.group)) }, height: 150)
+                VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                    ForEach(MuscleState.allCases.reversed(), id: \.self) { state in
+                        legend(state)
+                    }
                 }
+                Spacer(minLength: 0)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityText)
             if !fatiguedTargets.isEmpty {
                 CoachNote(text: targetsNote, tint: Self.color(.fatigued))
             }
@@ -41,27 +45,31 @@ struct MuscleFatigueCard: View {
         "Ta séance du jour sollicite encore : \(Self.list(fatiguedTargets)). Garde 2 à 3 répétitions en réserve ou remplace l'exercice."
     }
 
-    private func tile(_ group: MuscleGroup) -> some View {
-        let state = map.state(group)
-        return VStack(alignment: .leading, spacing: 6) {
-            Text(group.label)
-                .font(.footnote.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            HStack(spacing: 3) {
-                ForEach(MuscleState.allCases, id: \.self) { level in
-                    Capsule()
-                        .fill(level <= state ? Self.color(state) : Color.primary.opacity(0.1))
-                        .frame(height: 4)
-                }
+    private func legend(_ state: MuscleState) -> some View {
+        let groups = map.groups(state)
+        return HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
+            Circle()
+                .fill(Self.fill(state) ?? Color.primary.opacity(0.10))
+                .frame(width: 9, height: 9)
+                .offset(y: -1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(state.label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(groups.isEmpty ? "—" : Self.list(groups))
+                    .font(.footnote)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.horizontal, Theme.Spacing.s)
-        .padding(.vertical, Theme.Spacing.s)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Self.color(state).opacity(state == .fresh ? 0.06 : 0.16), in: .rect(cornerRadius: 12))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(group.label) : \(Self.stateLabel(state))")
+    }
+
+    private var accessibilityText: String {
+        MuscleState.allCases.reversed().map { "\($0.label) : \(Self.list(map.groups($0)))" }.joined(separator: ". ")
+    }
+
+    /// Couleur sur la silhouette ; les muscles frais gardent la teinte du corps.
+    static func fill(_ state: MuscleState) -> Color? {
+        state == .fresh ? nil : color(state)
     }
 
     static func color(_ state: MuscleState) -> Color {
