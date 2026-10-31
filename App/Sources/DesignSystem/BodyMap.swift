@@ -155,8 +155,8 @@ enum BodyMapGeometry {
         case .lats: mirrored([capsule(CGPoint(x: 36, y: 50), CGPoint(x: 42, y: 80), width: 10)])
         case .lowerBack: [Path(roundedRect: CGRect(x: 43, y: 78, width: 14, height: 17), cornerRadius: 5)]
         case .glutes: mirrored([ellipse(43, 105, 8.5, 8)])
-        case .quadriceps: mirrored([capsule(CGPoint(x: 40, y: 114), CGPoint(x: 38.5, y: 148), width: 11)])
-        case .adductors: mirrored([capsule(CGPoint(x: 47, y: 110), CGPoint(x: 46, y: 134), width: 4.5)])
+        case .quadriceps: mirrored([capsule(CGPoint(x: 39.5, y: 114), CGPoint(x: 38, y: 148), width: 10.5)])
+        case .adductors: mirrored([capsule(CGPoint(x: 46, y: 110), CGPoint(x: 44.5, y: 134), width: 4)])
         case .hamstrings: mirrored([capsule(CGPoint(x: 41, y: 116), CGPoint(x: 39.5, y: 150), width: 11)])
         case .calves: mirrored([capsule(CGPoint(x: 39.5, y: 158), CGPoint(x: 38.5, y: 186), width: 8.5)])
         }
