@@ -33,7 +33,7 @@ struct MuscleFatigueCard: View {
     private var summary: String {
         let fatigued = map.groups(.fatigued)
         let recovering = map.groups(.recovering)
-        if !fatigued.isEmpty { return "Encore fatigués : \(Self.list(fatigued)). Laisse-les souffler." }
+        if !fatigued.isEmpty { return "Encore fatigués : \(Self.list(fatigued)). Laisse‑les souffler." }
         return "En récupération : \(Self.list(recovering)). Le reste est frais."
     }
 

@@ -96,7 +96,7 @@ struct TodayView: View {
         let todayAdjustments = todayLog?.adjustments ?? []
         let doneLogs = dayLogs.filter(\.workoutDone)
         let completed = doneLogs.map { (day: $0.day, title: $0.doneWorkoutTitle) }
-        let lastStrength = DayLogEditor.lastStrength(before: now, completed: completed, samples: healthActivities, calendar: calendar)
+        let lastStrength = DayLogEditor.lastStrength(before: now, completed: completed, samples: healthActivities, lifts: liftRecords.map(\.entry), calendar: calendar)
         let activeDays = DayLogEditor.activeDays(before: now, completed: completed, samples: healthActivities, calendar: calendar)
         let cycleSessions = profileRecord.cycleSessions(
             on: now, recentAverage: CycleSessionPlan.recentAverage(doneDays: Array(activeDays), before: now, calendar: calendar), calendar: calendar
