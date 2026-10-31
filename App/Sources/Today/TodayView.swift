@@ -63,6 +63,11 @@ struct TodayView: View {
     @State private var compositions: [BodyCompositionEntry] = []
     /// Pas par jour lus dans Santé (14 jours et aujourd'hui).
     @State private var dailySteps: [DailySteps] = []
+    /// Événements du jour lus dans le calendrier, si l'utilisateur l'a permis.
+    @State private var agendaEvents: [AgendaEvent] = LaunchOptions.demoAgenda.map { DemoData.agenda($0) } ?? []
+    @State private var agendaEnabled = AgendaStore.isEnabled || LaunchOptions.demoAgenda != nil
+    /// « Pas aujourd'hui » ou « Non merci » touché : la carte se redessine.
+    @State private var agendaRevision = 0
 
     private let calendar = Calendar.current
 
@@ -189,54 +194,12 @@ struct TodayView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                         header(plan: plan, date: now)
-                        if LaunchOptions.demoEatingCare != nil ? eatingCareRevision == 0 : EatingCareStore.shows(eatingCare, on: now, calendar: calendar) {
-                            EatingCareCard(
-                                signals: eatingCare,
-                                pause: {
-                                    withAnimation(Theme.springy) {
-                                        if LaunchOptions.demoEatingCare == nil { EatingCareStore.startPause(on: now, calendar: calendar) }
-                                        eatingCareRevision += 1
-                                    }
-                                },
-                                showHelp: { isShowingEatingCareHelp = true },
-                                dismiss: {
-                                    withAnimation(Theme.springy) {
-                                        if LaunchOptions.demoEatingCare == nil { EatingCareStore.snoozedAt = now }
-                                        eatingCareRevision += 1
-                                    }
-                                }
-                            )
-                        }
-                        if let comeback {
-                            ComebackCard(comeback: comeback, startFloorWeek: startFloorWeek, dismiss: {
-                                withAnimation(Theme.springy) { profileRecord.comebackDismissedAt = .now }
-                                try? context.save()
-                            })
-                        }
-                        if let floorWeek {
-                            FloorWeekCard(progress: floorWeek, stop: {
-                                withAnimation(Theme.springy) { profileRecord.floorWeekUntil = calendar.startOfDay(for: .now) }
-                                try? context.save()
-                            })
-                        }
-                        if let debriefDay = eveningDebriefDay(now: now) {
-                            EveningDebriefCard(
-                                pendingSlots: pendingMealSlots(in: log(on: debriefDay)),
-                                isAfterMidnight: !calendar.isDate(debriefDay, inSameDayAs: now),
-                                initialText: LaunchOptions.demoDebrief.flatMap { $0 == "YES" ? nil : $0 },
-                                save: { saveDebrief($0, for: debriefDay) },
-                                dismiss: {
-                                    withAnimation(Theme.springy) {
-                                        eveningDebriefDone = Self.dayKey(debriefDay, calendar: calendar)
-                                        eveningDebriefHandled = true
-                                    }
-                                }
-                            )
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
+                        coachAlerts(now: now, eatingCare: eatingCare, comeback: comeback, floorWeek: floorWeek)
+                        eveningDebrief(now: now)
                         if !profileRecord.screening.isAnswered {
                             screeningBanner
                         }
+                        agendaSection(now: now, active: todayAdjustments)
                         CommandField(apply: apply)
                         AdjustmentBar(active: todayAdjustments, toggle: toggle)
                         NutritionCard(targets: plan.targets, meals: plan.meals, logIntake: logIntake, describe: { slot in
@@ -365,6 +328,7 @@ struct TodayView: View {
                     Menu("Mon profil", systemImage: "person.crop.circle") {
                         Button("Mon profil", systemImage: "person") { isEditingProfile = true }
                         Button("Mes préférences alimentaires", systemImage: "fork.knife") { isEditingFoodPreferences = true }
+                        agendaMenuButton
                         Button("Mes données", systemImage: "externaldrive") { isManagingData = true }
                         Button("Conseils et sources", systemImage: "books.vertical") { isShowingGuides = true }
                         Button("Confidentialité", systemImage: "hand.raised") { isEditingPrivacy = true }
@@ -750,6 +714,144 @@ struct TodayView: View {
         let created = DayLogRecord(day: calendar.storedDay(for: .now))
         context.insert(created)
         return created
+    }
+
+    /// Débrief du soir, de 18 h à 4 h, tant qu'il n'est ni fait ni écarté.
+    @ViewBuilder
+    private func eveningDebrief(now: Date) -> some View {
+        if let debriefDay = eveningDebriefDay(now: now) {
+            EveningDebriefCard(
+                pendingSlots: pendingMealSlots(in: log(on: debriefDay)),
+                isAfterMidnight: !calendar.isDate(debriefDay, inSameDayAs: now),
+                initialText: LaunchOptions.demoDebrief.flatMap { $0 == "YES" ? nil : $0 },
+                save: { saveDebrief($0, for: debriefDay) },
+                dismiss: {
+                    withAnimation(Theme.springy) {
+                        eveningDebriefDone = Self.dayKey(debriefDay, calendar: calendar)
+                        eveningDebriefHandled = true
+                    }
+                }
+            )
+            .transition(.opacity.combined(with: .move(edge: .top)))
+        }
+    }
+
+    /// Cartes d'alerte en tête : garde-fou alimentaire, retour après une pause, semaine plancher.
+    /// À part du corps de l'écran, que le compilateur vérifie plus vite ainsi.
+    @ViewBuilder
+    private func coachAlerts(now: Date, eatingCare: Set<EatingCareSignal>, comeback: Comeback?, floorWeek: FloorWeekProgress?) -> some View {
+        if LaunchOptions.demoEatingCare != nil ? eatingCareRevision == 0 : EatingCareStore.shows(eatingCare, on: now, calendar: calendar) {
+            EatingCareCard(
+                signals: eatingCare,
+                pause: {
+                    withAnimation(Theme.springy) {
+                        if LaunchOptions.demoEatingCare == nil { EatingCareStore.startPause(on: now, calendar: calendar) }
+                        eatingCareRevision += 1
+                    }
+                },
+                showHelp: { isShowingEatingCareHelp = true },
+                dismiss: {
+                    withAnimation(Theme.springy) {
+                        if LaunchOptions.demoEatingCare == nil { EatingCareStore.snoozedAt = now }
+                        eatingCareRevision += 1
+                    }
+                }
+            )
+        }
+        if let comeback {
+            ComebackCard(comeback: comeback, startFloorWeek: startFloorWeek, dismiss: {
+                withAnimation(Theme.springy) { profileRecord.comebackDismissedAt = .now }
+                try? context.save()
+            })
+        }
+        if let floorWeek {
+            FloorWeekCard(progress: floorWeek, stop: {
+                withAnimation(Theme.springy) { profileRecord.floorWeekUntil = calendar.startOfDay(for: .now) }
+                try? context.save()
+            })
+        }
+    }
+
+    private var agendaMenuButton: some View {
+        Button(agendaEnabled ? "Ne plus lire mon agenda" : "Lire mon agenda", systemImage: agendaEnabled ? "calendar.badge.minus" : "calendar.badge.plus") {
+            setAgenda(!agendaEnabled)
+        }
+    }
+
+    /// Agenda : propositions du jour, ou l'invitation à l'activer (une seule fois).
+    private func agendaSection(now: Date, active todayAdjustments: Set<QuickAdjustment>) -> some View {
+        Group { agendaContent(now: now, active: todayAdjustments) }
+            .task(id: [String(describing: scenePhase), String(agendaEnabled)]) {
+                // À chaque retour dans l'app : les événements du jour, relus sur l'iPhone.
+                guard scenePhase == .active, agendaEnabled, LaunchOptions.demoAgenda == nil else { return }
+                agendaEvents = AgendaReader.today(calendar: calendar)
+            }
+    }
+
+    @ViewBuilder
+    private func agendaContent(now: Date, active todayAdjustments: Set<QuickAdjustment>) -> some View {
+        let _ = agendaRevision
+        if agendaEnabled {
+            // En démo, la journée est vue à 7 h pour que les captures ne dépendent pas de l'heure.
+            let seenAt = LaunchOptions.demoAgenda != nil ? (calendar.date(bySettingHour: 7, minute: 0, second: 0, of: now) ?? now) : now
+            let advice = AgendaAdvisor.advice(events: agendaEvents, now: seenAt, sessionMinutes: profileRecord.profile.sessionMinutes, calendar: calendar)
+            if !advice.isEmpty, !AgendaCard.pending(advice, active: todayAdjustments).isEmpty || advice.freeSlot != nil,
+               !AgendaStore.isDismissed(on: now, calendar: calendar) {
+                AgendaCard(advice: advice, active: todayAdjustments, apply: { applyAgenda($0, advice: advice) }, dismiss: {
+                    withAnimation(Theme.springy) {
+                        AgendaStore.dismiss(on: .now)
+                        agendaRevision += 1
+                    }
+                })
+                .transition(.opacity.combined(with: .move(edge: .top)))
+                .id("agenda")
+            }
+        } else if LaunchOptions.demoData ? LaunchOptions.demoAgendaInvite : !AgendaStore.inviteDismissed {
+            AgendaInviteCard(enable: { setAgenda(true) }, dismiss: {
+                withAnimation(Theme.springy) {
+                    AgendaStore.inviteDismissed = true
+                    agendaRevision += 1
+                }
+            })
+            .transition(.opacity)
+        }
+    }
+
+    /// Activer demande l'accès au calendrier ; refusé, rien ne change.
+    private func setAgenda(_ enabled: Bool) {
+        guard enabled else {
+            withAnimation(Theme.springy) {
+                AgendaStore.isEnabled = false
+                agendaEnabled = false
+                agendaEvents = []
+            }
+            return
+        }
+        Task {
+            let granted = LaunchOptions.demoData ? true : await AgendaReader.requestAccess()
+            withAnimation(Theme.springy) {
+                AgendaStore.inviteDismissed = true
+                AgendaStore.isEnabled = granted
+                agendaEnabled = granted
+                if granted, !LaunchOptions.demoData { agendaEvents = AgendaReader.today(calendar: calendar) }
+                agendaRevision += 1
+            }
+        }
+    }
+
+    /// Une proposition de l'agenda, appliquée comme si l'utilisateur l'avait dite.
+    private func applyAgenda(_ adjustment: QuickAdjustment, advice: AgendaAdvice) {
+        let log = todayLog()
+        withAnimation(Theme.springy) {
+            var current = log.adjustments
+            current.insert(adjustment)
+            switch adjustment {
+            case .shortOnTime: log.availableMinutes = advice.shortOnTimeMinutes
+            case .eatingOut: log.eatingOutSlot = advice.eatingOut?.slot ?? MealConstraints.nextMainMeal(at: .now, calendar: calendar)
+            default: break
+            }
+            log.adjustments = current
+        }
     }
 
     private func toggle(_ adjustment: QuickAdjustment) {

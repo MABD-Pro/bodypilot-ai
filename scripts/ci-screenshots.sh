@@ -106,6 +106,10 @@ shoot 1f-garde-fou -demoData YES -demoEatingCare YES
 # Repas habituel au petit-déjeuner, sans poisson ni laitages.
 shoot 1g-habitudes -demoData YES -demoHabits YES -demoAvoid fish,dairy -demoScrollTo nutrition
 shoot 1h-recuperation -demoData YES -demoLowRecovery YES -demoRecovery YES
+shoot 1i-agenda -demoData YES -demoAgenda YES
+shoot 1j-agenda-deplacement -demoData YES -demoAgenda travel
+shoot 1k-agenda-journee-pleine -demoData YES -demoAgenda full
+shoot 1l-agenda-invitation -demoData YES -demoAgendaInvite YES
 shoot 4k-bilan-jour -demoData YES -demoReview jour -demoActivities YES -demoSteps YES
 shoot 4l-repas-jour-passe -demoData YES -demoHistory Repas -demoPastMeals YES
 shoot 4m-detail-seance -demoData YES -demoActivities YES -demoHealth YES -demoHistory Séances -demoSessionDetail YES
