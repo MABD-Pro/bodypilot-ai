@@ -4,7 +4,7 @@ import ProgressInsights
 /// État du garde-fou alimentaire, sur l'iPhone seulement : pause du déficit, carte écartée,
 /// jours où une phrase a parlé de culpabilité ou de vomissement (jamais le texte).
 enum EatingCareStore {
-    private static let defaults = UserDefaults.standard
+    private static var defaults: UserDefaults { .standard }
     private static let pauseKey = "eatingCarePauseUntil"
     private static let snoozeKey = "eatingCareSnoozedAt"
     private static let distressKey = "eatingCareDistressDays"
