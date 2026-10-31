@@ -242,7 +242,7 @@ struct TodayView: View {
                         if !profileRecord.screening.isAnswered {
                             screeningBanner
                         }
-                        agendaSection(now: now)
+                        agendaSection(now: now, active: todayAdjustments)
                         CommandField(apply: apply)
                         AdjustmentBar(active: todayAdjustments, toggle: toggle)
                         NutritionCard(targets: plan.targets, meals: plan.meals, logIntake: logIntake, describe: { slot in
@@ -770,7 +770,7 @@ struct TodayView: View {
 
     /// Agenda : propositions du jour, ou l'invitation à l'activer (une seule fois).
     @ViewBuilder
-    private func agendaSection(now: Date) -> some View {
+    private func agendaSection(now: Date, active todayAdjustments: Set<QuickAdjustment>) -> some View {
         let _ = agendaRevision
         if agendaEnabled {
             // En démo, la journée est vue à 7 h pour que les captures ne dépendent pas de l'heure.
