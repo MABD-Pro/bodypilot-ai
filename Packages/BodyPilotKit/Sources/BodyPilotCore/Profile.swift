@@ -65,6 +65,8 @@ public struct UserProfile: Sendable, Equatable, Codable {
     public var floorWeekUntil: Date? = nil
     /// Fin de la pause du déficit choisie depuis le garde-fou alimentaire ; `nil` : aucune.
     public var deficitPauseUntil: Date? = nil
+    /// Aliments à éviter dans les repas proposés ; `nil` ou vide : aucun.
+    public var avoidedFoods: Set<FoodAversion>? = nil
     /// Moyenne de pas mesurée dans Santé (14 jours) ; remplace le niveau déclaré pour la vie
     /// quotidienne. `nil` : pas assez de jours mesurés, ou Santé non relié.
     public var averageDailySteps: Double?

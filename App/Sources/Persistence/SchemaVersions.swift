@@ -179,12 +179,57 @@ enum SchemaV6: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(6, 0, 0) }
 
     static var models: [any PersistentModel.Type] {
+        [SchemaV6.ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self, WeekFeelingRecord.self]
+    }
+
+    /// Profil tel qu'il était avant les préférences alimentaires (V6).
+    @Model
+    final class ProfileRecord {
+        var entityID: UUID = UUID()
+        var createdAt: Date = Date.now
+        var sexRaw: String = BiologicalSex.male.rawValue
+        var birthDate: Date = Date.now
+        var heightCm: Double = 175
+        var startWeightKg: Double = 75
+        var targetWeightKg: Double?
+        var activityRaw: String = ActivityLevel.light.rawValue
+        var goalRaw: String = Goal.recomposition.rawValue
+        var trainingDaysPerWeek: Int = 3
+        var trainingWeekdaysRaw: [Int] = []
+        var sessionMinutes: Int = 45
+        var equipmentRaw: String = Equipment.bodyweight.rawValue
+        var calorieAdjustmentKcal: Double = 0
+        var lastCheckInAt: Date?
+        var strengthTestResetAt: Date?
+        var cycleProgramRaw: String?
+        var cycleStartDate: Date?
+        var cycleSessionsPerWeek: Int = 0
+        var cycleSessionsWeekStart: Date?
+        var screeningYesRaw: [String] = []
+        var screeningSituationsRaw: [String] = []
+        var screeningAnsweredAt: Date?
+        var medicalClearance: Bool = false
+        var maintenanceWeekUntil: Date?
+        var maintenanceOfferDismissedAt: Date?
+        var floorWeekUntil: Date?
+        var comebackDismissedAt: Date?
+        var floorProteinDays: [Date] = []
+
+        init() {}
+    }
+}
+
+/// V7 : aliments à éviter dans les repas proposés (`ProfileRecord.avoidedFoodsRaw`).
+enum SchemaV7: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(7, 0, 0) }
+
+    static var models: [any PersistentModel.Type] {
         [ProfileRecord.self, WeightRecord.self, DayLogRecord.self, WeekPlanRecord.self, WaistRecord.self, LiftRecord.self, CardioTestRecord.self, WeekFeelingRecord.self]
     }
 }
 
 enum BodyPilotMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self, SchemaV5.self, SchemaV6.self] }
+    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self, SchemaV5.self, SchemaV6.self, SchemaV7.self] }
     /// Champs ou modèles ajoutés avec une valeur par défaut : migrations légères, sans perte.
     static var stages: [MigrationStage] {
         [
@@ -193,6 +238,7 @@ enum BodyPilotMigrationPlan: SchemaMigrationPlan {
             .lightweight(fromVersion: SchemaV3.self, toVersion: SchemaV4.self),
             .lightweight(fromVersion: SchemaV4.self, toVersion: SchemaV5.self),
             .lightweight(fromVersion: SchemaV5.self, toVersion: SchemaV6.self),
+            .lightweight(fromVersion: SchemaV6.self, toVersion: SchemaV7.self),
         ]
     }
 }

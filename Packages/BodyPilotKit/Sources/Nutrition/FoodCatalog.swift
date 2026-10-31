@@ -9,13 +9,25 @@ struct Food: Sendable {
     let per100g: Macros
     /// Unité naturelle (un œuf, une banane) pour afficher des quantités lisibles.
     let unit: FoodUnit?
+    /// Famille d'aliments que l'utilisateur peut écarter de ses repas.
+    let aversion: FoodAversion?
 
     /// Fibres : valeur Ciqual 2025 de l'aliment le plus proche (fruits rouges : moyenne framboise,
     /// fraise, myrtille), 0 quand Ciqual n'en mesure pas.
-    init(_ name: String, kcal: Double, protein: Double, carbs: Double, fat: Double, fiber: Double = 0, unit: FoodUnit? = nil) {
+    init(_ name: String, kcal: Double, protein: Double, carbs: Double, fat: Double, fiber: Double = 0, unit: FoodUnit? = nil, aversion: FoodAversion? = nil) {
         self.name = name
         self.per100g = Macros(kcal: kcal, proteinG: protein, carbsG: carbs, fatG: fat, fiberG: fiber)
         self.unit = unit
+        self.aversion = aversion
+    }
+
+    /// Aliment lu d'un repas décrit : ses valeurs ramenées à 100 g.
+    init?(described food: DescribedFood) {
+        guard food.grams > 0 else { return nil }
+        self.name = food.name
+        self.per100g = food.macros.scaled(by: 100 / food.grams)
+        self.unit = Foods.all.first { $0.name == food.name }?.unit ?? FoodLexicon.entries.first { $0.food.name == food.name }?.food.unit
+        self.aversion = nil
     }
 }
 
@@ -37,20 +49,20 @@ struct Ingredient: Sendable {
 
 enum Foods {
     static let oats = Food("Flocons d'avoine", kcal: 372, protein: 13.5, carbs: 58.7, fat: 7, fiber: 11.2)
-    static let greekYogurt = Food("Yaourt grec 0 %", kcal: 59, protein: 10.3, carbs: 3.6, fat: 0.4)
-    static let skyr = Food("Skyr nature", kcal: 63, protein: 11, carbs: 4, fat: 0.2)
-    static let cottageCheese = Food("Fromage blanc 0 %", kcal: 47, protein: 7.5, carbs: 4, fat: 0.2)
+    static let greekYogurt = Food("Yaourt grec 0 %", kcal: 59, protein: 10.3, carbs: 3.6, fat: 0.4, aversion: .dairy)
+    static let skyr = Food("Skyr nature", kcal: 63, protein: 11, carbs: 4, fat: 0.2, aversion: .dairy)
+    static let cottageCheese = Food("Fromage blanc 0 %", kcal: 47, protein: 7.5, carbs: 4, fat: 0.2, aversion: .dairy)
     static let banana = Food("Banane", kcal: 89, protein: 1.1, carbs: 22.8, fat: 0.3, fiber: 2.7, unit: FoodUnit(grams: 120, singular: "banane", plural: "bananes"))
     static let berries = Food("Fruits rouges", kcal: 57, protein: 0.7, carbs: 14.5, fat: 0.3, fiber: 3.5)
     static let apple = Food("Pomme", kcal: 52, protein: 0.3, carbs: 13.8, fat: 0.2, fiber: 1.4, unit: FoodUnit(grams: 150, singular: "pomme", plural: "pommes"))
-    static let almonds = Food("Amandes", kcal: 579, protein: 21, carbs: 21.6, fat: 49.9, fiber: 12.5)
-    static let eggs = Food("Œufs", kcal: 143, protein: 12.6, carbs: 0.7, fat: 9.5, unit: FoodUnit(grams: 55, singular: "œuf", plural: "œufs"))
+    static let almonds = Food("Amandes", kcal: 579, protein: 21, carbs: 21.6, fat: 49.9, fiber: 12.5, aversion: .nuts)
+    static let eggs = Food("Œufs", kcal: 143, protein: 12.6, carbs: 0.7, fat: 9.5, unit: FoodUnit(grams: 55, singular: "œuf", plural: "œufs"), aversion: .eggs)
     static let wholeBread = Food("Pain complet", kcal: 247, protein: 13, carbs: 41, fat: 3.4, fiber: 7.3)
     static let avocado = Food("Avocat", kcal: 160, protein: 2, carbs: 8.5, fat: 14.7, fiber: 3.6)
-    static let chicken = Food("Blanc de poulet", kcal: 165, protein: 31, carbs: 0, fat: 3.6)
-    static let salmon = Food("Saumon", kcal: 208, protein: 20, carbs: 0, fat: 13)
-    static let tuna = Food("Thon au naturel", kcal: 116, protein: 26, carbs: 0, fat: 1)
-    static let leanBeef = Food("Bœuf haché 5 %", kcal: 125, protein: 21, carbs: 0, fat: 5)
+    static let chicken = Food("Blanc de poulet", kcal: 165, protein: 31, carbs: 0, fat: 3.6, aversion: .meat)
+    static let salmon = Food("Saumon", kcal: 208, protein: 20, carbs: 0, fat: 13, aversion: .fish)
+    static let tuna = Food("Thon au naturel", kcal: 116, protein: 26, carbs: 0, fat: 1, aversion: .fish)
+    static let leanBeef = Food("Bœuf haché 5 %", kcal: 125, protein: 21, carbs: 0, fat: 5, aversion: .meat)
     static let tofu = Food("Tofu ferme", kcal: 144, protein: 17, carbs: 3, fat: 8.7)
     static let rice = Food("Riz basmati cuit", kcal: 130, protein: 2.7, carbs: 28, fat: 0.3)
     static let pasta = Food("Pâtes complètes cuites", kcal: 124, protein: 5.3, carbs: 26.5, fat: 0.5, fiber: 5.1)
@@ -62,14 +74,60 @@ enum Foods {
     static let greenBeans = Food("Haricots verts", kcal: 31, protein: 1.8, carbs: 7, fat: 0.2, fiber: 4)
     static let zucchini = Food("Courgette", kcal: 17, protein: 1.2, carbs: 3.1, fat: 0.3, fiber: 1.5)
     static let tomato = Food("Tomates", kcal: 18, protein: 0.9, carbs: 3.9, fat: 0.2, fiber: 1)
-    static let feta = Food("Feta", kcal: 264, protein: 14, carbs: 4, fat: 21, fiber: 0.2)
+    static let feta = Food("Feta", kcal: 264, protein: 14, carbs: 4, fat: 21, fiber: 0.2, aversion: .dairy)
     static let oliveOil = Food("Huile d'olive", kcal: 884, protein: 0, carbs: 0, fat: 100)
+    // Remplaçants, quand aucun modèle du repas n'évite ce que l'utilisateur écarte.
+    // Valeurs moyennes arrondies des spécialités au soja et des graines de courge (ordre de grandeur Ciqual).
+    static let soyYogurt = Food("Yaourt au soja nature", kcal: 45, protein: 4, carbs: 2.5, fat: 2.2, fiber: 0.5)
+    static let pumpkinSeeds = Food("Graines de courge", kcal: 570, protein: 30, carbs: 10, fat: 46, fiber: 6)
+
+    static let all: [Food] = [
+        oats, greekYogurt, skyr, cottageCheese, banana, berries, apple, almonds, eggs, wholeBread, avocado, chicken, salmon,
+        tuna, leanBeef, tofu, rice, pasta, quinoa, sweetPotato, lentils, chickpeas, broccoli, greenBeans, zucchini, tomato,
+        feta, oliveOil, soyYogurt, pumpkinSeeds,
+    ]
+
+    /// Ce qui remplace un aliment écarté : le tofu pour la viande, le poisson, les œufs et la feta,
+    /// le yaourt au soja pour les laitages, les graines de courge pour les fruits à coque.
+    static func substitute(for food: Food) -> Food {
+        switch food.aversion {
+        case .dairy where food.name == feta.name: tofu
+        case .dairy: soyYogurt
+        case .nuts: pumpkinSeeds
+        case .meat, .fish, .eggs: tofu
+        case nil: food
+        }
+    }
 }
 
 struct MealTemplate: Sendable {
     let slot: MealSlot
     let title: String
     let ingredients: [Ingredient]
+
+    func contains(any avoided: Set<FoodAversion>) -> Bool {
+        ingredients.contains { $0.food.aversion.map(avoided.contains) ?? false }
+    }
+
+    /// Le même repas, les aliments écartés remplacés (deux remplaçants identiques sont réunis).
+    /// Le titre suit les aliments, puisque celui du modèle ne correspond plus.
+    func avoiding(_ avoided: Set<FoodAversion>) -> MealTemplate {
+        guard contains(any: avoided) else { return self }
+        var merged: [Ingredient] = []
+        for ingredient in ingredients {
+            let food = ingredient.food.aversion.map(avoided.contains) == true ? Foods.substitute(for: ingredient.food) : ingredient.food
+            if let index = merged.firstIndex(where: { $0.food.name == food.name }) {
+                merged[index] = Ingredient(food, merged[index].grams + ingredient.grams)
+            } else {
+                merged.append(Ingredient(food, ingredient.grams))
+            }
+        }
+        // L'huile ne se nomme pas dans un titre.
+        let names = merged.map(\.food.name).filter { $0 != Foods.oliveOil.name }
+        let lowered = names.enumerated().map { $0.offset == 0 ? $0.element : $0.element.lowercased() }
+        let title = lowered.count < 2 ? lowered.joined() : lowered.dropLast().joined(separator: ", ") + " et " + lowered[lowered.count - 1]
+        return MealTemplate(slot: slot, title: title, ingredients: merged)
+    }
 }
 
 enum MealTemplates {

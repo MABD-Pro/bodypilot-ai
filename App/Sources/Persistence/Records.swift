@@ -51,6 +51,13 @@ final class ProfileRecord {
     var comebackDismissedAt: Date?
     /// Jours de la semaine plancher où les protéines ont été atteintes (à midi, `Calendar.storedDay`).
     var floorProteinDays: [Date] = []
+    /// Aliments à éviter dans les repas proposés (schéma V7), valeurs de `FoodAversion`.
+    var avoidedFoodsRaw: [String] = []
+
+    var avoidedFoods: Set<FoodAversion> {
+        get { Set(avoidedFoodsRaw.compactMap(FoodAversion.init(rawValue:))) }
+        set { avoidedFoodsRaw = newValue.map(\.rawValue).sorted() }
+    }
 
     init(_ profile: UserProfile) {
         entityID = profile.id.rawValue
@@ -149,6 +156,7 @@ final class ProfileRecord {
         profile.floorWeekUntil = floorWeekUntil
         // Pause choisie depuis le garde-fou alimentaire, gardée sur l'iPhone (4 semaines).
         profile.deficitPauseUntil = EatingCareStore.pauseUntil
+        profile.avoidedFoods = avoidedFoods
         return profile
     }
 

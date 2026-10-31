@@ -152,7 +152,7 @@ private struct MealRow: View {
                         IconBadge(symbol: meal.isEatingOut ? "fork.knife" : meal.slot.symbol, tint: meal.isEatingOut ? Theme.nutrition : meal.slot.tint, size: 38)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(meal.slot.title)
+                        Text(meal.isHabit && !meal.isEaten ? "\(meal.slot.title) · ton habitude" : meal.slot.title)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                         Text(meal.title)

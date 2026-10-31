@@ -79,12 +79,13 @@ extension MealConstraints {
     }
 
     /// Le restaurant concerne le repas précisé, sinon le prochain repas principal.
-    public init(today: Set<QuickAdjustment>, at date: Date, calendar: Calendar, eatingOutSlot: MealSlot? = nil, eaten: [MealSlot: MealIntake] = [:], described: [MealSlot: DescribedMeal] = [:]) {
+    public init(today: Set<QuickAdjustment>, at date: Date, calendar: Calendar, eatingOutSlot: MealSlot? = nil, eaten: [MealSlot: MealIntake] = [:], described: [MealSlot: DescribedMeal] = [:], habits: [MealSlot: DescribedMeal] = [:]) {
         self.init(
             eatingOut: today.contains(.eatingOut) ? (eatingOutSlot ?? Self.nextMainMeal(at: date, calendar: calendar)) : nil,
             lowAppetite: today.contains(.notHungry),
             eaten: eaten,
-            described: described
+            described: described,
+            habits: habits
         )
     }
 }

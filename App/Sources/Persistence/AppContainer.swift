@@ -39,6 +39,12 @@ enum LaunchOptions {
         guard parts.count == 2, let slot = MealSlot(rawValue: parts[0]) else { return nil }
         return (slot, parts[1])
     }
+    /// `-demoHabits YES` : le même petit-déjeuner décrit 4 jours sur les 5 derniers, proposé comme habitude.
+    static var demoHabits: Bool { defaults.bool(forKey: "demoHabits") }
+    /// `-demoAvoid fish,dairy` : aliments écartés des repas proposés (valeurs de `FoodAversion`).
+    static var demoAvoid: Set<FoodAversion> {
+        Set((defaults.string(forKey: "demoAvoid") ?? "").split(separator: ",").compactMap { FoodAversion(rawValue: String($0)) })
+    }
     /// `-demoHistory Force` : ouvre l'historique sur cette partie (Mesures, Force, Séances, Repas).
     static var demoHistory: String? { defaults.string(forKey: "demoHistory") }
     /// `-demoSessionDetail YES` : avec `-demoHistory Séances -demoActivities YES`, ouvre le détail
@@ -125,7 +131,7 @@ enum LaunchOptions {
 }
 
 enum AppContainer {
-    static let schema = Schema(versionedSchema: SchemaV6.self)
+    static let schema = Schema(versionedSchema: SchemaV7.self)
 
     /// Raison pour laquelle la base locale n'a pas pu s'ouvrir : l'app l'affiche au lieu de
     /// planter à chaque lancement (Siri compris), sans jamais effacer les données.
@@ -286,6 +292,8 @@ enum DemoData {
         3: [.dinner: "une pizza et une bière"],
     ]
 
+    static let demoHabitBreakfast = "trois tranches de pain complet, trois œufs et un café"
+
     /// Repas pris d'une touche les jours passés, pour le bilan des 7 jours (il y a 4 jours : aucun journal).
     static let demoReviewIntakes: [Int: [MealSlot: MealIntake]] = [
         1: [.snack: .asPlanned, .dinner: .light],
@@ -314,6 +322,7 @@ enum DemoData {
                 : HealthScreening(answeredAt: now, yes: LaunchOptions.demoScreening == "caution" ? [.boneOrJoint] : [])
         )
         let profileRecord = ProfileRecord(profile)
+        profileRecord.avoidedFoods = LaunchOptions.demoAvoid
         if let week = LaunchOptions.demoCycleWeek, let start = calendar.date(byAdding: .day, value: -7 * (week - 1), to: now) {
             profileRecord.cycle = TrainingCycle(program: LaunchOptions.demoHyrox ? .hyrox : .crossfit, startDate: start)
         }
@@ -359,7 +368,8 @@ enum DemoData {
                 log.doneWorkoutTitle = conditioningTitle
             }
             // Quelques repas décrits ces derniers jours, à reprendre d'une touche.
-            let described = Self.demoRecentMeals[offset] ?? [:]
+            var described = Self.demoRecentMeals[offset] ?? [:]
+            if LaunchOptions.demoHabits, [1, 2, 3, 5].contains(offset) { described[.breakfast] = Self.demoHabitBreakfast }
             if !described.isEmpty {
                 log.describedMeals = described.mapValues { MealTextParser.parse($0).meal }
             }

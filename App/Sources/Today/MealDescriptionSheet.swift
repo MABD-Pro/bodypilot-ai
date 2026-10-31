@@ -7,6 +7,8 @@ import UIKit
 /// « Qu'as-tu vraiment mangé ? » en une phrase : le coach estime, demande une précision si besoin.
 struct MealDescriptionSheet: View {
     let slot: MealSlot
+    /// Portions habituelles apprises des repas décrits (`UsualPortions`), par nom d'aliment.
+    let usualPortions: [String: DescribedFood]
     let save: (DescribedMeal) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -28,8 +30,9 @@ struct MealDescriptionSheet: View {
     @State private var isReadingPhoto = false
     @State private var photoNotRecognized = false
 
-    init(slot: MealSlot, initial: DescribedMeal?, save: @escaping (DescribedMeal) -> Void) {
+    init(slot: MealSlot, initial: DescribedMeal?, usualPortions: [String: DescribedFood] = [:], save: @escaping (DescribedMeal) -> Void) {
         self.slot = slot
+        self.usualPortions = usualPortions
         self.save = save
         _text = State(initialValue: initial?.text ?? "")
         _parse = State(initialValue: initial.map { MealParse(text: $0.text, foods: $0.foods) })
@@ -408,7 +411,9 @@ struct MealDescriptionSheet: View {
         guard !input.isEmpty else { return }
         isEditing = false
         isAnalyzing = true
-        let result = await OnDeviceMealModel.describer().describe(input)
+        let described = await OnDeviceMealModel.describer().describe(input)
+        // Sans quantité, la portion que tu prends d'habitude plutôt qu'une question.
+        let result = UsualPortions.apply(usualPortions, to: described)
         // Texte modifié pendant l'estimation : ce résultat ne correspond plus, le suivant le remplacera.
         guard text.trimmingCharacters(in: .whitespacesAndNewlines) == input else {
             isAnalyzing = false
