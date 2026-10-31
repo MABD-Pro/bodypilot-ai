@@ -19,6 +19,8 @@ public enum UsageEvent: String, CaseIterable, Sendable {
     case weekFeelingSaved = "week_feeling_saved"
     /// Une semaine plancher a été commencée.
     case floorWeekStarted = "floor_week_started"
+    /// Un débrief du soir a été enregistré.
+    case eveningDebriefSaved = "evening_debrief_saved"
 
     /// Nom envoyé : minuscules, chiffres et `_`, 40 caractères au plus, sans préfixe réservé.
     public var name: String { rawValue }
