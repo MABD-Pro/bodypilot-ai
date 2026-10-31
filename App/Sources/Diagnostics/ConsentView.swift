@@ -1,3 +1,4 @@
+import ProgressInsights
 import SwiftUI
 
 /// Premier lancement : « Aider à améliorer BodyPilot ». Refuser est aussi simple qu'accepter
@@ -75,6 +76,7 @@ struct PrivacySheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var shares = Telemetry.consent == .granted
     @AppStorage(CoachNotifications.enabledKey) private var reminders = true
+    @AppStorage(CoachNotifications.sessionKey) private var sessionReminder = false
     @State private var remindersDenied = false
 
     var body: some View {
@@ -100,7 +102,18 @@ struct PrivacySheet: View {
                             Link("Ouvrir Réglages", destination: settings)
                         }
                     } else {
-                        Text("Rares et sans reproche : un message après quelques jours sans nouvelles, et un pendant la semaine plancher s'il manque une séance. Jamais de rappel quotidien.")
+                        Text("Rares et sans reproche : un message après quelques jours sans nouvelles, et un pendant la semaine plancher s'il manque une séance.")
+                    }
+                }
+                if reminders {
+                    Section {
+                        Toggle("Rappel avant ma séance", isOn: $sessionReminder)
+                    } footer: {
+                        if let minute = CoachNotifications.usualSessionMinute {
+                            Text("Tu t'entraînes d'habitude vers \(TrainingRhythm.label(minute: minute)) : un message \(CoachReminders.sessionLeadMinutes)\u{00A0}min avant, seulement si ta séance du jour n'est pas faite.")
+                        } else {
+                            Text("Je n'ai pas encore repéré ton heure habituelle : il faut quelques séances enregistrées dans Santé (Watch ou autre app) à des heures proches. Un message \(CoachReminders.sessionLeadMinutes)\u{00A0}min avant, seulement si ta séance du jour n'est pas faite.")
+                        }
                     }
                 }
             }
@@ -113,6 +126,10 @@ struct PrivacySheet: View {
             }
             .onChange(of: shares) { _, value in
                 Telemetry.setConsent(value ? .granted : .denied)
+            }
+            .onChange(of: sessionReminder) { _, value in
+                guard value else { return }
+                Task { remindersDenied = !(await CoachNotifications.requestAuthorization()) }
             }
             .onChange(of: reminders) { _, value in
                 guard value else { return }

@@ -8,6 +8,14 @@ enum CoachNotifications {
     /// Réglage « Rappels du coach » (activé par défaut ; iOS demande l'autorisation à la première occasion).
     static let enabledKey = "coachReminders"
 
+    /// Réglage « Rappel avant ma séance » : coupé par défaut, c'est le seul rappel quotidien.
+    static let sessionKey = "sessionReminder"
+    /// Heure habituelle de séance apprise au dernier passage dans l'app (minute du jour), pour le réglage.
+    static var usualSessionMinute: Int? {
+        get { UserDefaults.standard.object(forKey: "usualSessionMinute") as? Int }
+        set { UserDefaults.standard.set(newValue, forKey: "usualSessionMinute") }
+    }
+
     static var isEnabled: Bool { UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true }
 
     /// Demande l'autorisation si iOS ne l'a pas encore demandée. Renvoie `true` si les rappels peuvent partir.
