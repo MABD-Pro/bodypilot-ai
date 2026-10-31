@@ -16,7 +16,7 @@ enum HealthWeight {
     /// Affiche la feuille d'autorisation de Santé : lecture du poids, des pas et des entraînements, écriture des repas.
     /// Une seule fois par type ; ensuite, sans effet. Le suivi de cycle n'est demandé qu'aux femmes.
     static func requestAccess(includeCycle: Bool = false) async throws {
-        var read = Set<HKObjectType>([bodyMass, HealthWorkouts.workoutType, HealthSleep.sleepType, HealthCardio.vo2MaxType, HealthCardio.restingHeartRateType, HealthSteps.stepType])
+        var read = Set<HKObjectType>([bodyMass, HealthWorkouts.workoutType, HealthSleep.sleepType, HealthCardio.vo2MaxType, HealthCardio.restingHeartRateType, HealthCardio.hrvType, HealthSteps.stepType])
             .union(HealthProfile.readTypes)
             .union(HealthBodyComposition.readTypes)
             .union(HealthWorkoutDetail.readTypes)

@@ -80,6 +80,9 @@ public struct TrainingPlanner: TrainingPlanning {
         let hasCardioTest = cardioTest(budget: budget, constraints: constraints) != nil
         let recommendation = recommend(on: date, constraints: constraints, strengthOK: strengthOK, isTest: test != nil, cardioTest: hasCardioTest)
         var reason = recommendation.reason
+        if constraints.lowRecovery, recommendation.choice == .strength {
+            reason += " \(Self.lowRecoveryNote) La force reste au programme, sans fractionné tant que ça dure."
+        }
         // Nuit correcte mais sommeil moyen court : le coach le signale sans changer la séance.
         if let average = constraints.averageSleepHours, average < Self.recommendedSleepHours,
            (constraints.sleepHours ?? Self.recommendedSleepHours) >= Self.shortSleepHours {
@@ -118,6 +121,8 @@ public struct TrainingPlanner: TrainingPlanning {
         return profile
     }
 
+    static let lowRecoveryNote = "Pouls au repos plus haut que d'habitude et VFC plus basse sur 7 jours."
+
     /// La proposition que le coach met en avant, et pourquoi. Repos complet après six jours
     /// d'activité d'affilée ou quand fatigue et nuit courte s'additionnent ; nuit courte seule :
     /// pas de force lourde ; courbatures : cardio modéré ; sinon force dès que 48 h sont passées.
@@ -140,6 +145,10 @@ public struct TrainingPlanner: TrainingPlanning {
         }
         if constraints.sore {
             return (.conditioning, "Courbatures : un cardio modéré et de la marche les soulagent mieux que le repos complet.")
+        }
+        // Récupération basse sur la semaine : la force reste, le cardio du jour devient une marche.
+        if constraints.lowRecovery, !strengthOK {
+            return (.light, "\(Self.lowRecoveryNote) Une marche tranquille aujourd'hui plutôt que du cardio.")
         }
         if let planned = cycleRecommendation(constraints: constraints, strengthOK: strengthOK, cardioTest: cardioTest) {
             return planned
@@ -362,7 +371,7 @@ public struct TrainingPlanner: TrainingPlanning {
     /// Test de cardio à la place du cardio du jour : seulement en forme (pas de fatigue, de
     /// courbatures, de nuit courte ni de genou sensible) et avec assez de temps.
     func cardioTest(budget: Int, constraints: DayConstraints) -> Workout? {
-        guard constraints.cardio.testDue, !constraints.avoidsMaximalEffort, !constraints.sore, !constraints.kneePain,
+        guard constraints.cardio.testDue, !constraints.avoidsHardCardio, !constraints.sore, !constraints.kneePain,
               (constraints.sleepHours ?? Self.shortSleepHours) >= Self.shortSleepHours,
               budget >= CardioTest.minimumMinutes else { return nil }
         return CardioTest.workout()

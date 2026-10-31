@@ -54,6 +54,9 @@ struct TodayView: View {
     /// Forme cardio estimée par la Watch et pouls au repos, lus dans Santé.
     @State private var watchCardio: CardioMeasure?
     @State private var restingHeartRate: Double?
+    /// VFC et pouls au repos des 28 derniers jours (récupération de la semaine).
+    @State private var hrvReadings: [DatedValue] = []
+    @State private var restingReadings: [DatedValue] = []
     /// Premiers jours des dernières règles, lus dans Santé (femmes seulement).
     @State private var periodStarts: [Date] = []
     /// Taux de gras et masse maigre écrits dans Santé par la balance.
@@ -73,6 +76,8 @@ struct TodayView: View {
         _averageSleepHours = State(initialValue: snapshot.averageSleepHours)
         _watchCardio = State(initialValue: snapshot.watchCardio)
         _restingHeartRate = State(initialValue: snapshot.restingHeartRate)
+        _hrvReadings = State(initialValue: snapshot.hrvReadings ?? [])
+        _restingReadings = State(initialValue: snapshot.restingReadings ?? [])
         _periodStarts = State(initialValue: snapshot.periodStarts)
         _compositions = State(initialValue: snapshot.compositions)
         _dailySteps = State(initialValue: snapshot.dailySteps)
@@ -119,6 +124,7 @@ struct TodayView: View {
             calibratedLifts: DayLogEditor.calibratedLifts(lifts, before: now, since: profileRecord.strengthTestResetAt, lastStrengthDay: lastStrength.day, calendar: calendar),
             sleepHours: sleepHours,
             averageSleepHours: averageSleepHours,
+            lowRecovery: RecoverySignal.status(hrv: hrvReadings, restingHeartRate: restingReadings, on: now, calendar: calendar)?.isLow ?? false,
             activeDays: activeDays,
             recentActivities: healthActivities,
             trainingChoice: todayLog?.trainingChoice,
@@ -338,6 +344,11 @@ struct TodayView: View {
                     if LaunchOptions.demoSteps { dailySteps = DemoData.steps() }
                     if let hours = LaunchOptions.demoSleepHours { sleepHours = hours }
                     if let hours = LaunchOptions.demoSleepAverage { averageSleepHours = hours }
+                    if LaunchOptions.demoLowRecovery {
+                        let demo = DemoData.lowRecovery()
+                        hrvReadings = demo.hrv
+                        restingReadings = demo.resting
+                    }
                     if LaunchOptions.demoData && !LaunchOptions.demoCardioTest {
                         watchCardio = DemoData.watchCardio()
                         restingHeartRate = 58
@@ -556,8 +567,9 @@ struct TodayView: View {
         async let starts: [Date]? = readsCycle ? (try? HealthCycle.periodStarts(calendar: calendar)) : nil
         async let entries = HealthBodyComposition.entries(calendar: calendar)
         async let steps = try? HealthSteps.daily(calendar: calendar)
+        async let recovery = try? HealthCardio.recoveryReadings()
         let read = await (weights: weightSamples, activities: activities, sleep: sleep, averageSleep: averageSleep, measure: measure,
-                          resting: resting, values: values, starts: starts, entries: entries, steps: steps)
+                          resting: resting, values: values, starts: starts, entries: entries, steps: steps, recovery: recovery)
 
         let toImport = read.weights.map {
             WeightImportPlanner(calendar: calendar).samplesToImport(
@@ -578,6 +590,10 @@ struct TodayView: View {
             if let starts = read.starts { periodStarts = starts }
             compositions = read.entries
             if let steps = read.steps { dailySteps = steps }
+            if let recovery = read.recovery {
+                hrvReadings = recovery.hrv
+                restingReadings = recovery.resting
+            }
             // Taille, date de naissance et sexe de Santé : le profil suit, les besoins se recalculent.
             if let height = read.values.heightCm, abs(height - profileRecord.heightCm) >= 1 {
                 profileRecord.heightCm = height
@@ -593,7 +609,8 @@ struct TodayView: View {
         HealthSnapshotStore.save(HealthSnapshot(
             savedAt: .now, activities: healthActivities, sleepHours: sleepHours, averageSleepHours: averageSleepHours,
             watchCardio: watchCardio, restingHeartRate: restingHeartRate, periodStarts: periodStarts,
-            compositions: compositions, dailySteps: dailySteps
+            compositions: compositions, dailySteps: dailySteps,
+            hrvReadings: hrvReadings, restingReadings: restingReadings
         ))
     }
 

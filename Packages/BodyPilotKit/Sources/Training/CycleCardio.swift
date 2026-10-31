@@ -57,7 +57,7 @@ public enum CycleCardio {
         let available = intervals(for: week) != nil || (benchmarkWeeks.contains(week.number) && equipment == .gym)
         let done = constraints.cycleWorkoutsThisWeek.contains { $0 == intervalsTitle || $0 == CycleConditioning.benchmarkTitle }
         return available && !done
-            && !constraints.avoidsMaximalEffort && !constraints.sore
+            && !constraints.avoidsHardCardio && !constraints.sore
             && (constraints.sleepHours ?? 8) >= 6
     }
 
