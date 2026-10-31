@@ -19,6 +19,8 @@ struct NutritionCard: View {
     var showGroceries: (() -> Void)?
     /// Jour passé corrigé depuis l'historique : ce qui a été mangé, sans conseils pour la suite.
     var pastDay = false
+    /// Repas au restaurant : lire la carte en photo ; `nil` : pas de bouton (jour passé).
+    var scanMenu: ((MealSlot, Macros) -> Void)?
     /// Faim notée d'une touche ; `nil` : pas de bouton (jour passé).
     var noteHunger: ((HungerLevel) -> Void)?
     /// Dernière faim notée aujourd'hui.
@@ -239,6 +241,17 @@ private struct MealRow: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                             .padding(.top, 2)
+                        if let scanMenu, !meal.isEaten {
+                            Button {
+                                scanMenu(meal.slot, meal.macros)
+                            } label: {
+                                Label("Lire la carte en photo", systemImage: "text.viewfinder")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity, minHeight: 36)
+                            }
+                            .buttonStyle(.glass)
+                            .tint(Theme.nutrition)
+                        }
                     }
                     NutrientBreakdown(macros: meal.macros, approximate: meal.isEatingOut || meal.described != nil)
                         .padding(.top, 2)

@@ -77,6 +77,7 @@ shoot 2e-phase-prise -demoData YES -demoTarget 92 -demoScrollTo nutrition
 shoot 2f-liste-de-courses -demoData YES -demoGroceries YES
 shoot 2g-marques-conseillees -demoData YES -demoGroceries YES -demoBrands "Skyr nature"
 shoot 2h-faim -demoData YES -demoHunger YES -demoScrollTo nutrition
+shoot 2i-lire-la-carte -demoData YES -demoMenu YES
 shoot 3z-fatigue-muscles -demoData YES -demoMuscles YES -demoScrollTo muscles
 shoot 3i-isolation -demoData YES -demoScrollTo training
 shoot 3k-senior -demoData YES -demoLifts YES -demoAge 68 -demoScrollTo training

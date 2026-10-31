@@ -31,6 +31,7 @@ struct TodayView: View {
     @Query(sort: \HungerRecord.date) private var hungerRecords: [HungerRecord]
     @State private var isAddingWaist = false
     @State private var describing: MealToDescribe?
+    @State private var scanningMenu: MenuToScan? = LaunchOptions.demoMenu ? MenuToScan(slot: .dinner, target: DemoData.menuTarget) : nil
     @State private var isAddingWeight = false
     @State private var isEditingProfile = false
     @State private var isEditingFoodPreferences = false
@@ -411,6 +412,9 @@ struct TodayView: View {
                     saveDescribed(meal, for: item.slot)
                 }
             }
+            .sheet(item: $scanningMenu) { item in
+                MenuScanSheet(slot: item.slot, target: item.target, choose: { meal in saveDescribed(meal, for: item.slot) }, demoLines: LaunchOptions.demoMenu ? DemoData.menu : nil)
+            }
             .sheet(isPresented: $isShowingEatingCareHelp) {
                 EatingCareHelpSheet()
             }
@@ -777,6 +781,7 @@ struct TodayView: View {
             reuse: { slot, meal in saveDescribed(meal, for: slot) },
             showHistory: { slot in showHistory(slot.map { .meal($0) } ?? .section(.meals)) },
             showGroceries: { isShowingGroceries = true },
+            scanMenu: { slot, target in scanningMenu = MenuToScan(slot: slot, target: target) },
             noteHunger: noteHunger,
             lastHunger: lastHunger,
             hungerPattern: hungerPattern(now: now)?.message
@@ -1074,6 +1079,12 @@ struct TodayView: View {
 }
 
 /// Repas en cours de description, pour présenter la feuille de saisie.
+private struct MenuToScan: Identifiable {
+    let slot: MealSlot
+    let target: Macros
+    var id: String { slot.rawValue }
+}
+
 private struct MealToDescribe: Identifiable {
     let slot: MealSlot
     let current: DescribedMeal?

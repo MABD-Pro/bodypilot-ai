@@ -277,3 +277,10 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Carte « Tes muscles » sous la séance, seulement si un muscle n'est pas frais. Si la séance du jour, pas encore faite, a pour muscle principal un muscle fatigué (séries d'aujourd'hui exclues), le coach conseille de garder 2 à 3 répétitions en réserve ou de remplacer l'exercice. La séance proposée ne change pas : la règle des 48 h entre deux séances de force reste la référence.
 - Des séries notées un jour comptent comme une séance de force pour la règle des 48 h, même sans « J'ai fait ma séance ».
 - Limites : une séance faite hors app (Santé) n'a pas de muscles connus et ne compte pas ; le nombre réel de séries n'est pas noté.
+
+## Carte du restaurant en photo (`Nutrition/MenuAdvisor`, `App/Intelligence/MenuReader`)
+
+- Bouton « Lire la carte en photo » sur un repas au restaurant pas encore mangé. Le texte est lu sur l'iPhone (Vision, reconnaissance de texte en français) ; la photo n'est ni gardée ni envoyée.
+- Lignes : prix retirés, rubriques écartées, lignes des desserts, boissons, vins, sauces et suppléments ignorées ; une ligne en minuscules complète le plat du dessus (description).
+- Chaque plat passe par le lecteur de « Décrire » (portions habituelles). Classement : protéines jusqu'aux repères du repas, pénalité au-delà de 110 % des calories et sous 60 %. Trois plats au plus, le premier recommandé. « Copieux » au-delà de 110 % des calories, « protéines justes » sous 75 % des protéines (choix BodyPilot).
+- « Je prends ça » enregistre le plat comme repas décrit : la journée se réajuste et les quantités restent corrigeables dans « Décrire ».

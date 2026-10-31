@@ -105,6 +105,8 @@ enum LaunchOptions {
     static var demoHyrox: Bool { defaults.bool(forKey: "demoHyrox") }
     /// `-demoMuscles YES` : séance lourde notée hier (jambes et dos durs), carte de fatigue par muscle.
     static var demoMuscles: Bool { defaults.bool(forKey: "demoMuscles") }
+    /// `-demoMenu YES` : la feuille « Lire la carte » s'ouvre sur une carte de brasserie déjà lue.
+    static var demoMenu: Bool { defaults.bool(forKey: "demoMenu") }
     /// `-demoHunger YES` : faim notée l'après-midi quatre jours sur quatorze, et une petite faim il y a vingt minutes.
     static var demoHunger: Bool { defaults.bool(forKey: "demoHunger") }
     /// `-demoLifts YES` : profil en salle et séries notées les semaines passées, record du jour sur le premier exercice.
@@ -210,6 +212,14 @@ enum DemoData {
         }
         return (hrv, resting)
     }
+
+    /// Carte de brasserie pour `-demoMenu`, telle que la lecture de texte la rendrait.
+    static let menu = [
+        "LA BRASSERIE", "Entrées", "Soupe à l'oignon 8,50 €", "Plats", "Entrecôte grillée 26 €",
+        "frites maison et salade verte", "Burger du chef, frites ........ 18,90", "Pâtes carbonara 16 €",
+        "Pavé de saumon, riz 22€", "Desserts", "Brownie au chocolat 7 €", "Boissons", "Coca 4,00 €",
+    ]
+    static let menuTarget = Macros(kcal: 800, proteinG: 50, carbsG: 80, fatG: 30)
 
     /// Faims de `-demoHunger` : l'après-midi plusieurs jours, une fois le soir.
     static func hunger(now: Date = .now, calendar: Calendar = .current) -> [HungerNote] {
