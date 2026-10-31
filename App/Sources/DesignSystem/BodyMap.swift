@@ -7,7 +7,7 @@ struct BodyMap: View {
     let side: MuscleRegion.Side
     /// Couleur d'une zone ; `nil` la laisse dans la teinte de la silhouette.
     let color: (MuscleRegion) -> Color?
-    var base: Color = Color.primary.opacity(0.10)
+    var base: Color = Color.primary.opacity(0.16)
 
     var body: some View {
         Canvas { context, size in
@@ -68,7 +68,7 @@ struct MuscleHighlightRow: View {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                 legend(title: "Travaille surtout", regions: regions.primary, opacity: 1)
                 if !regions.secondary.isEmpty {
-                    legend(title: "En appoint", regions: regions.secondary, opacity: 0.4)
+                    legend(title: "En appoint", regions: regions.secondary, opacity: 0.55)
                 }
             }
             Spacer(minLength: 0)
@@ -79,7 +79,7 @@ struct MuscleHighlightRow: View {
 
     private func color(_ region: MuscleRegion) -> Color? {
         if regions.primary.contains(region) { return tint }
-        if regions.secondary.contains(region) { return tint.opacity(0.4) }
+        if regions.secondary.contains(region) { return tint.opacity(0.55) }
         return nil
     }
 
@@ -150,13 +150,13 @@ enum BodyMapGeometry {
         case .forearms: mirrored([capsule(CGPoint(x: 23, y: 76), CGPoint(x: 20, y: 99), width: 6)])
         case .abs:
             mirrored([58, 69, 80].map { y in Path(roundedRect: CGRect(x: 43.5, y: y, width: 6, height: 9.5), cornerRadius: 2.5) })
-        case .obliques: mirrored([capsule(CGPoint(x: 39.5, y: 62), CGPoint(x: 38.5, y: 88), width: 5)])
+        case .obliques: mirrored([capsule(CGPoint(x: 38.5, y: 60), CGPoint(x: 38, y: 90), width: 5.5)])
         case .trapezius: [trapezius]
         case .lats: mirrored([capsule(CGPoint(x: 36, y: 50), CGPoint(x: 42, y: 80), width: 10)])
         case .lowerBack: [Path(roundedRect: CGRect(x: 43, y: 78, width: 14, height: 17), cornerRadius: 5)]
         case .glutes: mirrored([ellipse(43, 105, 8.5, 8)])
-        case .quadriceps: mirrored([capsule(CGPoint(x: 41, y: 114), CGPoint(x: 39.5, y: 148), width: 11)])
-        case .adductors: mirrored([capsule(CGPoint(x: 46.5, y: 110), CGPoint(x: 45, y: 132), width: 5)])
+        case .quadriceps: mirrored([capsule(CGPoint(x: 40, y: 114), CGPoint(x: 38.5, y: 148), width: 11)])
+        case .adductors: mirrored([capsule(CGPoint(x: 47, y: 110), CGPoint(x: 46, y: 134), width: 4.5)])
         case .hamstrings: mirrored([capsule(CGPoint(x: 41, y: 116), CGPoint(x: 39.5, y: 150), width: 11)])
         case .calves: mirrored([capsule(CGPoint(x: 39.5, y: 158), CGPoint(x: 38.5, y: 186), width: 8.5)])
         }

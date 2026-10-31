@@ -964,7 +964,9 @@ private struct SessionMusclesRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: Theme.Spacing.m) {
-            BodyMapPair(leading: regions.leadingSide, color: color, height: 64, captions: false)
+            // Face toujours à gauche et légendée : une petite figure de dos lue comme une face
+            // ferait prendre les dorsaux pour des pectoraux.
+            BodyMapPair(color: color, height: 80)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Travaille surtout")
                     .font(.caption.weight(.semibold))
@@ -981,7 +983,7 @@ private struct SessionMusclesRow: View {
 
     private func color(_ region: MuscleRegion) -> Color? {
         if regions.primary.contains(region) { return Theme.training }
-        if regions.secondary.contains(region) { return Theme.training.opacity(0.4) }
+        if regions.secondary.contains(region) { return Theme.training.opacity(0.55) }
         return nil
     }
 }
