@@ -63,6 +63,11 @@ struct TodayView: View {
     @State private var compositions: [BodyCompositionEntry] = []
     /// Pas par jour lus dans Santé (14 jours et aujourd'hui).
     @State private var dailySteps: [DailySteps] = []
+    /// Événements du jour lus dans le calendrier, si l'utilisateur l'a permis.
+    @State private var agendaEvents: [AgendaEvent] = LaunchOptions.demoAgenda.map { DemoData.agenda($0) } ?? []
+    @State private var agendaEnabled = AgendaStore.isEnabled || LaunchOptions.demoAgenda != nil
+    /// « Pas aujourd'hui » ou « Non merci » touché : la carte se redessine.
+    @State private var agendaRevision = 0
 
     private let calendar = Calendar.current
 
@@ -237,6 +242,7 @@ struct TodayView: View {
                         if !profileRecord.screening.isAnswered {
                             screeningBanner
                         }
+                        agendaSection(now: now)
                         CommandField(apply: apply)
                         AdjustmentBar(active: todayAdjustments, toggle: toggle)
                         NutritionCard(targets: plan.targets, meals: plan.meals, logIntake: logIntake, describe: { slot in
@@ -365,6 +371,11 @@ struct TodayView: View {
                     Menu("Mon profil", systemImage: "person.crop.circle") {
                         Button("Mon profil", systemImage: "person") { isEditingProfile = true }
                         Button("Mes préférences alimentaires", systemImage: "fork.knife") { isEditingFoodPreferences = true }
+                        if agendaEnabled {
+                            Button("Ne plus lire mon agenda", systemImage: "calendar.badge.minus") { setAgenda(false) }
+                        } else {
+                            Button("Lire mon agenda", systemImage: "calendar.badge.plus") { setAgenda(true) }
+                        }
                         Button("Mes données", systemImage: "externaldrive") { isManagingData = true }
                         Button("Conseils et sources", systemImage: "books.vertical") { isShowingGuides = true }
                         Button("Confidentialité", systemImage: "hand.raised") { isEditingPrivacy = true }
@@ -406,6 +417,11 @@ struct TodayView: View {
                 if phase == .background, !LaunchOptions.demoData { AutoBackup.runIfDue(context: context) }
             }
             .sensoryFeedback(.selection, trigger: todayLog?.exerciseSwapsRaw.count ?? 0)
+            .task(id: [String(describing: scenePhase), String(agendaEnabled)]) {
+                // À chaque retour dans l'app : les événements du jour, relus sur l'iPhone.
+                guard scenePhase == .active, agendaEnabled, LaunchOptions.demoAgenda == nil else { return }
+                agendaEvents = AgendaReader.today(calendar: calendar)
+            }
             .task(id: scenePhase) {
                 // À chaque retour dans l'app : les pesées de la balance arrivent toutes seules.
                 guard scenePhase == .active, healthSync else { return }
@@ -750,6 +766,73 @@ struct TodayView: View {
         let created = DayLogRecord(day: calendar.storedDay(for: .now))
         context.insert(created)
         return created
+    }
+
+    /// Agenda : propositions du jour, ou l'invitation à l'activer (une seule fois).
+    @ViewBuilder
+    private func agendaSection(now: Date) -> some View {
+        let _ = agendaRevision
+        if agendaEnabled {
+            // En démo, la journée est vue à 7 h pour que les captures ne dépendent pas de l'heure.
+            let seenAt = LaunchOptions.demoAgenda != nil ? (calendar.date(bySettingHour: 7, minute: 0, second: 0, of: now) ?? now) : now
+            let advice = AgendaAdvisor.advice(events: agendaEvents, now: seenAt, sessionMinutes: profileRecord.profile.sessionMinutes, calendar: calendar)
+            if !advice.isEmpty, !AgendaCard.pending(advice, active: todayAdjustments).isEmpty || advice.freeSlot != nil,
+               !AgendaStore.isDismissed(on: now, calendar: calendar) {
+                AgendaCard(advice: advice, active: todayAdjustments, apply: { applyAgenda($0, advice: advice) }, dismiss: {
+                    withAnimation(Theme.springy) {
+                        AgendaStore.dismiss(on: .now)
+                        agendaRevision += 1
+                    }
+                })
+                .transition(.opacity.combined(with: .move(edge: .top)))
+                .id("agenda")
+            }
+        } else if LaunchOptions.demoData ? LaunchOptions.demoAgendaInvite : !AgendaStore.inviteDismissed {
+            AgendaInviteCard(enable: { setAgenda(true) }, dismiss: {
+                withAnimation(Theme.springy) {
+                    AgendaStore.inviteDismissed = true
+                    agendaRevision += 1
+                }
+            })
+            .transition(.opacity)
+        }
+    }
+
+    /// Activer demande l'accès au calendrier ; refusé, rien ne change.
+    private func setAgenda(_ enabled: Bool) {
+        guard enabled else {
+            withAnimation(Theme.springy) {
+                AgendaStore.isEnabled = false
+                agendaEnabled = false
+                agendaEvents = []
+            }
+            return
+        }
+        Task {
+            let granted = LaunchOptions.demoData ? true : await AgendaReader.requestAccess()
+            withAnimation(Theme.springy) {
+                AgendaStore.inviteDismissed = true
+                AgendaStore.isEnabled = granted
+                agendaEnabled = granted
+                if granted, !LaunchOptions.demoData { agendaEvents = AgendaReader.today(calendar: calendar) }
+                agendaRevision += 1
+            }
+        }
+    }
+
+    /// Une proposition de l'agenda, appliquée comme si l'utilisateur l'avait dite.
+    private func applyAgenda(_ adjustment: QuickAdjustment, advice: AgendaAdvice) {
+        let log = todayLog()
+        withAnimation(Theme.springy) {
+            var current = log.adjustments
+            current.insert(adjustment)
+            switch adjustment {
+            case .shortOnTime: log.availableMinutes = advice.shortOnTimeMinutes
+            case .eatingOut: log.eatingOutSlot = advice.eatingOut?.slot ?? MealConstraints.nextMainMeal(at: .now, calendar: calendar)
+            default: break
+            }
+            log.adjustments = current
+        }
     }
 
     private func toggle(_ adjustment: QuickAdjustment) {

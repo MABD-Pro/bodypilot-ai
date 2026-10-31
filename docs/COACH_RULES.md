@@ -248,3 +248,12 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Fibres : 30 g par jour (ANSES, 2016) et produits peu transformés (Hall et al., 2019 : environ 500 kcal de plus par jour avec des ultra-transformés, essai sur 20 adultes pendant 2 semaines).
 - Sommeil : au moins 7 h (Watson et al., 2015).
 - Sources : les références principales des règles, par thème. La liste complète reste dans ce fichier et dans `docs/TRAINING_EVIDENCE.md`.
+
+## Agenda (`Coach/AgendaAdvisor`)
+
+- Activé par l'utilisateur seulement (invitation une fois, ou menu du profil) ; accès au calendrier demandé à ce moment-là. Lecture des événements du jour sur l'iPhone (EventKit), rien n'est enregistré ni envoyé.
+- Le coach propose, l'utilisateur applique d'une touche : rien ne change tout seul. « Pas aujourd'hui » fait taire la carte jusqu'au lendemain.
+- Créneau libre : premier trou entre maintenant (ou 6 h) et 22 h assez long pour la séance prévue, affiché seulement si la journée a des événements. Les événements sur toute la journée, marqués « disponible » ou de moins de 5 min ne bloquent pas de temps.
+- Journée pleine : sans créneau assez long, la plus longue pause (arrondie à 5 min, au moins 15) est proposée comme « Je n'ai que N minutes ».
+- Restaurant : mots entiers dans le titre ou le lieu (restaurant, resto, brasserie, bistrot, pizzeria, sushi, brunch, apéro, afterwork, « dîner chez / avec », « déjeuner d'affaires »…), événement pas encore fini ; de 11 h à 15 h le déjeuner, de 18 h à minuit le dîner.
+- Déplacement : train, TGV, avion, vol, aéroport, gare, hôtel, voyage, déplacement, séminaire. Mots entiers : « entraînement » n'est pas un train. Limite connue : une réunion dans une autre ville sans ces mots n'est pas vue (pas de géocodage).

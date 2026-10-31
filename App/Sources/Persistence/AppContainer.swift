@@ -122,6 +122,11 @@ enum LaunchOptions {
     static var demoIntake: Bool { defaults.bool(forKey: "demoIntake") }
     /// `-demoSteps YES` : deux mois de pas lus dans Santé (environ 6 500 par jour ces deux semaines).
     static var demoSteps: Bool { defaults.bool(forKey: "demoSteps") }
+    /// `-demoAgenda YES` : journée chargée avec un dîner au restaurant ; `-demoAgenda travel` :
+    /// un train le matin ; `-demoAgenda full` : aucune pause assez longue pour la séance.
+    static var demoAgenda: String? { defaults.string(forKey: "demoAgenda") }
+    /// `-demoAgendaInvite YES` : montre l'invitation à lire l'agenda.
+    static var demoAgendaInvite: Bool { defaults.bool(forKey: "demoAgendaInvite") }
     /// `-demoTarget 92` : poids visé de la démo (au-dessus du poids actuel : phase de légère prise).
     static var demoTargetKg: Double? { defaults.object(forKey: "demoTarget") == nil ? nil : defaults.double(forKey: "demoTarget") }
     /// `-demoScrollTo progress` : fait défiler l'écran Aujourd'hui jusqu'à une carte.
@@ -200,6 +205,32 @@ enum DemoData {
             resting.append(DatedValue(date: date, value: (tired ? 62 : 56) + noise[daysAgo % noise.count] / 2))
         }
         return (hrv, resting)
+    }
+
+    /// Événements du jour pour `-demoAgenda`.
+    static func agenda(_ kind: String, now: Date = .now, calendar: Calendar = .current) -> [AgendaEvent] {
+        func at(_ hour: Int, _ minute: Int = 0) -> Date {
+            calendar.date(bySettingHour: hour, minute: minute, second: 0, of: now) ?? now
+        }
+        switch kind {
+        case "travel":
+            return [
+                AgendaEvent(title: "Train Paris → Lyon", start: at(7, 30), end: at(9, 30)),
+                AgendaEvent(title: "Atelier client", start: at(10), end: at(17)),
+            ]
+        case "full":
+            return [
+                AgendaEvent(title: "Formation", start: at(6), end: at(12, 30)),
+                AgendaEvent(title: "Formation", start: at(13, 5), end: at(18)),
+                AgendaEvent(title: "Réunion parents", start: at(18, 20), end: at(22)),
+            ]
+        default:
+            return [
+                AgendaEvent(title: "Comité de direction", start: at(7), end: at(12, 15)),
+                AgendaEvent(title: "Point projet", start: at(13), end: at(19)),
+                AgendaEvent(title: "Dîner au restaurant avec Léa", start: at(20), end: at(22, 30)),
+            ]
+        }
     }
 
     /// 60 jours de pas : environ 5 500 par jour il y a deux mois, 6 500 ces deux dernières
