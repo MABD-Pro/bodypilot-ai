@@ -58,3 +58,35 @@ private func lift(_ exercise: String, daysAgo: Int, effort: SetEffort? = nil) ->
     ], intensityCue: "")
     #expect(MuscleFatigue.fatiguedTargets(of: workout, in: map) == [.quadriceps])
 }
+
+@Test func regionsSplitTheBackAndTheShoulders() throws {
+    let row = try #require(ExerciseRegions.of("Rowing barre"))
+    #expect(row.primary == [.trapezius])
+    #expect(row.secondary == [.lats, .biceps])
+    #expect(row.leadingSide == .back)
+    let bench = try #require(ExerciseRegions.of("Développé couché"))
+    #expect(bench.primary == [.chest])
+    #expect(bench.secondary == [.triceps, .frontDeltoids])
+    #expect(bench.leadingSide == .front)
+    #expect(ExerciseRegions.parse("Avant-bras (prise), trapèzes, gainage, jambes")?.primary == [.forearms])
+    #expect(ExerciseRegions.parse("Épaules, triceps")?.primary == [.frontDeltoids, .rearDeltoids])
+}
+
+@Test func everyGuideDrawsAtLeastOneRegion() {
+    for (name, guide) in ExerciseGuide.catalog {
+        #expect(ExerciseRegions.parse(guide.muscles) != nil, "\(name)")
+        for region in MuscleRegion.allCases { #expect(!region.sides.isEmpty) }
+    }
+}
+
+@Test func sessionRegionsMergeWithoutDuplicates() {
+    let workout = Workout(title: "Test", warmupMinutes: 5, cooldownMinutes: 2, exercises: [
+        WorkoutExercise(name: "Squat à la barre", sets: 3, volume: .reps(5), restSeconds: 90, priority: 1),
+        WorkoutExercise(name: "Développé couché", sets: 3, volume: .reps(5), restSeconds: 90, priority: 1),
+        WorkoutExercise(name: "Rowing barre", sets: 3, volume: .reps(8), restSeconds: 90, priority: 2),
+    ], intensityCue: "")
+    let regions = ExerciseRegions.of(workout)
+    #expect(regions?.primary == [.quadriceps, .chest, .trapezius])
+    #expect(regions?.secondary.contains(.quadriceps) == false)
+    #expect(regions?.secondary.contains(.glutes) == true)
+}

@@ -80,6 +80,8 @@ shoot 2j-scanner-produit -demoData YES -demoGroceries YES -demoProduct YES
 shoot 2h-faim -demoData YES -demoHunger YES -demoScrollTo nutrition
 shoot 2i-lire-la-carte -demoData YES -demoMenu YES
 shoot 3z-fatigue-muscles -demoData YES -demoMuscles YES -demoScrollTo muscles
+shoot 3m-fiche-muscles -demoData YES -demoLifts YES -demoTechnique YES -demoScrollTo training
+shoot 3n-silhouette-zoom -demoData YES -demoLifts YES -demoTechnique YES -demoBodyMapZoom YES -demoScrollTo training
 shoot 3i-isolation -demoData YES -demoScrollTo training
 shoot 3k-senior -demoData YES -demoLifts YES -demoAge 68 -demoScrollTo training
 shoot 3j-sommeil-moyen -demoData YES -demoSleepAverage 6.25 -demoScrollTo training

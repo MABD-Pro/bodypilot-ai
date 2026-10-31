@@ -119,6 +119,10 @@ enum LaunchOptions {
     static var demoCardioTest: Bool { defaults.bool(forKey: "demoCardioTest") }
     /// `-demoVideo YES` : la fiche d'exercice s'ouvre avec la démonstration affichée.
     static var demoVideo: Bool { defaults.bool(forKey: "demoVideo") }
+    /// `-demoTechnique YES` : la fiche du premier exercice s'ouvre sur sa technique (muscles travaillés).
+    static var demoTechnique: Bool { defaults.bool(forKey: "demoTechnique") }
+    /// `-demoBodyMapZoom YES` : avec `-demoTechnique`, la silhouette de la fiche s'ouvre en grand.
+    static var demoBodyMapZoom: Bool { defaults.bool(forKey: "demoBodyMapZoom") }
     /// `-demoRecovery YES` : force faite hier, la séance du jour est cardio et marche.
     static var demoRecovery: Bool { defaults.bool(forKey: "demoRecovery") }
     /// `-demoScreening pending` : profil sans questionnaire de santé (bandeau visible) ;
