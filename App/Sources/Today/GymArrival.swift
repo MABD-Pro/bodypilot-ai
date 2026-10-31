@@ -1,4 +1,5 @@
 import CoreLocation
+import OSLog
 import UserNotifications
 
 /// « Ma salle » : un rappel quand tu arrives à ta salle, pour ouvrir la séance du jour avec ses
@@ -15,6 +16,23 @@ enum GymArrival {
         case locationDenied
         case locationUnavailable
         case notificationsDenied
+        /// Lieu enregistré, mais iOS ne peut plus repérer l'arrivée (autorisation « Une fois » expirée
+        /// ou retirée) ; ou le rappel n'a pas pu être programmé.
+        case notScheduled
+    }
+
+    /// iOS ne déclenche une notification de lieu qu'avec l'autorisation « Lorsque l'app est active »
+    /// (ou « Toujours ») encore valable.
+    static var canDetectArrival: Bool {
+        switch CLLocationManager().authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways: return true
+        default: return false
+        }
+    }
+
+    /// Le rappel est-il bien en attente chez iOS ?
+    static func isScheduled() async -> Bool {
+        await UNUserNotificationCenter.current().pendingNotificationRequests().contains { $0.identifier == notificationID }
     }
 
     /// Le lieu enregistré, s'il y en a un.
@@ -36,7 +54,7 @@ enum GymArrival {
         }
         UserDefaults.standard.set(location.coordinate.latitude, forKey: latitudeKey)
         UserDefaults.standard.set(location.coordinate.longitude, forKey: longitudeKey)
-        await schedule(at: location.coordinate)
+        guard await schedule(at: location.coordinate) else { return .failure(.notScheduled) }
         return .success(())
     }
 
@@ -48,7 +66,7 @@ enum GymArrival {
     }
 
     /// Le rappel se déclenche à chaque arrivée ; iOS s'en charge même si l'app est fermée.
-    private static func schedule(at coordinate: CLLocationCoordinate2D) async {
+    private static func schedule(at coordinate: CLLocationCoordinate2D) async -> Bool {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [notificationID])
         let region = CLCircularRegion(center: coordinate, radius: radius, identifier: notificationID)
@@ -59,7 +77,15 @@ enum GymArrival {
         content.body = "Ta séance du jour t'attend dans BodyPilot, avec tes charges."
         content.sound = .default
         let trigger = UNLocationNotificationTrigger(region: region, repeats: true)
-        try? await center.add(UNNotificationRequest(identifier: notificationID, content: content, trigger: trigger))
+        do {
+            try await center.add(UNNotificationRequest(identifier: notificationID, content: content, trigger: trigger))
+        } catch {
+            AppLog.location.error("Rappel d'arrivée à la salle non programmé : \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+        let scheduled = await isScheduled()
+        if !scheduled { AppLog.location.error("Rappel d'arrivée à la salle absent des notifications en attente") }
+        return scheduled
     }
 
     /// Une position assez précise, demandée une fois (autorisation « Pendant l'utilisation »).

@@ -13,6 +13,8 @@ struct WeekShareSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.displayScale) private var displayScale
     @AppStorage("shareShowsBody") private var showsBody = false
+    /// Image rendue une fois par réglage, pas à chaque rendu : le bouton reste stable au toucher.
+    @State private var image: Image?
 
     private var week: ShareableWeek {
         ShareableWeekBuilder.make(
@@ -38,13 +40,16 @@ struct WeekShareSheet: View {
                             .padding(Theme.Spacing.l)
                             .glassEffect(.regular, in: .rect(cornerRadius: Theme.Radius.inner))
                     }
-                    if let image = render(week) {
+                    if let image {
                         ShareLink(item: image, preview: SharePreview("Ma semaine avec BodyPilot", image: image)) {
                             Label("Partager l'image", systemImage: "square.and.arrow.up")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.glassProminent)
                         .controlSize(.large)
+                    } else {
+                        ProgressView()
+                            .controlSize(.large)
                     }
                     ShareLink(item: week.text) {
                         Label("Partager en texte", systemImage: "text.bubble")
@@ -61,6 +66,7 @@ struct WeekShareSheet: View {
                 .padding(Theme.Spacing.l)
             }
             .background { AppBackground() }
+            .task(id: showsBody) { image = render(week) }
             .navigationTitle("Partager ma semaine")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

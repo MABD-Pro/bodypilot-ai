@@ -139,7 +139,13 @@ struct PrivacySheet: View {
                 guard value else { return }
                 Task { remindersDenied = !(await CoachNotifications.requestAuthorization()) }
             }
-            .task { remindersDenied = await CoachNotifications.isDenied() }
+            .task {
+                remindersDenied = await CoachNotifications.isDenied()
+                // Autorisation « Une fois » expirée ou retirée : le rappel ne partira plus, autant le dire.
+                guard hasGym, !LaunchOptions.demoGym else { return }
+                let scheduled = await GymArrival.isScheduled()
+                if !GymArrival.canDetectArrival || !scheduled { gymFailure = .notScheduled }
+            }
         }
     }
 
@@ -181,12 +187,14 @@ struct PrivacySheet: View {
                     if let settings = URL(string: UIApplication.openNotificationSettingsURLString) {
                         Link("Ouvrir Réglages", destination: settings)
                     }
+                case .notScheduled?:
+                    Text("iOS ne peut pas encore te prévenir à l'arrivée : la position doit rester autorisée « Lorsque l'app est active » (pas « Une fois »). Touche « Remplacer par ma position actuelle » sur place pour réactiver le rappel.")
                 case .locationUnavailable?:
                     Text("Position introuvable pour l'instant. Réessaie près d'une fenêtre ou à l'entrée de la salle.")
                 case nil:
                     Text(hasGym
                          ? "Un message quand tu arrives à ta salle, pour ouvrir ta séance du jour. C'est iOS qui repère l'arrivée : BodyPilot ne suit pas ta position et le lieu reste sur ton iPhone."
-                         : "À faire une fois, sur place : ensuite, un message quand tu arrives à ta salle pour ouvrir ta séance du jour. Le lieu reste sur ton iPhone et BodyPilot ne suit pas ta position.")
+                         : "À faire une fois, sur place : ensuite, un message quand tu arrives à ta salle pour ouvrir ta séance du jour. Autorise la position « Lorsque l'app est active » : le lieu reste sur ton iPhone et BodyPilot ne suit pas ta position.")
                 }
             }
         }
