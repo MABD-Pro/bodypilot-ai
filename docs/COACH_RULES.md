@@ -257,3 +257,10 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Journée pleine : sans créneau assez long, la plus longue pause (arrondie à 5 min, au moins 15) est proposée comme « Je n'ai que N minutes ».
 - Restaurant : mots entiers dans le titre ou le lieu (restaurant, resto, brasserie, bistrot, pizzeria, sushi, brunch, apéro, afterwork, « dîner chez / avec », « déjeuner d'affaires »…), événement pas encore fini ; de 11 h à 15 h le déjeuner, de 18 h à minuit le dîner.
 - Déplacement : train, TGV, avion, vol, aéroport, gare, hôtel, voyage, déplacement, séminaire. Mots entiers : « entraînement » n'est pas un train. Limite connue : une réunion dans une autre ville sans ces mots n'est pas vue (pas de géocodage).
+
+## Faim (`ProgressInsights/HungerPatterns`, `Nutrition/MealPlanner`)
+
+- « J'ai faim » en une touche dans Manger, avec trois niveaux : petite faim, faim, très faim. Chaque note est datée à la minute, enregistrée sur l'iPhone et incluse dans la sauvegarde.
+- Tendance : sur les 14 derniers jours, une faim (niveau « faim » ou plus) notée au moins 3 jours distincts dans le même créneau. Créneaux : matin 6 h-11 h, avant le déjeuner 11 h-14 h, après-midi 14 h-19 h, soir sinon ; une note entre minuit et 6 h compte pour la veille. Le créneau le plus fréquent l'emporte. Les petites faims ne comptent pas.
+- Réponse : le repas qui précède ce créneau (petit-déjeuner, petit-déjeuner, déjeuner, dîner) reçoit 10 points de la part des protéines et 5 points de celle des calories, pris à parts égales aux autres repas principaux. Les totaux du jour ne changent pas. Rien si ce repas est au restaurant. Le coach le dit dans Manger et conseille fibres et légumes.
+- Fondement : les protéines rassasient davantage que les glucides et les lipides à calories égales (Leidy et al., 2015, revue dans l'American Journal of Clinical Nutrition, citée de mémoire, à vérifier). Les parts déplacées sont un choix BodyPilot.

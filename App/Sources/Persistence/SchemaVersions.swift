@@ -228,8 +228,17 @@ enum SchemaV7: VersionedSchema {
     }
 }
 
+/// V8 : faim notée d'une touche (`HungerRecord`, nouveau modèle).
+enum SchemaV8: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(8, 0, 0) }
+
+    static var models: [any PersistentModel.Type] {
+        SchemaV7.models + [HungerRecord.self]
+    }
+}
+
 enum BodyPilotMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self, SchemaV5.self, SchemaV6.self, SchemaV7.self] }
+    static var schemas: [any VersionedSchema.Type] { [SchemaV1.self, SchemaV2.self, SchemaV3.self, SchemaV4.self, SchemaV5.self, SchemaV6.self, SchemaV7.self, SchemaV8.self] }
     /// Champs ou modèles ajoutés avec une valeur par défaut : migrations légères, sans perte.
     static var stages: [MigrationStage] {
         [
@@ -239,6 +248,7 @@ enum BodyPilotMigrationPlan: SchemaMigrationPlan {
             .lightweight(fromVersion: SchemaV4.self, toVersion: SchemaV5.self),
             .lightweight(fromVersion: SchemaV5.self, toVersion: SchemaV6.self),
             .lightweight(fromVersion: SchemaV6.self, toVersion: SchemaV7.self),
+            .lightweight(fromVersion: SchemaV7.self, toVersion: SchemaV8.self),
         ]
     }
 }

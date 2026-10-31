@@ -20,6 +20,8 @@ struct BackupArchive: Codable {
     var cardioTests: [CardioTest] = []
     /// Absent des sauvegardes plus anciennes.
     var weekFeelings: [WeekFeelingItem]?
+    /// Absent des sauvegardes plus anciennes.
+    var hunger: [HungerNote]?
 
     struct Profile: Codable {
         var entityID: UUID
@@ -174,6 +176,7 @@ enum Backup {
         archive.weekFeelings = try context.fetch(FetchDescriptor<WeekFeelingRecord>(sortBy: [SortDescriptor(\.weekStart)])).map {
             .init(weekStart: $0.weekStart, moodRaw: $0.moodRaw, obstaclesRaw: $0.obstaclesRaw, answeredAt: $0.answeredAt)
         }
+        archive.hunger = try context.fetch(FetchDescriptor<HungerRecord>(sortBy: [SortDescriptor(\.date)])).map(\.note)
         return archive
     }
 
@@ -211,6 +214,7 @@ enum Backup {
             try deleteAll(LiftRecord.self)
             try deleteAll(CardioTestRecord.self)
             try deleteAll(WeekFeelingRecord.self)
+            try deleteAll(HungerRecord.self)
 
             // Le profil affiché est mis à jour plutôt que remplacé : l'écran Aujourd'hui le tient,
             // et un profil effacé sous ses yeux ferait planter l'app.
@@ -296,6 +300,9 @@ enum Backup {
                 record.obstaclesRaw = item.obstaclesRaw
                 record.answeredAt = item.answeredAt
                 context.insert(record)
+            }
+            for note in archive.hunger ?? [] {
+                context.insert(HungerRecord(date: note.date, level: note.level))
             }
             try context.save()
         } catch {

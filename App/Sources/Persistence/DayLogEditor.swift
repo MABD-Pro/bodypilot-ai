@@ -62,6 +62,7 @@ enum DayLogEditor {
         let done = (try? context.fetch(FetchDescriptor<DayLogRecord>(predicate: #Predicate { $0.workoutDone && $0.day < start }))) ?? []
         let lifts = (try? context.fetch(FetchDescriptor<LiftRecord>(predicate: #Predicate { $0.day < start }))) ?? []
         let cardioTests = (try? context.fetch(FetchDescriptor<CardioTestRecord>())) ?? []
+        let hunger = (try? context.fetch(FetchDescriptor<HungerRecord>())) ?? []
         let last = lastStrength(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar)
         let active = activeDays(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar)
         return CoachFactory.coach.plan(
@@ -75,6 +76,7 @@ enum DayLogEditor {
             mealIntakes: today?.mealIntakes ?? [:],
             describedMeals: today?.describedMeals ?? [:],
             habitMeals: HabitMeals.usual(history: mealHistory(in: context, days: HabitMeals.windowDays, now: now, calendar: calendar), today: now, calendar: calendar),
+            fullerMeal: HungerPatterns.pattern(hunger.map(\.note), on: now, calendar: calendar)?.window.mealBefore,
             lastWorkoutTitle: last.title,
             lastStrengthDay: last.day,
             calibratedLifts: calibratedLifts(lifts.map(\.entry), before: now, since: profile.strengthTestResetAt, lastStrengthDay: last.day, calendar: calendar),

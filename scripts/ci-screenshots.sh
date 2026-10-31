@@ -76,6 +76,7 @@ shoot 2d-depense-mesuree -demoData YES -demoIntake YES -demoScrollTo nutrition
 shoot 2e-phase-prise -demoData YES -demoTarget 92 -demoScrollTo nutrition
 shoot 2f-liste-de-courses -demoData YES -demoGroceries YES
 shoot 2g-marques-conseillees -demoData YES -demoGroceries YES -demoBrands "Skyr nature"
+shoot 2h-faim -demoData YES -demoHunger YES -demoScrollTo nutrition
 shoot 3i-isolation -demoData YES -demoScrollTo training
 shoot 3k-senior -demoData YES -demoLifts YES -demoAge 68 -demoScrollTo training
 shoot 3j-sommeil-moyen -demoData YES -demoSleepAverage 6.25 -demoScrollTo training

@@ -25,6 +25,10 @@ public struct MealPlanner: NutritionPlanning {
         calculator.targets(for: profile, currentWeightKg: currentWeightKg, exerciseKcalPerDay: exerciseKcalPerDay, on: date)
     }
 
+    /// Repas rendu plus rassasiant quand la faim revient après lui (choix BodyPilot).
+    static let fullerProteinShift = 0.10
+    static let fullerKcalShift = 0.05
+
     /// Pas faim : on vise 85 % des calories, sans descendre sous le plancher de sécurité.
     static let lowAppetiteRatio = 0.85
 
@@ -37,6 +41,18 @@ public struct MealPlanner: NutritionPlanning {
         if constraints.lowAppetite {
             dayKcal = max(dayKcal * Self.lowAppetiteRatio, min(dayKcal, SafetyLimits.minimumKcal(for: profile.sex)))
             notes.append("Pas faim : portions plus petites et riches en protéines. Mange ce qui passe, sans te forcer : une journée plus légère ne change rien à ta progression.")
+        }
+
+        if let fuller = constraints.fullerMeal, fuller != .snack, fuller != constraints.eatingOut {
+            // Faim qui revient après ce repas : +10 points de protéines et +5 points de calories,
+            // pris aux autres repas principaux. Les protéines rassasient le plus (Leidy et al., 2015).
+            let others = MealSlot.allCases.filter { $0 != fuller && $0 != .snack }
+            for other in others {
+                proteinShares[other, default: 0] -= Self.fullerProteinShift / Double(others.count)
+                shares[other, default: 0] -= Self.fullerKcalShift / Double(others.count)
+            }
+            proteinShares[fuller, default: 0] += Self.fullerProteinShift
+            shares[fuller, default: 0] += Self.fullerKcalShift
         }
 
         if let restaurant = constraints.eatingOut {
