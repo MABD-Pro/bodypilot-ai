@@ -19,6 +19,8 @@ struct NutritionCard: View {
     var showGroceries: (() -> Void)?
     /// Jour passé corrigé depuis l'historique : ce qui a été mangé, sans conseils pour la suite.
     var pastDay = false
+    /// Repas au restaurant : lire la carte en photo ; `nil` : pas de bouton (jour passé).
+    var scanMenu: ((MealSlot, Macros) -> Void)?
     /// Faim notée d'une touche ; `nil` : pas de bouton (jour passé).
     var noteHunger: ((HungerLevel) -> Void)?
     /// Dernière faim notée aujourd'hui.
@@ -94,7 +96,8 @@ struct NutritionCard: View {
                         recent: recent(meal.slot),
                         reuse: { reuse(meal.slot, $0) },
                         showHistory: showHistory.map { show in { show(meal.slot) } },
-                        pastDay: pastDay
+                        pastDay: pastDay,
+                        scanMenu: pastDay ? nil : scanMenu.map { scan in { scan(meal.slot, meal.macros) } }
                     )
                 }
             }
@@ -154,6 +157,8 @@ private struct MealRow: View {
     let reuse: (DescribedMeal) -> Void
     var showHistory: (() -> Void)?
     var pastDay = false
+    /// Repas au restaurant : lire la carte en photo.
+    var scanMenu: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
@@ -239,6 +244,15 @@ private struct MealRow: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                             .padding(.top, 2)
+                        if let scanMenu, !meal.isEaten {
+                            Button(action: scanMenu) {
+                                Label("Lire la carte en photo", systemImage: "text.viewfinder")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity, minHeight: 36)
+                            }
+                            .buttonStyle(.glass)
+                            .tint(Theme.nutrition)
+                        }
                     }
                     NutrientBreakdown(macros: meal.macros, approximate: meal.isEatingOut || meal.described != nil)
                         .padding(.top, 2)
