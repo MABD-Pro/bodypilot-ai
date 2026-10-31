@@ -38,3 +38,22 @@ private func json(_ text: String) -> Data { Data(text.utf8) }
     #expect(verdict.rating == .fine)
     #expect(verdict.headline == "Peu de protéines")
 }
+
+@Test func olderFieldsAndRepeatedBrandAreHandled() throws {
+    let data = json("""
+    {"status":1,"product":{"product_name":"Nutella","brands":"Nutella,Ferrero","serving_size":"15 g","nutrition_grades":"e",
+    "nutriments":{"energy-kcal_100g":539,"proteins_100g":6.3,"carbohydrates_100g":57.5,"fat_100g":30.9}}}
+    """)
+    let food = try #require(PackagedFood.fromOpenFoodFacts(data, barcode: "3017620422003"))
+    #expect(food.brand == nil)
+    #expect(food.servingGrams == 15)
+    #expect(food.nutriScore == "e")
+    #expect(ProductVerdict.of(food).rating == .occasional)
+}
+
+@Test func servingTextIsRead() {
+    #expect(PackagedFood.gramsInServing("1 pot (125 g)") == 125)
+    #expect(PackagedFood.gramsInServing("30g") == 30)
+    #expect(PackagedFood.gramsInServing("12,5 g") == 12.5)
+    #expect(PackagedFood.gramsInServing("1 verre") == nil)
+}

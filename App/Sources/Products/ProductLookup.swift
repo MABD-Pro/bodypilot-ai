@@ -9,14 +9,14 @@ enum ProductLookup {
         case offline
     }
 
-    private static let cacheKey = "productCache"
+    private static let cacheKey = "productCache.v2"
     /// Produits gardés au plus (les plus anciens partent d'abord).
     private static let cacheLimit = 200
 
     static func product(for barcode: String) async -> Result<PackagedFood, Failure> {
         if let cached = cache[barcode] { return .success(cached) }
         var components = URLComponents(string: "https://world.openfoodfacts.org/api/v2/product/\(barcode).json")
-        components?.queryItems = [URLQueryItem(name: "fields", value: "product_name,product_name_fr,brands,serving_quantity,nutriscore_grade,nutriments")]
+        components?.queryItems = [URLQueryItem(name: "fields", value: "product_name,product_name_fr,brands,serving_quantity,serving_size,nutriscore_grade,nutrition_grades,nutriments")]
         guard let url = components?.url else { return .failure(.notFound) }
         var request = URLRequest(url: url, timeoutInterval: 10)
         // Open Food Facts demande d'identifier l'app qui interroge sa base.

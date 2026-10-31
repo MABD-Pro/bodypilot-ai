@@ -14,6 +14,7 @@ struct ProductScanSheet: View {
     @State private var failure: ProductLookup.Failure?
     @State private var isLooking = false
     @State private var lastScanned: String?
+    @FocusState private var isTypingCode: Bool
 
     private var canScan: Bool { DataScannerViewController.isSupported && DataScannerViewController.isAvailable }
 
@@ -62,6 +63,7 @@ struct ProductScanSheet: View {
             TextField("Code-barres", text: $barcode)
                 .keyboardType(.numberPad)
                 .textFieldStyle(.roundedBorder)
+                .focused($isTypingCode)
             Button("Chercher") { found(barcode) }
                 .buttonStyle(.glass)
                 .disabled(barcode.filter(\.isNumber).count < 8 || isLooking)
@@ -73,6 +75,8 @@ struct ProductScanSheet: View {
         guard digits.count >= 8, digits != lastScanned || product == nil else { return }
         lastScanned = digits
         barcode = digits
+        // Le pavé numérique n'a pas de touche Retour : on le ferme pour montrer le résultat.
+        isTypingCode = false
         isLooking = true
         failure = nil
         Task {

@@ -38,7 +38,9 @@ public struct PackagedFood: Sendable, Equatable, Codable {
             let product_name: String?
             let brands: String?
             let serving_quantity: FlexibleDouble?
+            let serving_size: String?
             let nutriscore_grade: String?
+            let nutrition_grades: String?
             let nutriments: [String: FlexibleDouble]?
         }
         guard let response = try? JSONDecoder().decode(Response.self, from: data),
@@ -51,15 +53,30 @@ public struct PackagedFood: Sendable, Equatable, Codable {
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .first { !$0.isEmpty } ?? "Produit \(barcode)"
         let brand = product.brands?.split(separator: ",").first.map { $0.trimmingCharacters(in: .whitespaces) }
-        let grade = product.nutriscore_grade?.lowercased()
+        // Le Nutri-Score est rangé sous deux noms selon l'âge de la fiche.
+        let grade = [product.nutriscore_grade, product.nutrition_grades]
+            .compactMap { $0?.lowercased() }
+            .first { ["a", "b", "c", "d", "e"].contains($0) }
+        // Portion : chiffrée si possible, sinon lue dans le texte (« 15 g »).
+        let serving = product.serving_quantity?.value ?? product.serving_size.flatMap(gramsInServing)
+        // La marque n'apporte rien quand elle répète le nom (« Nutella »).
+        let shownBrand = brand.flatMap { $0.isEmpty || $0.caseInsensitiveCompare(name) == .orderedSame ? nil : $0 }
         return PackagedFood(
             barcode: barcode,
             name: name,
-            brand: brand?.isEmpty == false ? brand : nil,
+            brand: shownBrand,
             per100g: Macros(kcal: kcal, proteinG: value("proteins_100g") ?? 0, carbsG: value("carbohydrates_100g") ?? 0, fatG: value("fat_100g") ?? 0, fiberG: value("fiber_100g") ?? 0),
-            servingGrams: product.serving_quantity?.value.flatMap { $0 > 0 ? $0 : nil },
-            nutriScore: ["a", "b", "c", "d", "e"].contains(grade ?? "") ? grade : nil
+            servingGrams: serving.flatMap { $0 > 0 ? $0 : nil },
+            nutriScore: grade
         )
+    }
+
+    /// Grammes d'une portion écrite en texte : « 15 g », « 1 pot (125 g) », « 30g ».
+    static func gramsInServing(_ text: String) -> Double? {
+        let lowered = text.lowercased().replacingOccurrences(of: ",", with: ".")
+        guard let range = lowered.range(of: #"(\d+(\.\d+)?)\s*g\b"#, options: .regularExpression) else { return nil }
+        let number = lowered[range].filter { $0.isNumber || $0 == "." }
+        return Double(number)
     }
 }
 
