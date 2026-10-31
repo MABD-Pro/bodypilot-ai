@@ -103,7 +103,7 @@ enum LaunchOptions {
     static var demoCycleWeek: Int? { defaults.object(forKey: "demoCycle") == nil ? nil : defaults.integer(forKey: "demoCycle") }
     /// `-demoHyrox` : le cycle de démonstration (et le choix proposé) est l'Hyrox.
     static var demoHyrox: Bool { defaults.bool(forKey: "demoHyrox") }
-    /// `-demoHunger YES` : faim notée l'après-midi quatre jours sur quatorze, et à 16 h 10 aujourd'hui.
+    /// `-demoHunger YES` : faim notée l'après-midi quatre jours sur quatorze, et une petite faim il y a vingt minutes.
     static var demoHunger: Bool { defaults.bool(forKey: "demoHunger") }
     /// `-demoLifts YES` : profil en salle et séries notées les semaines passées, record du jour sur le premier exercice.
     static var demoLifts: Bool { defaults.bool(forKey: "demoLifts") }

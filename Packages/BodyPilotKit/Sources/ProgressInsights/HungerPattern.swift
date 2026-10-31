@@ -54,7 +54,7 @@ public struct HungerPattern: Sendable, Equatable {
         case .snack: "goûter"
         case .dinner: "dîner"
         }
-        return "Faim \(window.label) \(days) jours sur \(HungerPatterns.windowDays) : ton \(meal) prend plus de protéines. Ajoute aussi des légumes ou des légumineuses, les fibres calent."
+        return "Faim \(window.label) \(days) jours sur \(HungerPatterns.windowDays) : ton \(meal) prend plus de protéines. Pense aussi aux légumes et aux légumineuses, les fibres calent."
     }
 }
 
