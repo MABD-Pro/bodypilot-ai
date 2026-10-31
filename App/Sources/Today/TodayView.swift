@@ -15,6 +15,8 @@ struct TodayView: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("healthWeightSync") private var healthSync = false
     @AppStorage(CoachNotifications.enabledKey) private var coachReminders = true
+    /// Jour du dernier débrief du soir (enregistré ou écarté), au format 2026-10-30.
+    @AppStorage("eveningDebriefDay") private var eveningDebriefDay = ""
     @Query(sort: \WeightRecord.date) private var weights: [WeightRecord]
     @Query private var dayLogs: [DayLogRecord]
     @Query(filter: #Predicate<WaistRecord> { !$0.isScan }, sort: \WaistRecord.date) private var waists: [WaistRecord]
@@ -184,6 +186,15 @@ struct TodayView: View {
                                 withAnimation(Theme.springy) { profileRecord.floorWeekUntil = calendar.startOfDay(for: .now) }
                                 try? context.save()
                             })
+                        }
+                        if showsEveningDebrief(now: now) {
+                            EveningDebriefCard(
+                                pendingSlots: pendingMealSlots(in: todayLog),
+                                initialText: LaunchOptions.demoDebrief.flatMap { $0 == "YES" ? nil : $0 },
+                                save: { saveDebrief($0, now: now) },
+                                dismiss: { withAnimation(Theme.springy) { eveningDebriefDay = Self.dayKey(now, calendar: calendar) } }
+                            )
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                         }
                         if !profileRecord.screening.isAnswered {
                             screeningBanner
@@ -760,6 +771,49 @@ struct TodayView: View {
         }
         // Séance cochée à la main : le suivi de l'écran verrouillé n'a plus lieu d'être.
         if log.workoutDone { Task { await WorkoutLiveActivity.endAll() } }
+    }
+
+    /// À partir de 18 h, une fois par jour. En démo, seulement sur demande (captures à heure fixe).
+    private func showsEveningDebrief(now: Date) -> Bool {
+        if LaunchOptions.demoDebrief != nil { return true }
+        guard !LaunchOptions.demoData else { return false }
+        return calendar.component(.hour, from: now) >= EveningDebrief.opensAtHour && eveningDebriefDay != Self.dayKey(now, calendar: calendar)
+    }
+
+    private static func dayKey(_ date: Date, calendar: Calendar) -> String {
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
+    /// Repas ni cochés ni décrits aujourd'hui.
+    private func pendingMealSlots(in log: DayLogRecord?) -> Set<MealSlot> {
+        Set(MealSlot.allCases)
+            .subtracting(log?.mealIntakes.keys.map { $0 } ?? [])
+            .subtracting(log?.describedMeals.keys.map { $0 } ?? [])
+    }
+
+    /// Débrief confirmé : repas et séance du jour, ressenti posé sur demain.
+    private func saveDebrief(_ debrief: EveningDebrief, now: Date) {
+        let log = todayLog()
+        withAnimation(Theme.springy) {
+            if !debrief.meals.isEmpty { log.mealIntakes.merge(debrief.meals) { _, new in new } }
+            if debrief.workoutDone == true, !log.workoutDone {
+                log.workoutDone = true
+                log.doneWorkoutTitle = DisplayedWorkout.title(on: now, calendar: calendar) ?? nil
+            }
+            eveningDebriefDay = Self.dayKey(now, calendar: calendar)
+        }
+        if !debrief.tomorrow.isEmpty, let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) {
+            let next = DayLogEditor.log(on: tomorrow, in: context, calendar: calendar) ?? {
+                let created = DayLogRecord(day: calendar.storedDay(for: tomorrow))
+                context.insert(created)
+                return created
+            }()
+            next.adjustments = next.adjustments.union(debrief.tomorrow)
+        }
+        if debrief.workoutDone == true { Task { await WorkoutLiveActivity.endAll() } }
+        try? context.save()
+        Telemetry.record(.eveningDebriefSaved)
     }
 
     /// Phrase libre comprise : on ajoute les ajustements, sans retirer ceux déjà choisis.
