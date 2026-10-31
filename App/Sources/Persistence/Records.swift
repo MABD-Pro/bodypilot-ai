@@ -407,3 +407,17 @@ final class CardioTestRecord {
 
     var measure: CardioMeasure { CardioMeasure(vo2max: vo2max, date: day, source: .walkTest) }
 }
+
+/// Faim notée d'une touche (« J'ai faim »), avec son heure : base des faims qui reviennent.
+@Model
+final class HungerRecord {
+    var date: Date = Date.now
+    var levelRaw: Int = HungerLevel.hungry.rawValue
+
+    init(date: Date, level: HungerLevel) {
+        self.date = date
+        self.levelRaw = level.rawValue
+    }
+
+    var note: HungerNote { HungerNote(date: date, level: HungerLevel(rawValue: levelRaw) ?? .hungry) }
+}

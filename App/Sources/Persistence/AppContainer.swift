@@ -103,6 +103,8 @@ enum LaunchOptions {
     static var demoCycleWeek: Int? { defaults.object(forKey: "demoCycle") == nil ? nil : defaults.integer(forKey: "demoCycle") }
     /// `-demoHyrox` : le cycle de démonstration (et le choix proposé) est l'Hyrox.
     static var demoHyrox: Bool { defaults.bool(forKey: "demoHyrox") }
+    /// `-demoHunger YES` : faim notée l'après-midi quatre jours sur quatorze, et à 16 h 10 aujourd'hui.
+    static var demoHunger: Bool { defaults.bool(forKey: "demoHunger") }
     /// `-demoLifts YES` : profil en salle et séries notées les semaines passées, record du jour sur le premier exercice.
     static var demoLifts: Bool { defaults.bool(forKey: "demoLifts") }
     /// `-demoCalibration YES` : profil en salle sans charge notée, la séance du jour est le premier test de force.
@@ -138,7 +140,7 @@ enum LaunchOptions {
 }
 
 enum AppContainer {
-    static let schema = Schema(versionedSchema: SchemaV7.self)
+    static let schema = Schema(versionedSchema: SchemaV8.self)
 
     /// Raison pour laquelle la base locale n'a pas pu s'ouvrir : l'app l'affiche au lieu de
     /// planter à chaque lancement (Siri compris), sans jamais effacer les données.
@@ -205,6 +207,18 @@ enum DemoData {
             resting.append(DatedValue(date: date, value: (tired ? 62 : 56) + noise[daysAgo % noise.count] / 2))
         }
         return (hrv, resting)
+    }
+
+    /// Faims de `-demoHunger` : l'après-midi plusieurs jours, une fois le soir.
+    static func hunger(now: Date = .now, calendar: Calendar = .current) -> [HungerNote] {
+        let notes: [(daysAgo: Int, hour: Int, minute: Int, level: HungerLevel)] = [
+            (1, 16, 30, .hungry), (3, 17, 0, .starving), (6, 15, 45, .hungry), (9, 16, 15, .hungry), (5, 21, 30, .peckish),
+        ]
+        return notes.compactMap { note in
+            guard let day = calendar.date(byAdding: .day, value: -note.daysAgo, to: now),
+                  let date = calendar.date(bySettingHour: note.hour, minute: note.minute, second: 0, of: day) else { return nil }
+            return HungerNote(date: date, level: note.level)
+        }
     }
 
     /// Événements du jour pour `-demoAgenda`.
@@ -320,6 +334,14 @@ enum DemoData {
 
     /// Deux séances passées par exercice ; la dernière dépasse les répétitions prévues, d'où une charge en hausse.
     @MainActor
+    /// Faims passées, et une petite faim notée il y a vingt minutes.
+    private static func seedHunger(context: ModelContext, now: Date, calendar: Calendar) {
+        for note in DemoData.hunger(now: now, calendar: calendar) {
+            context.insert(HungerRecord(date: note.date, level: note.level))
+        }
+        context.insert(HungerRecord(date: now.addingTimeInterval(-20 * 60), level: .peckish))
+    }
+
     private static func seedLifts(for profile: UserProfile, context: ModelContext, now: Date, calendar: Calendar) {
         // Calibrage fait il y a deux semaines : une série de 5 sur chaque mouvement de référence.
         let tests: [Double] = [70, 52.5, 50, 100, 40, 45]
@@ -441,6 +463,7 @@ enum DemoData {
         }
 
         if LaunchOptions.demoLifts { seedLifts(for: profile, context: context, now: now, calendar: calendar) }
+        if LaunchOptions.demoHunger { seedHunger(context: context, now: now, calendar: calendar) }
 
         var adjustments = LaunchOptions.demoAdjustments
         var minutes: Int?

@@ -19,6 +19,12 @@ struct NutritionCard: View {
     var showGroceries: (() -> Void)?
     /// Jour passé corrigé depuis l'historique : ce qui a été mangé, sans conseils pour la suite.
     var pastDay = false
+    /// Faim notée d'une touche ; `nil` : pas de bouton (jour passé).
+    var noteHunger: ((HungerLevel) -> Void)?
+    /// Dernière faim notée aujourd'hui.
+    var lastHunger: HungerNote?
+    /// Faim qui revient au même moment : ce que le coach a changé.
+    var hungerPattern: String?
 
     @State private var expanded: MealSlot?
     @State private var showsRationale = false
@@ -64,6 +70,13 @@ struct NutritionCard: View {
                 ForEach(meals.notes, id: \.self) { note in
                     CoachNote(text: note, tint: Theme.nutrition)
                 }
+                if let hungerPattern {
+                    CoachNote(text: hungerPattern, tint: Theme.nutrition)
+                }
+            }
+
+            if let noteHunger {
+                HungerButton(last: lastHunger, note: noteHunger)
             }
 
             VStack(spacing: Theme.Spacing.s) {
@@ -410,5 +423,41 @@ extension MealSlot {
         case .snack: Theme.progress
         case .dinner: Theme.fat
         }
+    }
+}
+
+/// « J'ai faim » en une touche, avec son intensité. Le coach repère ce qui revient.
+private struct HungerButton: View {
+    let last: HungerNote?
+    let note: (HungerLevel) -> Void
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.s) {
+            Menu {
+                ForEach(HungerLevel.allCases.reversed(), id: \.self) { level in
+                    Button(level.label) { note(level) }
+                }
+            } label: {
+                Label("J'ai faim", systemImage: "fork.knife.circle")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, Theme.Spacing.m)
+                    .frame(minHeight: 36)
+            }
+            .buttonStyle(.glass)
+            .tint(Theme.nutrition)
+            if let last {
+                Text("\(last.level.label) notée à \(AgendaCard.time(last.date))")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .contentTransition(.opacity)
+            } else {
+                Text("Note-la quand elle arrive : le coach repère les faims qui reviennent.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .sensoryFeedback(.success, trigger: last?.date)
     }
 }

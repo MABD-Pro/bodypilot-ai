@@ -252,13 +252,16 @@ public struct MealConstraints: Sendable, Equatable {
     /// Repas que l'utilisateur mange souvent à ce moment de la journée (`HabitMeals`) : proposés
     /// à la place des modèles, portions ajustées au jour.
     public var habits: [MealSlot: DescribedMeal]
+    /// Faim qui revient après ce repas (`HungerPatterns`) : il prend plus de protéines.
+    public var fullerMeal: MealSlot?
 
-    public init(eatingOut: MealSlot? = nil, lowAppetite: Bool = false, eaten: [MealSlot: MealIntake] = [:], described: [MealSlot: DescribedMeal] = [:], habits: [MealSlot: DescribedMeal] = [:]) {
+    public init(eatingOut: MealSlot? = nil, lowAppetite: Bool = false, eaten: [MealSlot: MealIntake] = [:], described: [MealSlot: DescribedMeal] = [:], habits: [MealSlot: DescribedMeal] = [:], fullerMeal: MealSlot? = nil) {
         self.eatingOut = eatingOut
         self.lowAppetite = lowAppetite
         self.eaten = eaten
         self.described = described
         self.habits = habits
+        self.fullerMeal = fullerMeal
     }
 }
 

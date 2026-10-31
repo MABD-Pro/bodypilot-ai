@@ -27,6 +27,7 @@ struct TodayView: View {
     @Query(filter: #Predicate<WaistRecord> { !$0.isScan }, sort: \WaistRecord.date) private var waists: [WaistRecord]
     @Query(sort: \LiftRecord.day) private var liftRecords: [LiftRecord]
     @Query(sort: \CardioTestRecord.day) private var cardioTests: [CardioTestRecord]
+    @Query(sort: \HungerRecord.date) private var hungerRecords: [HungerRecord]
     @State private var isAddingWaist = false
     @State private var describing: MealToDescribe?
     @State private var isAddingWeight = false
@@ -124,6 +125,7 @@ struct TodayView: View {
             mealIntakes: todayLog?.mealIntakes ?? [:],
             describedMeals: todayLog?.describedMeals ?? [:],
             habitMeals: HabitMeals.usual(history: DayLogEditor.mealHistory(dayLogs, days: HabitMeals.windowDays, now: now, calendar: calendar), today: now, calendar: calendar),
+            fullerMeal: hungerPattern(now: now)?.window.mealBefore,
             lastWorkoutTitle: lastStrength.title,
             lastStrengthDay: lastStrength.day,
             calibratedLifts: DayLogEditor.calibratedLifts(lifts, before: now, since: profileRecord.strengthTestResetAt, lastStrengthDay: lastStrength.day, calendar: calendar),
@@ -202,13 +204,7 @@ struct TodayView: View {
                         agendaSection(now: now, active: todayAdjustments)
                         CommandField(apply: apply)
                         AdjustmentBar(active: todayAdjustments, toggle: toggle)
-                        NutritionCard(targets: plan.targets, meals: plan.meals, logIntake: logIntake, describe: { slot in
-                            describing = MealToDescribe(slot: slot, current: todayLog?.describedMeals[slot])
-                        }, recent: { slot in
-                            RecentMeals.list(for: slot, history: recentMealHistory(now: now), today: now, calendar: calendar)
-                        }, reuse: { slot, meal in
-                            saveDescribed(meal, for: slot)
-                        }, showHistory: { slot in showHistory(slot.map { .meal($0) } ?? .section(.meals)) }, showGroceries: { isShowingGroceries = true })
+                        nutritionCard(plan: plan, todayLog: todayLog, now: now)
                             .id("nutrition")
                         TrainingCard(
                             training: (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training),
@@ -739,6 +735,32 @@ struct TodayView: View {
     /// Cartes d'alerte en tête : garde-fou alimentaire, retour après une pause, semaine plancher.
     /// À part du corps de l'écran, que le compilateur vérifie plus vite ainsi.
     @ViewBuilder
+    /// Faim qui revient au même moment ces deux dernières semaines.
+    private func hungerPattern(now: Date) -> HungerPattern? {
+        HungerPatterns.pattern(hungerRecords.map(\.note), on: now, calendar: calendar)
+    }
+
+    private func nutritionCard(plan: TodayPlan, todayLog: DayLogRecord?, now: Date) -> some View {
+        let startOfDay = calendar.startOfDay(for: now)
+        let lastHunger = hungerRecords.last { $0.date >= startOfDay && $0.date <= now }?.note
+        return NutritionCard(
+            targets: plan.targets, meals: plan.meals, logIntake: logIntake,
+            describe: { slot in describing = MealToDescribe(slot: slot, current: todayLog?.describedMeals[slot]) },
+            recent: { slot in RecentMeals.list(for: slot, history: recentMealHistory(now: now), today: now, calendar: calendar) },
+            reuse: { slot, meal in saveDescribed(meal, for: slot) },
+            showHistory: { slot in showHistory(slot.map { .meal($0) } ?? .section(.meals)) },
+            showGroceries: { isShowingGroceries = true },
+            noteHunger: noteHunger,
+            lastHunger: lastHunger,
+            hungerPattern: hungerPattern(now: now)?.message
+        )
+    }
+
+    private func noteHunger(_ level: HungerLevel) {
+        context.insert(HungerRecord(date: .now, level: level))
+        try? context.save()
+    }
+
     private func coachAlerts(now: Date, eatingCare: Set<EatingCareSignal>, comeback: Comeback?, floorWeek: FloorWeekProgress?) -> some View {
         if LaunchOptions.demoEatingCare != nil ? eatingCareRevision == 0 : EatingCareStore.shows(eatingCare, on: now, calendar: calendar) {
             EatingCareCard(
