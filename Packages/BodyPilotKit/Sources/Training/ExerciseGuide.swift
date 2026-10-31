@@ -76,7 +76,7 @@ public struct ExerciseGuide: Sendable, Equatable {
             barbell: true, start: (0.3, 0.2)
         ),
         "Rowing barre": ExerciseGuide(
-            muscles: "Dos (milieu), grand dorsal, biceps",
+            muscles: "Grand dorsal, dos (milieu), biceps",
             cues: ["Buste penché à environ 45°, dos plat, genoux fléchis.", "Tire la barre vers le nombril, coudes près du corps.", "Serre les omoplates en haut, une seconde.", "Redescends en contrôle, sans redresser le buste."],
             barbell: true, start: (0.45, 0.3)
         ),

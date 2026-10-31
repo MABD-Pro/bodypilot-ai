@@ -102,8 +102,8 @@ struct BodyMapZoomSheet: View {
     let zoom: BodyMapZoom
     let color: (MuscleRegion) -> Color?
 
-    private enum View_: Hashable { case front, back, both }
-    @State private var view: View_ = .both
+    private enum Mode: Hashable { case front, back, both }
+    @State private var mode: Mode = .both
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -117,13 +117,13 @@ struct BodyMapZoomSheet: View {
                         .font(.subheadline.weight(.semibold))
                         .tint(Theme.training)
                 }
-                Picker("Vue", selection: $view.animation(.snappy)) {
-                    Text("Les deux").tag(View_.both)
-                    Text("Face").tag(View_.front)
-                    Text("Dos").tag(View_.back)
+                Picker("Vue", selection: $mode.animation(.snappy)) {
+                    Text("Les deux").tag(Mode.both)
+                    Text("Face").tag(Mode.front)
+                    Text("Dos").tag(Mode.back)
                 }
                 .pickerStyle(.segmented)
-                switch view {
+                switch mode {
                 case .both:
                     BodyMapPair(color: color, height: nil, largeCaptions: true)
                 case .front:
@@ -171,17 +171,17 @@ struct MuscleHighlightRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: Theme.Spacing.l) {
-            BodyMapPair(leading: regions.leadingSide, color: color, height: 140, zoom: zoom, opensZoom: opensZoom)
+            BodyMapPair(color: color, height: 140, zoom: zoom, opensZoom: opensZoom)
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                 legend(title: "Travaille surtout", regions: regions.primary, opacity: 1)
                 if !regions.secondary.isEmpty {
                     legend(title: "En appoint", regions: regions.secondary, opacity: 0.55)
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityText)
             Spacer(minLength: 0)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityText)
     }
 
     private func color(_ region: MuscleRegion) -> Color? {
@@ -228,7 +228,7 @@ enum BodyMapGeometry {
     static let width: CGFloat = 100
     static let height: CGFloat = 220
 
-    static var silhouette: [Path] {
+    static let silhouette: [Path] = {
         var pieces: [Path] = [
             ellipse(50, 15, 11, 13),
             Path(roundedRect: CGRect(x: 44, y: 25, width: 12, height: 12), cornerRadius: 3),
@@ -244,9 +244,9 @@ enum BodyMapGeometry {
             ellipse(37, 202, 6, 4),
         ])
         return pieces
-    }
+    }()
 
-    private static var torso: Path {
+    private static let torso: Path = {
         var path = Path()
         path.move(to: CGPoint(x: 29, y: 34))
         path.addLine(to: CGPoint(x: 71, y: 34))
@@ -255,7 +255,7 @@ enum BodyMapGeometry {
         path.addQuadCurve(to: CGPoint(x: 29, y: 34), control: CGPoint(x: 36, y: 70))
         path.closeSubpath()
         return path
-    }
+    }()
 
     static func shapes(for region: MuscleRegion, side: MuscleRegion.Side) -> [Path] {
         switch region {
@@ -277,7 +277,7 @@ enum BodyMapGeometry {
         }
     }
 
-    private static var trapezius: Path {
+    private static let trapezius: Path = {
         var path = Path()
         path.move(to: CGPoint(x: 50, y: 31))
         path.addLine(to: CGPoint(x: 36, y: 40))
@@ -287,7 +287,7 @@ enum BodyMapGeometry {
         path.addLine(to: CGPoint(x: 64, y: 40))
         path.closeSubpath()
         return path
-    }
+    }()
 
     static func ellipse(_ cx: CGFloat, _ cy: CGFloat, _ rx: CGFloat, _ ry: CGFloat) -> Path {
         Path(ellipseIn: CGRect(x: cx - rx, y: cy - ry, width: rx * 2, height: ry * 2))

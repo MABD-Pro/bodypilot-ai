@@ -19,17 +19,10 @@ public enum MuscleGroup: String, CaseIterable, Sendable, Codable {
         }
     }
 
-    /// Muscles d'un intitulé de fiche (« Quadriceps », « haut des pectoraux », « jambes »…).
+    /// Muscles d'un intitulé de fiche (« Quadriceps », « haut des pectoraux », « jambes »…) :
+    /// les zones de la silhouette, ramenées à leur groupe.
     static func groups(in text: String) -> [MuscleGroup] {
-        let word = text.lowercased()
-        if word.contains("jambes") { return [.quadriceps, .hamstrings, .glutes] }
-        let keys: [(String, MuscleGroup)] = [
-            ("quadriceps", .quadriceps), ("ischio", .hamstrings), ("fessier", .glutes), ("hanche", .glutes),
-            ("pectora", .chest), ("dorsal", .back), ("dos", .back), ("trapèze", .back), ("lombaire", .back),
-            ("épaule", .shoulders), ("biceps", .arms), ("triceps", .arms), ("bras", .arms), ("avant-bras", .arms),
-            ("gainage", .core), ("mollet", .calves),
-        ]
-        return keys.filter { word.contains($0.0) }.map(\.1).reduce(into: []) { if !$0.contains($1) { $0.append($1) } }
+        MuscleRegion.regions(in: text).map(\.group).reduce(into: [MuscleGroup]()) { if !$0.contains($1) { $0.append($1) } }
     }
 }
 

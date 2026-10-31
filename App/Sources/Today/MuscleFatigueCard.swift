@@ -20,10 +20,10 @@ struct MuscleFatigueCard: View {
                         legend(state)
                     }
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(accessibilityText)
                 Spacer(minLength: 0)
             }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(accessibilityText)
             if !fatiguedTargets.isEmpty {
                 CoachNote(text: targetsNote, tint: Self.color(.fatigued))
             }
@@ -70,7 +70,10 @@ struct MuscleFatigueCard: View {
     }
 
     private var accessibilityText: String {
-        MuscleState.allCases.reversed().map { "\($0.label) : \(Self.list(map.groups($0)))" }.joined(separator: ". ")
+        MuscleState.allCases.reversed().map { state in
+            let groups = map.groups(state)
+            return "\(state.label) : \(groups.isEmpty ? "aucun" : Self.list(groups))"
+        }.joined(separator: ". ")
     }
 
     /// Couleur sur la silhouette ; les muscles frais gardent la teinte du corps.
@@ -86,12 +89,6 @@ struct MuscleFatigueCard: View {
         }
     }
 
-    static func stateLabel(_ state: MuscleState) -> String {
-        switch state {
-        case .fresh: "frais"
-        case .recovering: "en récupération"
-        case .fatigued: "fatigué"
-        }
     }
 
     /// « quadriceps, fessiers et dos ».

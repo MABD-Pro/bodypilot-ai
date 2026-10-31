@@ -976,10 +976,10 @@ private struct SessionMusclesRow: View {
                     .font(.footnote.weight(.medium))
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Travaille surtout : \(regions.primary.map(\.label).joined(separator: ", "))")
             Spacer(minLength: 0)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Travaille surtout : \(regions.primary.map(\.label).joined(separator: ", "))")
     }
 
     private func color(_ region: MuscleRegion) -> Color? {
@@ -989,10 +989,11 @@ private struct SessionMusclesRow: View {
     }
 
     private var zoom: BodyMapZoom {
-        BodyMapZoom(title: title, legend: [
-            .init(color: Theme.training, title: "Travaille surtout", items: regions.primary.map(\.label)),
-            .init(color: Theme.training.opacity(0.55), title: "En appoint", items: regions.secondary.map(\.label)),
-        ])
+        var legend = [BodyMapZoom.LegendLine(color: Theme.training, title: "Travaille surtout", items: regions.primary.map(\.label))]
+        if !regions.secondary.isEmpty {
+            legend.append(.init(color: Theme.training.opacity(0.55), title: "En appoint", items: regions.secondary.map(\.label)))
+        }
+        return BodyMapZoom(title: title, legend: legend)
     }
 }
 
