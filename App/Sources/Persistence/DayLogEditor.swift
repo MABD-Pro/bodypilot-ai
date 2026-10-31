@@ -63,7 +63,7 @@ enum DayLogEditor {
         let lifts = (try? context.fetch(FetchDescriptor<LiftRecord>(predicate: #Predicate { $0.day < start }))) ?? []
         let cardioTests = (try? context.fetch(FetchDescriptor<CardioTestRecord>())) ?? []
         let hunger = (try? context.fetch(FetchDescriptor<HungerRecord>())) ?? []
-        let last = lastStrength(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar)
+        let last = lastStrength(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], lifts: lifts.map(\.entry), calendar: calendar)
         let active = activeDays(before: now, completed: done.map { (day: $0.day, title: $0.doneWorkoutTitle) }, samples: [], calendar: calendar)
         return CoachFactory.coach.plan(
             for: profile.profile,
@@ -146,6 +146,7 @@ enum DayLogEditor {
         before date: Date,
         completed: [(day: Date, title: String?)],
         samples: [ActivitySample],
+        lifts: [LiftEntry] = [],
         calendar: Calendar = .current
     ) -> (day: Date?, title: String?) {
         let start = calendar.startOfDay(for: date)
@@ -156,7 +157,9 @@ enum DayLogEditor {
             .filter { $0.kind == .strength && $0.minutes >= 20 && $0.start < start }
             .map { calendar.startOfDay(for: $0.start) }
             .max()
-        let day = [logged.map { calendar.startOfDay(for: $0.day) }, recorded].compactMap { $0 }.max()
+        // Des séries notées un jour comptent comme une séance de force, même sans « J'ai fait ma séance ».
+        let noted = lifts.filter { $0.date < start }.map { calendar.startOfDay(for: $0.date) }.max()
+        let day = [logged.map { calendar.startOfDay(for: $0.day) }, recorded, noted].compactMap { $0 }.max()
         return (day, logged?.title)
     }
 }
