@@ -18,7 +18,7 @@ struct AgendaCard: View {
     var body: some View {
         CoachCard(eyebrow: "Ton agenda", symbol: "calendar", tint: Theme.training) {
             if let slot = advice.freeSlot {
-                Label("Créneau libre pour ta séance : \(Self.time(slot.start)) – \(Self.time(slot.end))", systemImage: "clock")
+                Label("Créneau libre pour ta séance : \(Self.time(slot.start))\u{00A0}– \(Self.time(slot.end))", systemImage: "clock")
                     .font(.subheadline.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
             }
