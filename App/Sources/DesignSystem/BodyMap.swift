@@ -49,6 +49,8 @@ struct BodyMapPair: View {
     let color: (MuscleRegion) -> Color?
     var height: CGFloat = 150
     var captions = true
+    /// Étiquettes Face / Dos discrètes dans les cartes, lisibles en grand.
+    var largeCaptions = false
     var zoom: BodyMapZoom?
     /// `-demoBodyMapZoom YES` : la feuille agrandie s'ouvre d'elle-même (captures).
     var opensZoom = false
@@ -83,8 +85,8 @@ struct BodyMapPair: View {
                         .frame(height: height)
                     if captions {
                         Text(side == .front ? "Face" : "Dos")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .font(largeCaptions ? .footnote.weight(.semibold) : .caption2)
+                            .foregroundStyle(largeCaptions ? .secondary : .tertiary)
                     }
                 }
             }
@@ -101,13 +103,19 @@ struct BodyMapZoomSheet: View {
 
     private enum View_: Hashable { case front, back, both }
     @State private var view: View_ = .both
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.l) {
-                Text(zoom.title)
-                    .font(.display(24))
-                    .multilineTextAlignment(.center)
+                HStack(alignment: .firstTextBaseline) {
+                    Text(zoom.title)
+                        .font(.display(24))
+                    Spacer()
+                    Button("Fermer") { dismiss() }
+                        .font(.subheadline.weight(.semibold))
+                        .tint(Theme.training)
+                }
                 Picker("Vue", selection: $view.animation(.snappy)) {
                     Text("Les deux").tag(View_.both)
                     Text("Face").tag(View_.front)
@@ -116,13 +124,13 @@ struct BodyMapZoomSheet: View {
                 .pickerStyle(.segmented)
                 switch view {
                 case .both:
-                    BodyMapPair(color: color, height: 380)
+                    BodyMapPair(color: color, height: 420, largeCaptions: true)
                 case .front:
                     BodyMap(side: .front, color: color)
-                        .frame(height: 440)
+                        .frame(height: 480)
                 case .back:
                     BodyMap(side: .back, color: color)
-                        .frame(height: 440)
+                        .frame(height: 480)
                 }
                 VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                     ForEach(zoom.legend) { line in
