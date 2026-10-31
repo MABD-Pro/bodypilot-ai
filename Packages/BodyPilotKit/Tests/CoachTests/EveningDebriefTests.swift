@@ -54,3 +54,10 @@ private let all = Set(MealSlot.allCases)
     #expect(EveningDebrief.day(for: at(31, 1), calendar: calendar) == friday)
     #expect(EveningDebrief.day(for: at(31, 10), calendar: calendar) == nil)
 }
+
+@Test func afterMidnightTheFeelingIsForToday() {
+    let debrief = EveningDebriefParser.parse("séance faite dîner léger mal au genou", pendingSlots: all)
+    #expect(debrief.understoodLines(nextDay: "Aujourd'hui") == ["Séance faite", "Dîner : léger", "Aujourd'hui : genou à ménager"])
+    #expect(debrief.coachReply.contains("protéines"))
+    #expect(debrief.coachReply.contains("genou"))
+}

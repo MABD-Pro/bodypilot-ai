@@ -7,6 +7,8 @@ import SwiftUI
 struct EveningDebriefCard: View {
     /// Repas pas encore notés, ceux que « comme prévu » coche.
     let pendingSlots: Set<MealSlot>
+    /// Après minuit : on raconte la veille, et le ressenti vaut pour aujourd'hui.
+    var isAfterMidnight = false
     let save: (EveningDebrief) -> Void
     let dismiss: () -> Void
 
@@ -21,8 +23,9 @@ struct EveningDebriefCard: View {
         "Gros dîner ce soir",
     ]
 
-    init(pendingSlots: Set<MealSlot>, initialText: String? = nil, save: @escaping (EveningDebrief) -> Void, dismiss: @escaping () -> Void) {
+    init(pendingSlots: Set<MealSlot>, isAfterMidnight: Bool = false, initialText: String? = nil, save: @escaping (EveningDebrief) -> Void, dismiss: @escaping () -> Void) {
         self.pendingSlots = pendingSlots
+        self.isAfterMidnight = isAfterMidnight
         self.save = save
         self.dismiss = dismiss
         _text = State(initialValue: initialText ?? "")
@@ -34,7 +37,7 @@ struct EveningDebriefCard: View {
             if let draft {
                 understood(draft)
             } else {
-                Text("Ta journée en une phrase ?")
+                Text(isAfterMidnight ? "Ta journée d'hier en une phrase ?" : "Ta journée en une phrase ?")
                     .font(.title3.weight(.semibold))
                 field
                 if notUnderstood {
@@ -87,7 +90,7 @@ struct EveningDebriefCard: View {
     private func understood(_ draft: EveningDebrief) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                ForEach(draft.understoodLines, id: \.self) { line in
+                ForEach(draft.understoodLines(nextDay: isAfterMidnight ? "Aujourd'hui" : "Demain"), id: \.self) { line in
                     Label(line, systemImage: "checkmark.circle.fill")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.training)

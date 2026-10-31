@@ -37,7 +37,10 @@ public struct EveningDebrief: Sendable, Equatable {
     }
 
     /// Ce qui a été compris, en morceaux courts à confirmer.
-    public var understoodLines: [String] {
+    public var understoodLines: [String] { understoodLines(nextDay: "Demain") }
+
+    /// - Parameter nextDay: « Demain », ou « Aujourd'hui » quand on raconte la veille après minuit.
+    public func understoodLines(nextDay: String) -> [String] {
         var lines: [String] = []
         switch workoutDone {
         case true?: lines.append("Séance faite")
@@ -50,7 +53,7 @@ public struct EveningDebrief: Sendable, Equatable {
         }
         if !tomorrow.isEmpty {
             let names = QuickAdjustment.allCases.filter(tomorrow.contains).map(Self.tomorrowName)
-            lines.append("Demain : \(names.joined(separator: ", "))")
+            lines.append("\(nextDay) : \(names.joined(separator: ", "))")
         }
         return lines
     }
@@ -65,9 +68,13 @@ public struct EveningDebrief: Sendable, Equatable {
             parts.append("Un repas copieux ne change rien à la tendance : demain, on reprend simplement le plan, sans compenser.")
         } else if !meals.isEmpty, meals.values.allSatisfy({ $0 == .asPlanned }) {
             parts.append("Repas tenus, belle journée.")
+        } else if meals.values.contains(where: { $0 == .light || $0 == .skipped }) {
+            parts.append("Repas plus léger : pense à tes protéines au prochain, sans forcer.")
         }
-        if tomorrow.contains(.tired) || tomorrow.contains(.sore) || tomorrow.contains(.kneePain) {
-            parts.append("Demain matin, la séance tiendra compte de ton état.")
+        if tomorrow.contains(.kneePain) {
+            parts.append("Prochaine séance : on ménage ton genou.")
+        } else if tomorrow.contains(.tired) || tomorrow.contains(.sore) {
+            parts.append("Prochaine séance : elle tiendra compte de ton état.")
         }
         return parts.isEmpty ? "Noté. Bonne soirée." : parts.joined(separator: " ")
     }
@@ -95,7 +102,7 @@ public struct EveningDebrief: Sendable, Equatable {
         switch adjustment {
         case .tired: "fatigué"
         case .sore: "courbatures"
-        case .kneePain: "genou"
+        case .kneePain: "genou à ménager"
         default: adjustment.phrase.lowercased()
         }
     }

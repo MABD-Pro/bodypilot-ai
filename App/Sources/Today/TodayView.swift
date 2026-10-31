@@ -192,6 +192,7 @@ struct TodayView: View {
                         if let debriefDay = eveningDebriefDay(now: now) {
                             EveningDebriefCard(
                                 pendingSlots: pendingMealSlots(in: log(on: debriefDay)),
+                                isAfterMidnight: !calendar.isDate(debriefDay, inSameDayAs: now),
                                 initialText: LaunchOptions.demoDebrief.flatMap { $0 == "YES" ? nil : $0 },
                                 save: { saveDebrief($0, for: debriefDay) },
                                 dismiss: {
@@ -671,6 +672,7 @@ struct TodayView: View {
 
     private func greeting(at date: Date) -> String {
         switch calendar.component(.hour, from: date) {
+        case 0..<5: "Bonne nuit"
         case 5..<12: "Bonjour"
         case 12..<18: "Bon après-midi"
         default: "Bonsoir"
