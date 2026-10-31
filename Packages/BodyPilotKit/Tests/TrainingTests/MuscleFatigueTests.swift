@@ -58,3 +58,39 @@ private func lift(_ exercise: String, daysAgo: Int, effort: SetEffort? = nil) ->
     ], intensityCue: "")
     #expect(MuscleFatigue.fatiguedTargets(of: workout, in: map) == [.quadriceps])
 }
+
+@Test func regionsSplitTheBackAndTheShoulders() throws {
+    let row = try #require(ExerciseRegions.of("Rowing barre"))
+    #expect(row.primary == [.lats])
+    #expect(row.secondary == [.trapezius, .biceps])
+    let bench = try #require(ExerciseRegions.of("Développé couché"))
+    #expect(bench.primary == [.chest])
+    #expect(bench.secondary == [.triceps, .frontDeltoids])
+    #expect(ExerciseRegions.parse("Avant-bras (prise), trapèzes, gainage, jambes")?.primary == [.forearms])
+    #expect(ExerciseRegions.parse("Épaules, triceps")?.primary == [.frontDeltoids, .rearDeltoids])
+}
+
+@Test func everyGuideDrawsAtLeastOneRegion() {
+    for (name, guide) in ExerciseGuide.catalog {
+        #expect(ExerciseRegions.parse(guide.muscles) != nil, "\(name)")
+        for region in MuscleRegion.allCases { #expect(!region.sides.isEmpty) }
+    }
+}
+
+@Test func sessionRegionsMergeWithoutDuplicates() {
+    let workout = Workout(title: "Test", warmupMinutes: 5, cooldownMinutes: 2, exercises: [
+        WorkoutExercise(name: "Squat à la barre", sets: 3, volume: .reps(5), restSeconds: 90, priority: 1),
+        WorkoutExercise(name: "Développé couché", sets: 3, volume: .reps(5), restSeconds: 90, priority: 1),
+        WorkoutExercise(name: "Rowing barre", sets: 3, volume: .reps(8), restSeconds: 90, priority: 2),
+    ], intensityCue: "")
+    let regions = ExerciseRegions.of(workout)
+    #expect(regions?.primary == [.quadriceps, .chest, .lats])
+    #expect(regions?.secondary.contains(.quadriceps) == false)
+    #expect(regions?.secondary.contains(.glutes) == true)
+}
+
+@Test func groupsFollowTheRegions() {
+    #expect(MuscleGroup.groups(in: "Chevilles, hanches, gainage (équilibre)") == [.glutes, .calves, .core])
+    #expect(MuscleGroup.groups(in: "Avant-bras (prise)") == [.arms])
+    #expect(ExerciseMuscles.of("Squat à la barre")?.secondary == [.glutes, .core])
+}
