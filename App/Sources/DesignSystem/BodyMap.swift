@@ -47,7 +47,8 @@ struct BodyMapZoom {
 struct BodyMapPair: View {
     var leading: MuscleRegion.Side = .front
     let color: (MuscleRegion) -> Color?
-    var height: CGFloat = 150
+    /// `nil` : la figure prend toute la largeur disponible (feuille agrandie).
+    var height: CGFloat? = 150
     var captions = true
     /// Étiquettes Face / Dos discrètes dans les cartes, lisibles en grand.
     var largeCaptions = false
@@ -124,7 +125,7 @@ struct BodyMapZoomSheet: View {
                 .pickerStyle(.segmented)
                 switch view {
                 case .both:
-                    BodyMapPair(color: color, height: 420, largeCaptions: true)
+                    BodyMapPair(color: color, height: nil, largeCaptions: true)
                 case .front:
                     BodyMap(side: .front, color: color)
                         .frame(height: 480)
