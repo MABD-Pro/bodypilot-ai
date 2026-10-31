@@ -30,16 +30,52 @@ struct BodyMap: View {
     }
 }
 
-/// Face et dos côte à côte, légendés.
+/// Ce que la feuille agrandie affiche autour de la silhouette.
+struct BodyMapZoom {
+    struct LegendLine: Identifiable {
+        let color: Color
+        let title: String
+        let items: [String]
+        var id: String { title }
+    }
+
+    var title: String
+    var legend: [LegendLine]
+}
+
+/// Face et dos côte à côte, légendés. Avec `zoom`, une touche ouvre la silhouette en grand.
 struct BodyMapPair: View {
     var leading: MuscleRegion.Side = .front
     let color: (MuscleRegion) -> Color?
     var height: CGFloat = 150
     var captions = true
+    var zoom: BodyMapZoom?
+    /// `-demoBodyMapZoom YES` : la feuille agrandie s'ouvre d'elle-même (captures).
+    var opensZoom = false
+
+    @State private var isZoomed = false
 
     private var sides: [MuscleRegion.Side] { leading == .front ? [.front, .back] : [.back, .front] }
 
     var body: some View {
+        if let zoom {
+            Button {
+                isZoomed = true
+            } label: {
+                pair
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Agrandir la silhouette")
+            .sheet(isPresented: $isZoomed) {
+                BodyMapZoomSheet(zoom: zoom, color: color)
+            }
+            .onAppear { if opensZoom { isZoomed = true } }
+        } else {
+            pair
+        }
+    }
+
+    private var pair: some View {
         HStack(spacing: Theme.Spacing.s) {
             ForEach(Array(sides.enumerated()), id: \.offset) { _, side in
                 VStack(spacing: 2) {
@@ -53,7 +89,65 @@ struct BodyMapPair: View {
                 }
             }
         }
+        .contentShape(.rect)
         .accessibilityHidden(true)
+    }
+}
+
+/// Silhouette en grand : face, dos ou les deux, avec la légende des zones colorées.
+struct BodyMapZoomSheet: View {
+    let zoom: BodyMapZoom
+    let color: (MuscleRegion) -> Color?
+
+    private enum View_: Hashable { case front, back, both }
+    @State private var view: View_ = .both
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: Theme.Spacing.l) {
+                Text(zoom.title)
+                    .font(.display(24))
+                    .multilineTextAlignment(.center)
+                Picker("Vue", selection: $view.animation(.snappy)) {
+                    Text("Les deux").tag(View_.both)
+                    Text("Face").tag(View_.front)
+                    Text("Dos").tag(View_.back)
+                }
+                .pickerStyle(.segmented)
+                switch view {
+                case .both:
+                    BodyMapPair(color: color, height: 380)
+                case .front:
+                    BodyMap(side: .front, color: color)
+                        .frame(height: 440)
+                case .back:
+                    BodyMap(side: .back, color: color)
+                        .frame(height: 440)
+                }
+                VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                    ForEach(zoom.legend) { line in
+                        HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
+                            Circle()
+                                .fill(line.color)
+                                .frame(width: 10, height: 10)
+                                .offset(y: -1)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(line.title)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                Text(line.items.isEmpty ? "—" : line.items.joined(separator: ", "))
+                                    .font(.subheadline)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(Theme.Spacing.xxl)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .presentationDetents([.large])
     }
 }
 
@@ -61,10 +155,14 @@ struct BodyMapPair: View {
 struct MuscleHighlightRow: View {
     let regions: ExerciseRegions
     var tint: Color = Theme.training
+    /// Titre de la silhouette agrandie (nom de l'exercice).
+    var title = "Muscles travaillés"
+    /// Ouvre la silhouette en grand dès l'affichage (captures).
+    var opensZoom = false
 
     var body: some View {
         HStack(alignment: .center, spacing: Theme.Spacing.l) {
-            BodyMapPair(leading: regions.leadingSide, color: color, height: 140)
+            BodyMapPair(leading: regions.leadingSide, color: color, height: 140, zoom: zoom, opensZoom: opensZoom)
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                 legend(title: "Travaille surtout", regions: regions.primary, opacity: 1)
                 if !regions.secondary.isEmpty {
@@ -81,6 +179,14 @@ struct MuscleHighlightRow: View {
         if regions.primary.contains(region) { return tint }
         if regions.secondary.contains(region) { return tint.opacity(0.55) }
         return nil
+    }
+
+    private var zoom: BodyMapZoom {
+        var legend = [BodyMapZoom.LegendLine(color: tint, title: "Travaille surtout", items: regions.primary.map(\.label))]
+        if !regions.secondary.isEmpty {
+            legend.append(BodyMapZoom.LegendLine(color: tint.opacity(0.55), title: "En appoint", items: regions.secondary.map(\.label)))
+        }
+        return BodyMapZoom(title: title, legend: legend)
     }
 
     private func legend(title: String, regions: [MuscleRegion], opacity: Double) -> some View {

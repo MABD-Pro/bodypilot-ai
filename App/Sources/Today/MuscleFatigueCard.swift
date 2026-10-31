@@ -14,7 +14,7 @@ struct MuscleFatigueCard: View {
                 .font(.subheadline.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
             HStack(alignment: .center, spacing: Theme.Spacing.l) {
-                BodyMapPair(color: { Self.fill(map.state($0.group)) }, height: 150)
+                BodyMapPair(color: { Self.fill(map.state($0.group)) }, height: 150, zoom: zoom)
                 VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                     ForEach(MuscleState.allCases.reversed(), id: \.self) { state in
                         legend(state)
@@ -61,6 +61,12 @@ struct MuscleFatigueCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    private var zoom: BodyMapZoom {
+        BodyMapZoom(title: "Tes muscles", legend: MuscleState.allCases.reversed().map { state in
+            .init(color: Self.fill(state) ?? Color.primary.opacity(0.16), title: state.label, items: map.groups(state).map(\.label))
+        })
     }
 
     private var accessibilityText: String {

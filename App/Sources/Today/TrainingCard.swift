@@ -124,7 +124,7 @@ struct TrainingCard: View {
             }
 
             if let regions = ExerciseRegions.of(workout) {
-                SessionMusclesRow(regions: regions)
+                SessionMusclesRow(title: workout.title, regions: regions)
             }
 
             if !workout.isStrengthTest && !workout.isCardioTest {
@@ -960,13 +960,14 @@ extension Calendar {
 
 /// Ce que la séance du jour va travailler, en un coup d'œil, avant la liste des exercices.
 private struct SessionMusclesRow: View {
+    let title: String
     let regions: ExerciseRegions
 
     var body: some View {
         HStack(alignment: .center, spacing: Theme.Spacing.m) {
             // Face toujours à gauche et légendée : une petite figure de dos lue comme une face
             // ferait prendre les dorsaux pour des pectoraux.
-            BodyMapPair(color: color, height: 80)
+            BodyMapPair(color: color, height: 80, zoom: zoom)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Travaille surtout")
                     .font(.caption.weight(.semibold))
@@ -985,6 +986,13 @@ private struct SessionMusclesRow: View {
         if regions.primary.contains(region) { return Theme.training }
         if regions.secondary.contains(region) { return Theme.training.opacity(0.55) }
         return nil
+    }
+
+    private var zoom: BodyMapZoom {
+        BodyMapZoom(title: title, legend: [
+            .init(color: Theme.training, title: "Travaille surtout", items: regions.primary.map(\.label)),
+            .init(color: Theme.training.opacity(0.55), title: "En appoint", items: regions.secondary.map(\.label)),
+        ])
     }
 }
 
@@ -1119,7 +1127,7 @@ private struct StationSheet: View {
                 if tab == .video {
                     ExerciseSheetParts.video(for: exercise)
                 } else if let guide = ExerciseGuide.guide(for: exercise) {
-                    ExerciseSheetParts.technique(guide)
+                    ExerciseSheetParts.technique(guide, exercise: exercise)
                 }
             }
             .padding(Theme.Spacing.xxl)
@@ -1440,7 +1448,7 @@ private struct LiftEntrySheet: View {
                 logTab
             case .technique:
                 if let guide = item.guide {
-                    ExerciseSheetParts.technique(guide)
+                    ExerciseSheetParts.technique(guide, exercise: item.exercise)
                 }
             case .video:
                 ExerciseSheetParts.video(for: item.exercise)
@@ -1916,13 +1924,13 @@ private enum ExerciseSheetParts {
     }
 
     /// Repères de technique, à lire à côté de la démonstration.
-    static func technique(_ guide: ExerciseGuide) -> some View {
+    static func technique(_ guide: ExerciseGuide, exercise: String) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             Label("Technique", systemImage: "figure.strengthtraining.traditional")
                 .font(.headline)
                 .foregroundStyle(Theme.training)
             if let regions = ExerciseRegions.parse(guide.muscles) {
-                MuscleHighlightRow(regions: regions)
+                MuscleHighlightRow(regions: regions, title: exercise, opensZoom: LaunchOptions.demoBodyMapZoom)
             } else {
                 Text(guide.muscles)
                     .font(.subheadline.weight(.medium))
