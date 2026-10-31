@@ -269,3 +269,10 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 
 - Heure habituelle : début de la première séance de chaque jour sur 28 jours, lue dans Santé (≥ 20 min, marche exclue, comme la régularité). Au moins 4 jours, et 60 % d'entre eux à moins d'une heure de la médiane ; la médiane est arrondie au quart d'heure. Une séance seulement cochée dans BodyPilot n'a pas d'heure et ne compte pas.
 - Rappel avant la séance : réglage « Rappel avant ma séance » dans Mon profil > Confidentialité, coupé par défaut (c'est le seul rappel possible chaque jour, l'utilisateur le choisit). Message 20 min avant l'heure habituelle, seulement si la séance du jour n'est pas faite, pas remplacée par le repos ni une marche, et pas pendant un décrochage (le rappel « On repart » suffit). Reprogrammé à chaque passage dans l'app.
+
+## Fatigue par muscle (`Training/MuscleFatigue`, `App/Today/MuscleFatigueCard`)
+
+- Source : les séries notées (une par exercice et par jour). Chaque exercice compte pour 3 séries équivalentes, ×0,8 si facile, ×1,2 si dur. Les muscles viennent de la fiche de l'exercice : le premier listé reçoit tout, les suivants la moitié (« jambes » = quadriceps, ischio-jambiers, fessiers).
+- Récupération : il reste 100 % le jour même, 60 % le lendemain, 30 % le surlendemain, plus rien ensuite. La force revient en 48 à 72 h après une séance lourde (Morán-Navarro et al., 2017, cité de mémoire, à vérifier). Seuils : 3 séries équivalentes ou plus = fatigué, 1,5 = en récupération (choix BodyPilot).
+- Carte « Tes muscles » sous la séance, seulement si un muscle n'est pas frais. Si la séance du jour, pas encore faite, a pour muscle principal un muscle fatigué (séries d'aujourd'hui exclues), le coach conseille de garder 2 à 3 répétitions en réserve ou de remplacer l'exercice. La séance proposée ne change pas : la règle des 48 h entre deux séances de force reste la référence.
+- Limites : une séance faite hors app (Santé) n'a pas de muscles connus et ne compte pas ; le nombre réel de séries n'est pas noté.

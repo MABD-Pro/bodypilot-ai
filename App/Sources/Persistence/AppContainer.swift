@@ -103,6 +103,8 @@ enum LaunchOptions {
     static var demoCycleWeek: Int? { defaults.object(forKey: "demoCycle") == nil ? nil : defaults.integer(forKey: "demoCycle") }
     /// `-demoHyrox` : le cycle de démonstration (et le choix proposé) est l'Hyrox.
     static var demoHyrox: Bool { defaults.bool(forKey: "demoHyrox") }
+    /// `-demoMuscles YES` : séance lourde notée hier (jambes et dos durs), carte de fatigue par muscle.
+    static var demoMuscles: Bool { defaults.bool(forKey: "demoMuscles") }
     /// `-demoHunger YES` : faim notée l'après-midi quatre jours sur quatorze, et une petite faim il y a vingt minutes.
     static var demoHunger: Bool { defaults.bool(forKey: "demoHunger") }
     /// `-demoLifts YES` : profil en salle et séries notées les semaines passées, record du jour sur le premier exercice.
@@ -334,6 +336,18 @@ enum DemoData {
 
     /// Deux séances passées par exercice ; la dernière dépasse les répétitions prévues, d'où une charge en hausse.
     @MainActor
+    /// Séries notées hier : jambes et dos poussés jusqu'au bout, épaules et dos à l'effort visé.
+    private static func seedMuscles(context: ModelContext, now: Date, calendar: Calendar) {
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: now) else { return }
+        let lifts: [(String, Double, Int, SetEffort)] = [
+            ("Soulevé de terre", 100, 5, .hard), ("Développé militaire", 40, 6, .right),
+            ("Rowing barre", 60, 8, .right), ("Fentes bulgares haltères", 16, 8, .hard),
+        ]
+        for (exercise, kg, reps, effort) in lifts {
+            context.insert(LiftRecord(LiftEntry(exercise: exercise, date: calendar.storedDay(for: yesterday), kg: kg, reps: reps, effort: effort)))
+        }
+    }
+
     /// Faims passées, et une petite faim notée il y a vingt minutes.
     private static func seedHunger(context: ModelContext, now: Date, calendar: Calendar) {
         for note in DemoData.hunger(now: now, calendar: calendar) {
@@ -464,6 +478,7 @@ enum DemoData {
 
         if LaunchOptions.demoLifts { seedLifts(for: profile, context: context, now: now, calendar: calendar) }
         if LaunchOptions.demoHunger { seedHunger(context: context, now: now, calendar: calendar) }
+        if LaunchOptions.demoMuscles { seedMuscles(context: context, now: now, calendar: calendar) }
 
         var adjustments = LaunchOptions.demoAdjustments
         var minutes: Int?

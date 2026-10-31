@@ -255,6 +255,8 @@ struct TodayView: View {
                             showHistory: { showHistory(.section(.sessions)) }
                         )
                             .id("training")
+                        muscleSection(lifts: lifts, training: (todayLog?.sessionEdits ?? SessionEdits()).apply(to: plan.training), isDone: todayLog?.workoutDone ?? false, now: now)
+                            .id("muscles")
                         ProgressCard(
                             trend: plan.trend,
                             message: plan.progressMessage,
@@ -743,6 +745,21 @@ struct TodayView: View {
             usualStartMinute: TrainingRhythm.usualStartMinute(healthActivities, before: now, calendar: calendar),
             sessionTitle: training.workoutTitle, isDone: todayLog?.workoutDone ?? false, now: now, calendar: calendar
         )].compactMap { $0 }
+    }
+
+    /// Fatigue par muscle d'après les séries notées des trois derniers jours ; rien sans série.
+    @ViewBuilder
+    private func muscleSection(lifts: [LiftEntry], training: TrainingDay, isDone: Bool, now: Date) -> some View {
+        let map = MuscleFatigue.map(lifts: lifts, on: now, calendar: calendar)
+        if !map.isEmpty {
+            let targets: [MuscleGroup] = {
+                guard !isDone, case .workout(let workout) = training.kind else { return [] }
+                // Les séries du jour comptent déjà : on prévient seulement avant de commencer.
+                let before = MuscleFatigue.map(lifts: lifts.filter { !calendar.isDate($0.date, inSameDayAs: now) }, on: now, calendar: calendar)
+                return MuscleFatigue.fatiguedTargets(of: workout, in: before)
+            }()
+            MuscleFatigueCard(map: map, fatiguedTargets: targets)
+        }
     }
 
     /// Faim qui revient au même moment ces deux dernières semaines.
