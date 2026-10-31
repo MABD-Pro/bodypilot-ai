@@ -76,9 +76,7 @@ shoot 2d-depense-mesuree -demoData YES -demoIntake YES -demoScrollTo nutrition
 shoot 2e-phase-prise -demoData YES -demoTarget 92 -demoScrollTo nutrition
 shoot 2f-liste-de-courses -demoData YES -demoGroceries YES
 shoot 2g-marques-conseillees -demoData YES -demoGroceries YES -demoBrands "Skyr nature"
-shoot 2j-scanner-produit -demoData YES -demoGroceries YES -demoProduct YES
 shoot 2h-faim -demoData YES -demoHunger YES -demoScrollTo nutrition
-shoot 2i-lire-la-carte -demoData YES -demoMenu YES
 shoot 3z-fatigue-muscles -demoData YES -demoMuscles YES -demoScrollTo muscles
 shoot 3m-fiche-muscles -demoData YES -demoLifts YES -demoTechnique YES -demoScrollTo training
 shoot 3n-silhouette-zoom -demoData YES -demoLifts YES -demoTechnique YES -demoBodyMapZoom YES -demoScrollTo training

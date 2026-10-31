@@ -61,13 +61,11 @@ private func lift(_ exercise: String, daysAgo: Int, effort: SetEffort? = nil) ->
 
 @Test func regionsSplitTheBackAndTheShoulders() throws {
     let row = try #require(ExerciseRegions.of("Rowing barre"))
-    #expect(row.primary == [.trapezius])
-    #expect(row.secondary == [.lats, .biceps])
-    #expect(row.leadingSide == .back)
+    #expect(row.primary == [.lats])
+    #expect(row.secondary == [.trapezius, .biceps])
     let bench = try #require(ExerciseRegions.of("Développé couché"))
     #expect(bench.primary == [.chest])
     #expect(bench.secondary == [.triceps, .frontDeltoids])
-    #expect(bench.leadingSide == .front)
     #expect(ExerciseRegions.parse("Avant-bras (prise), trapèzes, gainage, jambes")?.primary == [.forearms])
     #expect(ExerciseRegions.parse("Épaules, triceps")?.primary == [.frontDeltoids, .rearDeltoids])
 }
@@ -86,7 +84,13 @@ private func lift(_ exercise: String, daysAgo: Int, effort: SetEffort? = nil) ->
         WorkoutExercise(name: "Rowing barre", sets: 3, volume: .reps(8), restSeconds: 90, priority: 2),
     ], intensityCue: "")
     let regions = ExerciseRegions.of(workout)
-    #expect(regions?.primary == [.quadriceps, .chest, .trapezius])
+    #expect(regions?.primary == [.quadriceps, .chest, .lats])
     #expect(regions?.secondary.contains(.quadriceps) == false)
     #expect(regions?.secondary.contains(.glutes) == true)
+}
+
+@Test func groupsFollowTheRegions() {
+    #expect(MuscleGroup.groups(in: "Chevilles, hanches, gainage (équilibre)") == [.glutes, .calves, .core])
+    #expect(MuscleGroup.groups(in: "Avant-bras (prise)") == [.arms])
+    #expect(ExerciseMuscles.of("Squat à la barre")?.secondary == [.glutes, .core])
 }

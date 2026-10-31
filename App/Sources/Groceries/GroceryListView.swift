@@ -15,7 +15,6 @@ struct GroceryListView: View {
     @FocusState private var isAdding: Bool
     /// Article dont on montre les marques conseillées.
     @State private var brandsItem: GroceryItem?
-    @State private var isScanningProduct = LaunchOptions.demoProduct
 
     private let calendar = Calendar.current
 
@@ -124,13 +123,7 @@ struct GroceryListView: View {
         .background { AppBackground() }
         .navigationTitle("Liste de courses")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $isScanningProduct) {
-            ProductScanSheet(demoProduct: LaunchOptions.demoProduct ? DemoData.product : nil)
-        }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Scanner un produit", systemImage: "barcode.viewfinder") { isScanningProduct = true }
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: shareText(state: state, days: days, items: toBuy)) {
                     Label("Partager", systemImage: "square.and.arrow.up")

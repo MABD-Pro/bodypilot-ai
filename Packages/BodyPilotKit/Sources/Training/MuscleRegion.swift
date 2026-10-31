@@ -126,11 +126,4 @@ public struct ExerciseRegions: Sendable, Equatable {
         secondary.removeAll { primary.contains($0) }
         return primary.isEmpty && secondary.isEmpty ? nil : ExerciseRegions(primary: primary, secondary: secondary)
     }
-
-    /// Le côté qui montre le plus de zones principales : la fiche l'affiche en premier.
-    public var leadingSide: MuscleRegion.Side {
-        let front = primary.filter { $0.sides.contains(.front) }.count
-        let back = primary.filter { $0.sides.contains(.back) }.count
-        return back > front ? .back : .front
-    }
 }

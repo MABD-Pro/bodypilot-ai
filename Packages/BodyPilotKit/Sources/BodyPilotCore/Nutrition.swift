@@ -161,21 +161,16 @@ public struct DescribedMeal: Sendable, Equatable, Codable {
     /// Phrase de l'utilisateur, gardée pour la modifier plus tard.
     public var text: String
     public var foods: [DescribedFood]
-    /// Nom du plat quand il vient d'une carte de restaurant (« Entrecôte grillée, frites maison »).
-    public var dishName: String?
 
-    public init(text: String, foods: [DescribedFood], dishName: String? = nil) {
+    public init(text: String, foods: [DescribedFood]) {
         self.text = text
         self.foods = foods
-        self.dishName = dishName
     }
 
     public var macros: Macros { foods.reduce(.zero) { $0 + $1.macros } }
 
-    /// Titre court pour la carte : le plat choisi sur la carte, sinon les aliments dans l'ordre
-    /// (« Pâtes carbonara et coca »).
+    /// Titre court pour la carte : les aliments, dans l'ordre (« Pâtes carbonara et coca »).
     public var title: String {
-        if let dishName { return dishName }
         guard let first = foods.first?.name else { return text }
         let names = [first] + foods.dropFirst().map { $0.name.lowercased() }
         return names.count == 1 ? first : names.dropLast().joined(separator: ", ") + " et " + names[names.count - 1]
