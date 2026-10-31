@@ -63,6 +63,8 @@ public struct UserProfile: Sendable, Equatable, Codable {
     public var maintenanceWeekUntil: Date? = nil
     /// Fin de la semaine plancher (le minimum qui compte, après un décrochage) ; `nil` : aucune.
     public var floorWeekUntil: Date? = nil
+    /// Fin de la pause du déficit choisie depuis le garde-fou alimentaire ; `nil` : aucune.
+    public var deficitPauseUntil: Date? = nil
     /// Moyenne de pas mesurée dans Santé (14 jours) ; remplace le niveau déclaré pour la vie
     /// quotidienne. `nil` : pas assez de jours mesurés, ou Santé non relié.
     public var averageDailySteps: Double?

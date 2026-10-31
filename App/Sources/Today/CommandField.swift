@@ -76,6 +76,7 @@ struct CommandField: View {
     private func submit() {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !isThinking else { return }
+        EatingCareStore.note(trimmed)
         isThinking = true
         Task {
             // Mots-clés instantanés ; le modèle embarqué ne prend le relais que si besoin.

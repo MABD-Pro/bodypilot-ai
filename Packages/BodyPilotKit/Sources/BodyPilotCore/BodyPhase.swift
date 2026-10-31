@@ -48,7 +48,7 @@ public enum BodyPhase: String, Sendable, Equatable {
     ///   - waistCm: dernier tour de taille au ruban, s'il est connu.
     ///   - fatPercent: taux de gras de la balance (Santé), s'il est connu.
     public static func resolve(for profile: UserProfile, currentWeightKg: Double, waistCm: Double?, fatPercent: Double?, on date: Date, calendar: Calendar) -> BodyPhase {
-        if profile.forbidsDeficit(on: date, calendar: calendar) || profile.isOnMaintenanceWeek(on: date) { return .maintenance }
+        if profile.forbidsDeficit(on: date, calendar: calendar) || profile.isOnMaintenanceWeek(on: date) || profile.isOnDeficitPause(on: date) { return .maintenance }
         let bmi = bmi(weightKg: currentWeightKg, heightCm: profile.heightCm)
         if bmi < underweightBMI { return .leanGain }
         if let target = profile.targetWeightKg {
@@ -68,6 +68,8 @@ public enum BodyPhase: String, Sendable, Equatable {
         switch self {
         case .fatLoss:
             return "Phase : perte de gras."
+        case .maintenance where date.map { profile.isOnDeficitPause(on: $0) } == true:
+            return "Phase : équilibre, déficit en pause. Tu le reprends quand tu veux, depuis Mon profil."
         case .maintenance where date.map { profile.isOnMaintenanceWeek(on: $0) } == true:
             return "Phase : semaine à l'équilibre, pour souffler après le déficit. La perte de gras reprend ensuite."
         case .maintenance:
@@ -103,5 +105,10 @@ extension UserProfile {
     /// Semaine à l'équilibre en cours.
     public func isOnMaintenanceWeek(on date: Date) -> Bool {
         maintenanceWeekUntil.map { date < $0 } ?? false
+    }
+
+    /// Pause du déficit en cours (garde-fou alimentaire).
+    public func isOnDeficitPause(on date: Date) -> Bool {
+        deficitPauseUntil.map { date < $0 } ?? false
     }
 }
