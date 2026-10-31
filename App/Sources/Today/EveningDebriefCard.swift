@@ -51,7 +51,6 @@ struct EveningDebriefCard: View {
                         }
                     }
                 }
-                .scrollClipDisabled()
                 Button("Pas ce soir", action: dismiss)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.secondary)

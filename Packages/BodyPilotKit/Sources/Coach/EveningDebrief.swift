@@ -23,8 +23,18 @@ public struct EveningDebrief: Sendable, Equatable {
         self.tier = tier
     }
 
-    /// Le débrief s'ouvre à partir de 18 h : avant, la journée n'est pas finie.
+    /// Le débrief s'ouvre à 18 h (avant, la journée n'est pas finie) et reste ouvert jusqu'à 4 h :
+    /// après minuit, c'est encore la veille qu'on raconte.
     public static let opensAtHour = 18
+    public static let closesAtHour = 4
+
+    /// Jour raconté par un débrief fait à `date`, ou `nil` hors de la plage 18 h – 4 h.
+    public static func day(for date: Date, calendar: Calendar) -> Date? {
+        let hour = calendar.component(.hour, from: date)
+        if hour >= opensAtHour { return calendar.startOfDay(for: date) }
+        if hour < closesAtHour { return calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: date)) }
+        return nil
+    }
 
     /// Ce qui a été compris, en morceaux courts à confirmer.
     public var understoodLines: [String] {

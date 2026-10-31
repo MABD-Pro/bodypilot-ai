@@ -1,4 +1,5 @@
 import BodyPilotCore
+import Foundation
 import Testing
 @testable import Coach
 
@@ -42,4 +43,14 @@ private let all = Set(MealSlot.allCases)
     let debrief = EveningDebriefParser.parse("Belle journée au bureau", pendingSlots: all)
     #expect(!debrief.isUnderstood)
     #expect(debrief.coachReply == "Noté. Bonne soirée.")
+}
+
+@Test func afterMidnightTheDebriefTellsYesterday() {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "UTC")!
+    func at(_ day: Int, _ hour: Int) -> Date { calendar.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: 30))! }
+    let friday = calendar.date(from: DateComponents(year: 2026, month: 10, day: 30))!
+    #expect(EveningDebrief.day(for: at(30, 19), calendar: calendar) == friday)
+    #expect(EveningDebrief.day(for: at(31, 1), calendar: calendar) == friday)
+    #expect(EveningDebrief.day(for: at(31, 10), calendar: calendar) == nil)
 }
