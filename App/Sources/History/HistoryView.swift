@@ -574,7 +574,7 @@ struct HistoryView: View {
                         Text("Sur 30 jours : \(StepActivity.displayed(average30).frenchInteger) pas/jour en moyenne, \(summary.daysInZone30) jour\(summary.daysInZone30 > 1 ? "s" : "") à \(Double(zone.lowerBound).frenchInteger) pas ou plus.")
                     }
                     if let best = summary.best {
-                        Text("Meilleur jour : \(Double(best.steps).frenchInteger) pas, \(dayLabel(best.day).lowercased()).")
+                        Text("Meilleur jour (\(dayLabel(best.day).lowercased())) : \(Double(best.steps).frenchInteger) pas.")
                     }
                     Text("Lus dans Santé (iPhone et Apple Watch). Un jour sans aucun pas, téléphone resté à la maison, n'est pas compté. L'objectif monte de 1 000 au-dessus de ta moyenne, jusqu'à \(Double(zone.upperBound).frenchInteger).")
                         .foregroundStyle(.secondary)
