@@ -283,4 +283,4 @@ Tout est déterministe et calculé sur l'appareil. Aucun appel IA.
 - Bouton « Lire la carte en photo » sur un repas au restaurant pas encore mangé. Le texte est lu sur l'iPhone (Vision, reconnaissance de texte en français) ; la photo n'est ni gardée ni envoyée.
 - Lignes : prix retirés, rubriques écartées, lignes des desserts, boissons, vins, sauces et suppléments ignorées ; une ligne en minuscules complète le plat du dessus (description).
 - Chaque plat passe par le lecteur de « Décrire » (portions habituelles). Classement : protéines jusqu'aux repères du repas, pénalité au-delà de 110 % des calories et sous 60 %. Trois plats au plus, le premier recommandé. « Copieux » au-delà de 110 % des calories, « protéines justes » sous 75 % des protéines (choix BodyPilot).
-- « Je prends ça » enregistre le plat comme repas décrit : la journée se réajuste et les quantités restent corrigeables dans « Décrire ».
+- « Je commande ça » enregistre le plat comme repas décrit, sous le nom de la carte : la journée se réajuste, les quantités restent corrigeables dans « Décrire » et le repas peut être annulé.

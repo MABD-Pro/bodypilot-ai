@@ -17,14 +17,16 @@ public struct MenuPick: Sendable, Equatable {
     public var meal: DescribedMeal
     public var fit: Fit
     public var score: Double
+    /// Premier du classement.
+    public var isBest = false
 
     public var macros: Macros { meal.macros }
 
     public var reason: String {
         switch fit {
         case .good: "Dans tes repères"
-        case .lowProtein: "Protéines un peu justes : ajoute une source de protéines si possible"
-        case .heavy: "Plus copieux que prévu : laisse une partie des féculents ou de la sauce"
+        case .lowProtein: isBest ? "Le plus riche en protéines de la carte, un peu sous tes repères" : "Protéines un peu justes pour ce repas"
+        case .heavy: isBest ? "Le meilleur choix de la carte : laisse une partie des féculents ou de la sauce" : "Plus copieux que prévu : laisse une partie des féculents ou de la sauce"
         }
     }
 }
@@ -82,9 +84,11 @@ public enum MenuAdvisor {
         let picks = dishes(fromLines: lines).compactMap { dish -> MenuPick? in
             let parse = MealTextParser.parse(dish)
             guard !parse.foods.isEmpty, seen.insert(MealTextParser.normalize(dish)).inserted else { return nil }
-            return pick(dish: dish, meal: DescribedMeal(text: dish, foods: parse.foods), target: target)
+            return pick(dish: dish, meal: DescribedMeal(text: dish, foods: parse.foods, dishName: dish), target: target)
         }
-        return Array(picks.sorted { $0.score > $1.score }.prefix(maxPicks))
+        var ranked = Array(picks.sorted { $0.score > $1.score }.prefix(maxPicks))
+        if !ranked.isEmpty { ranked[0].isBest = true }
+        return ranked
     }
 
     static func pick(dish: String, meal: DescribedMeal, target: Macros) -> MenuPick {

@@ -55,3 +55,9 @@ private let dinner = Macros(kcal: 800, proteinG: 50, carbsG: 80, fatG: 30)
 @Test func unreadableMenuGivesNothing() {
     #expect(MenuAdvisor.advise(lines: ["Bienvenue", "Ouvert 7j/7", "12 €"], target: dinner).isEmpty)
 }
+
+@Test func chosenDishKeepsItsMenuName() throws {
+    let best = try #require(MenuAdvisor.advise(lines: menu, target: dinner).first)
+    #expect(best.isBest)
+    #expect(best.meal.title == best.dish)
+}

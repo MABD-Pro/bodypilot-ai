@@ -100,9 +100,9 @@ struct MenuScanSheet: View {
         Text(picks.count == 1 ? "Mon conseil" : "Mes \(picks.count) conseils")
             .font(.headline)
         ForEach(Array(picks.enumerated()), id: \.offset) { index, pick in
-            pickRow(pick, isBest: index == 0)
+            pickRow(pick, isBest: pick.isBest)
         }
-        Text("Estimations à partir des portions habituelles d'un restaurant. Tu pourras corriger les quantités dans « Décrire ».")
+        Text("Estimations à partir des portions habituelles d'un restaurant. Le plat choisi compte comme ton repas : corrige les quantités dans « Décrire » après coup, ou annule-le si tu changes d'avis.")
             .font(.footnote)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -132,7 +132,7 @@ struct MenuScanSheet: View {
                 choose(pick.meal)
                 dismiss()
             } label: {
-                Text("Je prends ça")
+                Text("Je commande ça")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity, minHeight: 40)
             }
